@@ -7,6 +7,7 @@ import 'js_interop/model_tensor_info.dart';
 import 'js_interop/tflite_js.dart';
 import 'js_interop/tfjs_tensor.dart';
 import 'model.dart';
+import 'signature_runner.dart';
 import 'tensor.dart';
 import '../util/byte_conversion_utils_web.dart';
 
@@ -321,4 +322,30 @@ class Interpreter {
 
     return tensor;
   }
+
+  // ---------------------------------------------------------------------------
+  // Signature / SignatureRunner APIs (not supported on web)
+  // ---------------------------------------------------------------------------
+
+  /// Not supported on web.
+  int get signatureCount => throw UnsupportedError(
+    'Interpreter.signatureCount is not supported on web.',
+  );
+
+  /// Not supported on web.
+  String getSignatureKey(int index) => throw UnsupportedError(
+    'Interpreter.getSignatureKey is not supported on web.',
+  );
+
+  /// Not supported on web.
+  List<String> get signatureKeys => throw UnsupportedError(
+    'Interpreter.signatureKeys is not supported on web.',
+  );
+
+  /// Not supported on web.
+  SignatureRunner getSignatureRunner(String signatureKey) =>
+      throw UnsupportedError(
+        'Interpreter.getSignatureRunner is not supported on web. '
+        'On-device training requires a native platform.',
+      );
 }

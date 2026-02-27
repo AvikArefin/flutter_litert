@@ -6,6 +6,7 @@
 import 'dart:typed_data';
 
 import 'interpreter_options.dart';
+import 'signature_runner.dart';
 import 'tensor.dart';
 
 /// TensorFlowLite interpreter for running inference on a model.
@@ -131,4 +132,25 @@ class Interpreter {
   bool get isDeleted => throw UnsupportedError(
     'Interpreter.isDeleted is not supported on this platform',
   );
+
+  /// Returns the number of signatures defined in the model.
+  int get signatureCount => throw UnsupportedError(
+    'Interpreter.signatureCount is not supported on this platform',
+  );
+
+  /// Returns the key of the signature at [index].
+  String getSignatureKey(int index) => throw UnsupportedError(
+    'Interpreter.getSignatureKey is not supported on this platform',
+  );
+
+  /// Returns the keys of all signatures defined in the model.
+  List<String> get signatureKeys => throw UnsupportedError(
+    'Interpreter.signatureKeys is not supported on this platform',
+  );
+
+  /// Returns a [SignatureRunner] for the given [signatureKey].
+  SignatureRunner getSignatureRunner(String signatureKey) =>
+      throw UnsupportedError(
+        'Interpreter.getSignatureRunner is not supported on this platform',
+      );
 }

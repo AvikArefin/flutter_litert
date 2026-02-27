@@ -26,6 +26,7 @@ import '../bindings/tensorflow_lite_bindings_generated.dart';
 import '../ffi/helper.dart';
 import 'interpreter_options.dart';
 import 'model.dart';
+import 'signature_runner.dart';
 import 'tensor.dart';
 
 /// TensorFlowLite interpreter for running inference on a model.
@@ -378,4 +379,66 @@ class Interpreter {
   bool get isDeleted => _deleted;
 
   //TODO: (JAVA) void modifyGraphWithDelegate(Delegate delegate)
+
+  // ---------------------------------------------------------------------------
+  // Signature / SignatureRunner APIs
+  // ---------------------------------------------------------------------------
+
+  /// Returns the number of signatures defined in the model.
+  ///
+  /// Training-capable models typically expose multiple signatures:
+  /// `train`, `infer`, `save`, and `restore`.
+  int get signatureCount =>
+      tfliteBinding.TfLiteInterpreterGetSignatureCount(_interpreter);
+
+  /// Returns the key (name) of the signature at [index].
+  ///
+  /// Use [signatureKeys] to list all signature keys at once.
+  String getSignatureKey(int index) {
+    return tfliteBinding.TfLiteInterpreterGetSignatureKey(
+      _interpreter,
+      index,
+    ).cast<Utf8>().toDartString();
+  }
+
+  /// Returns the keys of all signatures defined in the model.
+  ///
+  /// For a training-capable model this typically returns:
+  /// `['train', 'infer', 'save', 'restore']`.
+  List<String> get signatureKeys =>
+      List.generate(signatureCount, getSignatureKey, growable: false);
+
+  /// Returns a [SignatureRunner] for the signature identified by [signatureKey].
+  ///
+  /// The caller is responsible for calling [SignatureRunner.close] on the
+  /// returned runner before this [Interpreter] is closed.
+  ///
+  /// Throws [ArgumentError] if [signatureKey] is not found in the model.
+  ///
+  /// Example — run a training step:
+  /// ```dart
+  /// final trainRunner = interpreter.getSignatureRunner('train');
+  /// final lossBuffer = Float32List(1);
+  /// trainRunner.run({'x': imageData, 'y': labels}, {'loss': lossBuffer});
+  /// print('Loss: ${lossBuffer[0]}');
+  /// trainRunner.close();
+  /// ```
+  SignatureRunner getSignatureRunner(String signatureKey) {
+    final keyPtr = signatureKey.toNativeUtf8();
+    try {
+      final runner = tfliteBinding.TfLiteInterpreterGetSignatureRunner(
+        _interpreter,
+        keyPtr.cast(),
+      );
+      checkArgument(
+        isNotNull(runner),
+        message:
+            'Signature "$signatureKey" not found. '
+            'Available signatures: ${signatureKeys.join(', ')}',
+      );
+      return SignatureRunner(runner);
+    } finally {
+      calloc.free(keyPtr);
+    }
+  }
 }

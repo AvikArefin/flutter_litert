@@ -2,6 +2,7 @@ export 'web/delegate.dart';
 export 'web/interpreter.dart';
 export 'web/interpreter_options.dart';
 export 'web/isolate_interpreter.dart';
+export 'web/signature_runner.dart';
 export 'web/tensor.dart';
 export 'web/version.dart';
 export 'web/web_init.dart';

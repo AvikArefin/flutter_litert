@@ -2,6 +2,7 @@ export 'native/delegate.dart';
 export 'native/interpreter.dart';
 export 'native/interpreter_options.dart';
 export 'native/isolate_interpreter.dart';
+export 'native/signature_runner.dart';
 export 'native/tensor.dart';
 export 'native/version.dart';
 export 'native/init.dart';

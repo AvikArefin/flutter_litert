@@ -26,6 +26,10 @@ class SignatureRunner {
     'SignatureRunner.getInputTensor is not supported on this platform',
   );
 
+  List<Tensor> getInputTensors() => throw UnsupportedError(
+    'SignatureRunner.getInputTensors is not supported on this platform',
+  );
+
   void resizeInputTensor(String name, List<int> shape) =>
       throw UnsupportedError(
         'SignatureRunner.resizeInputTensor is not supported on this platform',
@@ -37,6 +41,10 @@ class SignatureRunner {
 
   void invoke() => throw UnsupportedError(
     'SignatureRunner.invoke is not supported on this platform',
+  );
+
+  bool cancel() => throw UnsupportedError(
+    'SignatureRunner.cancel is not supported on this platform',
   );
 
   int get outputCount => throw UnsupportedError(
@@ -55,6 +63,10 @@ class SignatureRunner {
     'SignatureRunner.getOutputTensor is not supported on this platform',
   );
 
+  List<Tensor> getOutputTensors() => throw UnsupportedError(
+    'SignatureRunner.getOutputTensors is not supported on this platform',
+  );
+
   void run(Map<String, Object> inputs, Map<String, Object> outputs) =>
       throw UnsupportedError(
         'SignatureRunner.run is not supported on this platform',
@@ -66,5 +78,9 @@ class SignatureRunner {
 
   bool get isClosed => throw UnsupportedError(
     'SignatureRunner.isClosed is not supported on this platform',
+  );
+
+  int get lastNativeInferenceDurationMicroSeconds => throw UnsupportedError(
+    'SignatureRunner.lastNativeInferenceDurationMicroSeconds is not supported on this platform',
   );
 }

@@ -27,6 +27,9 @@ class SignatureRunner {
   Tensor getInputTensor(String name) =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
+  List<Tensor> getInputTensors() =>
+      throw UnsupportedError('SignatureRunner is not supported on web.');
+
   void resizeInputTensor(String name, List<int> shape) =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
@@ -34,6 +37,9 @@ class SignatureRunner {
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
   void invoke() =>
+      throw UnsupportedError('SignatureRunner is not supported on web.');
+
+  bool cancel() =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
   int get outputCount =>
@@ -48,6 +54,9 @@ class SignatureRunner {
   Tensor getOutputTensor(String name) =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
+  List<Tensor> getOutputTensors() =>
+      throw UnsupportedError('SignatureRunner is not supported on web.');
+
   void run(Map<String, Object> inputs, Map<String, Object> outputs) =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
@@ -55,5 +64,8 @@ class SignatureRunner {
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
   bool get isClosed =>
+      throw UnsupportedError('SignatureRunner is not supported on web.');
+
+  int get lastNativeInferenceDurationMicroSeconds =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 }

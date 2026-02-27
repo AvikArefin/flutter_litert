@@ -1,5 +1,7 @@
 ## 1.0.3
-* 
+* Add `SignatureRunner` for on-device training workflows (`train`, `infer`, `save`, `restore` signatures)
+* Add `Interpreter.signatureCount`, `signatureKeys`, `getSignatureKey()`, `getSignatureRunner()`
+* Add `SignatureRunner.cancel()`, `getInputTensors()`, `getOutputTensors()`, `lastNativeInferenceDurationMicroSeconds`
 
 ## 1.0.2
 * Add native dylibs to SPM Package.swift 

@@ -88,6 +88,7 @@ class SignatureRunner {
   final Pointer<TfLiteSignatureRunner> _runner;
   bool _closed = false;
   bool _allocated = false;
+  int _lastNativeInferenceDurationMicroSeconds = 0;
 
   /// Creates a [SignatureRunner] from a raw native pointer.
   ///
@@ -141,29 +142,36 @@ class SignatureRunner {
     }
   }
 
+  /// Returns all input tensors for this signature.
+  List<Tensor> getInputTensors() =>
+      inputNames.map(getInputTensor).toList(growable: false);
+
   /// Resizes the input tensor identified by [name] to [shape].
   ///
   /// [allocateTensors] must be called again after any resize before invoking.
   void resizeInputTensor(String name, List<int> shape) {
     final namePtr = name.toNativeUtf8();
-    final dimensionSize = shape.length;
-    final dimensions = calloc<Int>(dimensionSize);
     try {
-      final externalTypedData = dimensions.cast<Int32>().asTypedList(
-        dimensionSize,
-      );
-      externalTypedData.setRange(0, dimensionSize, shape);
-      final status = tfliteBinding.TfLiteSignatureRunnerResizeInputTensor(
-        _runner,
-        namePtr.cast(),
-        dimensions,
-        dimensionSize,
-      );
-      checkState(status == TfLiteStatus.kTfLiteOk);
-      _allocated = false;
+      final dimensionSize = shape.length;
+      final dimensions = calloc<Int>(dimensionSize);
+      try {
+        final externalTypedData = dimensions.cast<Int32>().asTypedList(
+          dimensionSize,
+        );
+        externalTypedData.setRange(0, dimensionSize, shape);
+        final status = tfliteBinding.TfLiteSignatureRunnerResizeInputTensor(
+          _runner,
+          namePtr.cast(),
+          dimensions,
+          dimensionSize,
+        );
+        checkState(status == TfLiteStatus.kTfLiteOk);
+        _allocated = false;
+      } finally {
+        calloc.free(dimensions);
+      }
     } finally {
       calloc.free(namePtr);
-      calloc.free(dimensions);
     }
   }
 
@@ -186,17 +194,29 @@ class SignatureRunner {
 
   /// Runs this signature.
   ///
-  /// Ensure input tensors are populated and [allocateTensors] has been called
-  /// (or call the higher-level [run] method which handles both automatically).
+  /// [allocateTensors] must have been called before invoking. Use the
+  /// higher-level [run] method which handles allocation automatically.
   void invoke() {
     checkState(!_closed, message: 'SignatureRunner is already closed.');
-    if (!_allocated) {
-      allocateTensors();
-    }
+    checkState(
+      _allocated,
+      message: 'Tensors not allocated. Call allocateTensors() before invoke().',
+    );
     checkState(
       tfliteBinding.TfLiteSignatureRunnerInvoke(_runner) ==
           TfLiteStatus.kTfLiteOk,
     );
+  }
+
+  /// Attempts to cancel the currently executing [invoke] call.
+  ///
+  /// Returns `true` if cancellation was successfully requested. Has no effect
+  /// if no invocation is in progress. Cancellation is not guaranteed — the
+  /// model may complete before the request is processed.
+  bool cancel() {
+    checkState(!_closed, message: 'SignatureRunner is already closed.');
+    return tfliteBinding.TfLiteSignatureRunnerCancel(_runner) ==
+        TfLiteStatus.kTfLiteOk;
   }
 
   // ---------------------------------------------------------------------------
@@ -241,6 +261,10 @@ class SignatureRunner {
     }
   }
 
+  /// Returns all output tensors for this signature.
+  List<Tensor> getOutputTensors() =>
+      outputNames.map(getOutputTensor).toList(growable: false);
+
   // ---------------------------------------------------------------------------
   // High-level run API
   // ---------------------------------------------------------------------------
@@ -270,11 +294,6 @@ class SignatureRunner {
   /// saveRunner.run({'checkpoint_path': '/data/model.ckpt'}, {});
   /// ```
   void run(Map<String, Object> inputs, Map<String, Object> outputs) {
-    if (inputs.isEmpty) {
-      // Some signatures (like `save`) may need their inputs set separately.
-      // We allow empty inputs here but let the user set tensors manually.
-    }
-
     // Resize input tensors if shapes differ.
     for (final entry in inputs.entries) {
       final tensor = getInputTensor(entry.key);
@@ -293,7 +312,10 @@ class SignatureRunner {
       getInputTensor(entry.key).setTo(entry.value);
     }
 
+    final startMicros = DateTime.now().microsecondsSinceEpoch;
     invoke();
+    _lastNativeInferenceDurationMicroSeconds =
+        DateTime.now().microsecondsSinceEpoch - startMicros;
 
     // Copy output data back to Dart objects.
     for (final entry in outputs.entries) {
@@ -318,8 +340,14 @@ class SignatureRunner {
   /// Whether [close] has been called on this runner.
   bool get isClosed => _closed;
 
+  /// Duration of the most recent native invocation in microseconds.
+  ///
+  /// Only meaningful after at least one call to [run] or [invoke].
+  int get lastNativeInferenceDurationMicroSeconds =>
+      _lastNativeInferenceDurationMicroSeconds;
+
   @override
-  String toString() =>
-      'SignatureRunner{inputs: $inputNames, outputs: $outputNames, '
-      'closed: $_closed}';
+  String toString() => _closed
+      ? 'SignatureRunner{closed: true}'
+      : 'SignatureRunner{inputs: $inputNames, outputs: $outputNames, closed: false}';
 }

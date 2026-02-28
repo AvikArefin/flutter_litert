@@ -8,14 +8,28 @@ import 'package:flutter_litert/flutter_litert.dart';
 File get _modelFile =>
     File('${Directory.current.path}/test/assets/training_model.tflite');
 
+File get _flexCacheFile {
+  if (Platform.isMacOS) {
+    return File(
+      '${Platform.environment['HOME']}/Library/Caches/flutter_litert/'
+      'libtensorflowlite_flex-mac.dylib',
+    );
+  } else if (Platform.isWindows) {
+    return File(
+      '${Platform.environment['LOCALAPPDATA']}/flutter_litert/cache/'
+      'libtensorflowlite_flex-win.dll',
+    );
+  } else {
+    final xdgCache = Platform.environment['XDG_CACHE_HOME'];
+    final base = xdgCache ?? '${Platform.environment['HOME']}/.cache';
+    return File('$base/flutter_litert/libtensorflowlite_flex-linux.so');
+  }
+}
+
 void main() {
   group('FlexDelegate', () {
     test('isAvailable reflects cache state', () {
-      final cacheFile = File(
-        '${Platform.environment['HOME']}/Library/Caches/flutter_litert/'
-        'libtensorflowlite_flex-mac.dylib',
-      );
-      expect(FlexDelegate.isAvailable, cacheFile.existsSync());
+      expect(FlexDelegate.isAvailable, _flexCacheFile.existsSync());
     });
 
     test(
@@ -24,10 +38,7 @@ void main() {
         await FlexDelegate.download();
         expect(FlexDelegate.isAvailable, isTrue);
 
-        final cacheFile = File(
-          '${Platform.environment['HOME']}/Library/Caches/flutter_litert/'
-          'libtensorflowlite_flex-mac.dylib',
-        );
+        final cacheFile = _flexCacheFile;
         expect(cacheFile.existsSync(), isTrue);
         expect(cacheFile.lengthSync(), greaterThan(100 * 1024 * 1024));
       },

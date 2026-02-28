@@ -1,4 +1,4 @@
-name: Flutter CI
+name: build
 on:
   pull_request:
   push:
@@ -9,24 +9,20 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
-      - uses: subosito/flutter-action@48cafc24713cca54bbe03cdc3a423187d413aafa
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
-          cache-key: flutter-:os:-:channel:-:version:-:arch:-
-
-      - name: Install melos
-        run: dart pub global activate melos
 
       - name: Install dependencies
-        run: melos bootstrap
+        run: flutter pub get
 
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 
-      - name: Flutter Analyze project source
+      - name: Analyze project source
         run: flutter analyze .
 
       - name: Run tests
-        run: flutter test test/
+        run: flutter test

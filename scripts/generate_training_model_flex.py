@@ -4,7 +4,8 @@ Generates test/assets/training_model_flex.tflite
 
 A minimal linear regression model (y = wx + b) with Google's standard
 on-device training signatures: train, infer, save, restore. Uses
-SELECT_TF_OPS for tf.raw_ops.Save/Restore checkpoint persistence.
+SELECT_TF_OPS for tf.raw_ops.SaveV2/RestoreV2 checkpoint persistence
+(V2 format: creates .index + .data-00000-of-00001 files).
 
 Requirements:
     pip install tensorflow>=2.13
@@ -56,30 +57,31 @@ class LinearModelWithCheckpoint(tf.Module):
     ])
     def save(self, checkpoint_path):
         path = checkpoint_path[0]
-        tf.raw_ops.Save(
-            filename=path,
-            tensor_names=[tf.constant('weight'), tf.constant('bias')],
-            data=[self.w.read_value(), self.b.read_value()],
+        save_op = tf.raw_ops.SaveV2(
+            prefix=path,
+            tensor_names=tf.constant(['weight', 'bias']),
+            shape_and_slices=tf.constant(['', '']),
+            tensors=[self.w.read_value(), self.b.read_value()],
         )
-        return {'status': tf.constant(0, dtype=tf.int32)}
+        # Wrap the return in a control dependency on save_op so that the
+        # TFLite MLIR dead-code-elimination pass cannot remove SaveV2
+        # (which has no output tensors and would otherwise be eliminated).
+        with tf.control_dependencies([save_op]):
+            return {'status': tf.identity(tf.constant(0, dtype=tf.int32))}
 
     @tf.function(input_signature=[
         tf.TensorSpec(shape=[1], dtype=tf.string, name='checkpoint_path'),
     ])
     def restore(self, checkpoint_path):
         path = checkpoint_path[0]
-        restored_w = tf.raw_ops.Restore(
-            file_pattern=path,
-            tensor_name=tf.constant('weight'),
-            dt=tf.float32,
+        results = tf.raw_ops.RestoreV2(
+            prefix=path,
+            tensor_names=tf.constant(['weight', 'bias']),
+            shape_and_slices=tf.constant(['', '']),
+            dtypes=[tf.float32, tf.float32],
         )
-        restored_b = tf.raw_ops.Restore(
-            file_pattern=path,
-            tensor_name=tf.constant('bias'),
-            dt=tf.float32,
-        )
-        self.w.assign(tf.reshape(restored_w, [1, 1]))
-        self.b.assign(tf.reshape(restored_b, [1]))
+        self.w.assign(tf.reshape(results[0], [1, 1]))
+        self.b.assign(tf.reshape(results[1], [1]))
         return {'status': tf.constant(0, dtype=tf.int32)}
 
 

@@ -12,7 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('save/restore signatures and checkpoint round-trip', () async {
-    final result = await Process.run('flutter', [
+    final flutterExe = Platform.isWindows ? 'flutter.bat' : 'flutter';
+    final result = await Process.run(flutterExe, [
       'test',
       '--no-pub',
       'test/native/_flex_save_restore_impl.dart',

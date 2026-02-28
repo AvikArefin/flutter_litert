@@ -387,7 +387,7 @@ class Interpreter {
   /// Returns the number of signatures defined in the model.
   ///
   /// Training-capable models typically expose multiple signatures:
-  /// `train`, `infer`, `save`, and `restore`.
+  /// `train`, `infer`, `get_weights`, and `set_weights`.
   int get signatureCount =>
       tfliteBinding.TfLiteInterpreterGetSignatureCount(_interpreter);
 
@@ -404,7 +404,7 @@ class Interpreter {
   /// Returns the keys of all signatures defined in the model.
   ///
   /// For a training-capable model this typically returns:
-  /// `['train', 'infer', 'save', 'restore']`.
+  /// `['train', 'infer', 'get_weights', 'set_weights']`.
   List<String> get signatureKeys =>
       List.generate(signatureCount, getSignatureKey, growable: false);
 

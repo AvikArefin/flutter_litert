@@ -39,6 +39,18 @@ class ByteConversionUtils {
     if (o is ByteBuffer) {
       return o.asUint8List();
     }
+    // String tensors must be encoded as a single block (not element-by-element).
+    if (tensorType.value == TfLiteType.kTfLiteString) {
+      if (o is String) {
+        return encodeTFStrings([o]);
+      }
+      if (o is List) {
+        final strings = o.whereType<String>().toList();
+        if (strings.length == o.length && o.isNotEmpty) {
+          return encodeTFStrings(strings);
+        }
+      }
+    }
     List<int> bytes = <int>[];
     if (o is List) {
       for (var e in o) {
@@ -125,6 +137,14 @@ class ByteConversionUtils {
       throw ByteConversionError(input: o, tensorType: tensorType);
     }
 
+    // String
+    if (tensorType.value == TfLiteType.kTfLiteString) {
+      if (o is String) {
+        return encodeTFStrings([o]);
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
     throw ArgumentError(
       'The input data tfliteType ${o.runtimeType} is unsupported',
     );
@@ -159,6 +179,62 @@ class ByteConversionUtils {
     }
 
     return decodedStrings;
+  }
+
+  /// Encodes a list of Dart strings into the TFLite string tensor binary format.
+  ///
+  /// Binary layout (all integers are little-endian int32):
+  /// ```
+  /// [numStrings]
+  /// [offset_0]       // byte offset where string 0 data begins
+  /// [offset_1]       // byte offset where string 1 data begins
+  /// ...
+  /// [offset_N]       // total buffer length (sentinel for last string end)
+  /// [UTF-8 bytes for all strings, concatenated]
+  /// ```
+  ///
+  /// For N strings the header is `(N + 2) * 4` bytes, followed by concatenated
+  /// UTF-8 data.
+  ///
+  /// This is the inverse of [decodeTFStrings].
+  static Uint8List encodeTFStrings(List<String> strings) {
+    final encodedStrings = strings.map((s) => utf8.encode(s)).toList();
+    final int numStrings = strings.length;
+
+    // Header: count (4 bytes) + (numStrings + 1) offset entries (4 bytes each)
+    final int headerSize = (numStrings + 2) * sizeOf<Int32>();
+    final int dataSize = encodedStrings.fold<int>(
+      0,
+      (sum, e) => sum + e.length,
+    );
+    final int totalSize = headerSize + dataSize;
+
+    final buffer = Uint8List(totalSize);
+    final byteData = ByteData.view(buffer.buffer);
+
+    // Write number of strings.
+    byteData.setInt32(0, numStrings, Endian.little);
+
+    // Write offsets and string data.
+    int dataOffset = headerSize;
+    for (int i = 0; i < numStrings; i++) {
+      byteData.setInt32((1 + i) * sizeOf<Int32>(), dataOffset, Endian.little);
+      buffer.setRange(
+        dataOffset,
+        dataOffset + encodedStrings[i].length,
+        encodedStrings[i],
+      );
+      dataOffset += encodedStrings[i].length;
+    }
+
+    // Sentinel offset: total buffer length (marks end of last string).
+    byteData.setInt32(
+      (1 + numStrings) * sizeOf<Int32>(),
+      dataOffset,
+      Endian.little,
+    );
+
+    return buffer;
   }
 
   static Object convertBytesToObject(

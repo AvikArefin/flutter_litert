@@ -20,6 +20,7 @@ import 'dart:io';
 
 import 'package:flutter_litert/src/bindings/tensorflow_lite_bindings_generated.dart';
 
+// Top-level finals are initialized lazily on first access in Dart.
 final DynamicLibrary _dylib = () {
   if (Platform.isAndroid) {
     return DynamicLibrary.open('libtensorflowlite_jni.so');

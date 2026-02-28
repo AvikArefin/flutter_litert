@@ -2109,6 +2109,29 @@ class TensorFlowLiteBindings {
         int Function(ffi.Pointer<TfLiteTensor>, ffi.Pointer<ffi.Void>, int)
       >();
 
+  /// Changes the size of the data buffer owned by `tensor` to `num_bytes`.
+  ///
+  /// Tensors with allocation types other than `kTfLiteDynamic` will be ignored
+  /// and `kTfLiteOk` will be returned. Returns `kTfLiteError` for null tensor
+  /// or allocation failure.
+  ///
+  /// Required for writing string tensors, whose buffer size is determined by
+  /// the encoded string data rather than by a fixed element size.
+  int TfLiteTensorRealloc(int num_bytes, ffi.Pointer<TfLiteTensor> tensor) {
+    return _TfLiteTensorRealloc(num_bytes, tensor);
+  }
+
+  late final _TfLiteTensorReallocPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Int32 Function(ffi.Size, ffi.Pointer<TfLiteTensor>)
+        >
+      >('TfLiteTensorRealloc');
+  late final _TfLiteTensorRealloc =
+      _TfLiteTensorReallocPtr.asFunction<
+        int Function(int, ffi.Pointer<TfLiteTensor>)
+      >();
+
   /// Destroys the signature runner.
   ///
   /// If `signature_runner` is a null pointer, this function has no effect.

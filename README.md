@@ -20,8 +20,9 @@ The biggest pain point with `tflite_flutter` was native library setup. You had t
 Main improvements over `tflite_flutter`:
 
 - Native libraries bundled automatically
-  - Prebuilt binaries for MacOS/Windows/Linux are served automatically. Manuel steps no longer necessasry.
+  - Prebuilt binaries for macOS/Windows/Linux are served automatically. Manual steps no longer necessary.
 - Native libraries are kept up to date across all platforms — [See library info](#platform-support)
+- [On-device training with weight persistence](#on-device-training)
 - [Custom ops support](#custom-ops)
 - [Web support](#web-support)
 
@@ -56,6 +57,292 @@ final isolateInterpreter = await IsolateInterpreter.create(address: interpreter.
 
 await isolateInterpreter.run(input, output);
 ```
+
+## On-device training
+
+`flutter_litert` supports [on-device training](https://ai.google.dev/edge/litert/examples/on_device_training/overview) via `SignatureRunner`, which lets you call named entry points (signatures) in a TFLite model. On-device training adjusts an existing model's weights using new data — the `.tflite` model architecture is fixed at export time and is never modified on-device.
+
+Two persistence approaches are supported:
+
+1. **Lightweight (`get_weights`/`set_weights`)** — Weights are extracted via builtin ops and serialized in Dart. Works with the standard bundled library on all platforms — no Flex delegate or extra downloads required.
+2. **Checkpoint-based (`save`/`restore`)** — Google's standard approach using `tf.raw_ops.Save`/`Restore` with `SELECT_TF_OPS`. Writes TF V1 checkpoint files directly from the model. Requires the [Flex delegate](#flexdelegate-for-complex-model-training).
+
+### Lightweight persistence (get_weights/set_weights)
+
+A training-capable model using this approach exposes four signatures: `train`, `infer`, `get_weights`, and `set_weights`.
+
+#### Preparing a training model (Python)
+
+Export a TensorFlow model with named signatures:
+
+```python
+class MyModel(tf.Module):
+    def __init__(self):
+        self.w = tf.Variable([[0.0]], dtype=tf.float32)
+        self.b = tf.Variable([0.0], dtype=tf.float32)
+
+    @tf.function(input_signature=[
+        tf.TensorSpec([1, 1], tf.float32),
+        tf.TensorSpec([1, 1], tf.float32),
+    ])
+    def train(self, x, y):
+        with tf.GradientTape() as tape:
+            pred = tf.matmul(x, self.w) + self.b
+            loss = tf.reduce_mean(tf.square(pred - y))
+        grads = tape.gradient(loss, [self.w, self.b])
+        self.w.assign_sub(0.01 * grads[0])
+        self.b.assign_sub(0.01 * grads[1])
+        return {'loss': loss}
+
+    @tf.function(input_signature=[tf.TensorSpec([1, 1], tf.float32)])
+    def infer(self, x):
+        return {'output': tf.matmul(x, self.w) + self.b}
+
+    @tf.function(input_signature=[])
+    def get_weights(self):
+        return {'w': self.w.read_value(), 'b': self.b.read_value()}
+
+    @tf.function(input_signature=[
+        tf.TensorSpec([1, 1], tf.float32),
+        tf.TensorSpec([1], tf.float32),
+    ])
+    def set_weights(self, w, b):
+        self.w.assign(w)
+        self.b.assign(b)
+        return {'w': self.w.read_value(), 'b': self.b.read_value()}
+```
+
+Convert with `TFLITE_BUILTINS` only — no Flex delegate or `SELECT_TF_OPS` needed:
+
+```python
+converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS]
+converter.experimental_enable_resource_variables = True
+tflite_model = converter.convert()
+```
+
+> **Important:** `set_weights` must return the assigned values (via `read_value()`) so the TFLite converter doesn't dead-code-eliminate the `AssignVariable` ops.
+
+See `scripts/generate_training_model.py` for a complete working example.
+
+#### Training loop (Dart)
+
+```dart
+final interpreter = await Interpreter.fromAsset('training_model.tflite');
+
+// Train
+final trainRunner = interpreter.getSignatureRunner('train');
+final loss = Float32List(1);
+for (int i = 0; i < 100; i++) {
+  trainRunner.run({'x': [[inputValue]], 'y': [[targetValue]]}, {'loss': loss});
+  print('Step $i, loss: ${loss[0]}');
+}
+trainRunner.close();
+
+// Infer with trained weights
+final inferRunner = interpreter.getSignatureRunner('infer');
+final output = [[0.0]];
+inferRunner.run({'x': [[inputValue]]}, {'output': output});
+print('Prediction: ${output[0][0]}');
+inferRunner.close();
+```
+
+#### Persisting trained weights across app sessions
+
+The `.tflite` model file is read-only — trained weights live in memory and are lost when the interpreter is closed. Use `get_weights` and `set_weights` to persist them:
+
+```dart
+// After training — save weights to disk
+final getRunner = interpreter.getSignatureRunner('get_weights');
+final w = [[0.0]];
+final b = [0.0];
+getRunner.run({}, {'w': w, 'b': b});
+getRunner.close();
+
+final file = File('${appDocDir.path}/weights.json');
+await file.writeAsString(jsonEncode({'w': w, 'b': b}));
+```
+
+```dart
+// On next app launch — restore weights
+final saved = jsonDecode(await File('${appDocDir.path}/weights.json').readAsString());
+final setRunner = interpreter.getSignatureRunner('set_weights');
+setRunner.run({'w': saved['w'], 'b': saved['b']}, {});
+setRunner.close();
+
+// Model is now in the same trained state as before
+```
+
+This uses only TFLite builtin ops (`ReadVariable`, `AssignVariable`) — no Flex delegate, no extra native libraries, works with the standard bundled library on all platforms.
+
+### Checkpoint-based persistence (save/restore)
+
+Google's standard approach to on-device training persistence uses `tf.raw_ops.Save` and `tf.raw_ops.Restore` with `SELECT_TF_OPS`. This writes TensorFlow V1 checkpoint files (`.index` + `.data-00000-of-00001`) directly from the model. This approach requires the Flex delegate.
+
+#### Preparing a save/restore model (Python)
+
+Export a model with `save` and `restore` signatures that take a checkpoint path string:
+
+```python
+class MyModel(tf.Module):
+    def __init__(self):
+        self.w = tf.Variable([[0.0]], dtype=tf.float32, name='weight')
+        self.b = tf.Variable([0.0], dtype=tf.float32, name='bias')
+
+    @tf.function(input_signature=[
+        tf.TensorSpec([1, 1], tf.float32),
+        tf.TensorSpec([1, 1], tf.float32),
+    ])
+    def train(self, x, y):
+        with tf.GradientTape() as tape:
+            pred = tf.matmul(x, self.w) + self.b
+            loss = tf.reduce_mean(tf.square(pred - y))
+        grads = tape.gradient(loss, [self.w, self.b])
+        self.w.assign_sub(0.01 * grads[0])
+        self.b.assign_sub(0.01 * grads[1])
+        return {'loss': loss}
+
+    @tf.function(input_signature=[tf.TensorSpec([1, 1], tf.float32)])
+    def infer(self, x):
+        return {'output': tf.matmul(x, self.w) + self.b}
+
+    @tf.function(input_signature=[
+        tf.TensorSpec(shape=[1], dtype=tf.string, name='checkpoint_path'),
+    ])
+    def save(self, checkpoint_path):
+        tf.raw_ops.Save(
+            filename=checkpoint_path[0],
+            tensor_names=[tf.constant('weight'), tf.constant('bias')],
+            data=[self.w.read_value(), self.b.read_value()],
+        )
+        return {'status': tf.constant(0, dtype=tf.int32)}
+
+    @tf.function(input_signature=[
+        tf.TensorSpec(shape=[1], dtype=tf.string, name='checkpoint_path'),
+    ])
+    def restore(self, checkpoint_path):
+        restored_w = tf.raw_ops.Restore(
+            file_pattern=checkpoint_path[0],
+            tensor_name=tf.constant('weight'),
+            dt=tf.float32,
+        )
+        restored_b = tf.raw_ops.Restore(
+            file_pattern=checkpoint_path[0],
+            tensor_name=tf.constant('bias'),
+            dt=tf.float32,
+        )
+        self.w.assign(tf.reshape(restored_w, [1, 1]))
+        self.b.assign(tf.reshape(restored_b, [1]))
+        return {'status': tf.constant(0, dtype=tf.int32)}
+```
+
+Convert with `SELECT_TF_OPS` enabled:
+
+```python
+converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
+converter.target_spec.supported_ops = [
+    tf.lite.OpsSet.TFLITE_BUILTINS,
+    tf.lite.OpsSet.SELECT_TF_OPS,
+]
+converter.experimental_enable_resource_variables = True
+tflite_model = converter.convert()
+```
+
+> **Important:** The `save` and `restore` signatures must return a value (e.g. `status`) to prevent the TFLite converter from dead-code-eliminating the Save/Restore ops.
+
+See `scripts/generate_training_model_flex.py` for a complete working example.
+
+#### Save/restore in Dart
+
+```dart
+// Ensure the Flex delegate is available (no-op if already bundled in the app)
+await FlexDelegate.download();
+final options = InterpreterOptions();
+options.addDelegate(FlexDelegate());
+final interpreter = Interpreter.fromFile(model, options: options);
+
+// Train
+final train = interpreter.getSignatureRunner('train');
+for (int i = 0; i < 100; i++) {
+  train.run({'x': [[value]], 'y': [[target]]}, {'loss': loss});
+}
+train.close();
+
+// Save checkpoint to disk
+final save = interpreter.getSignatureRunner('save');
+save.run({'checkpoint_path': ['${appDocDir.path}/model.ckpt']}, {'status': status});
+save.close();
+```
+
+```dart
+// On next app launch — restore from checkpoint
+await FlexDelegate.download(); // no-op if already bundled
+final options = InterpreterOptions();
+options.addDelegate(FlexDelegate());
+final interpreter = Interpreter.fromFile(model, options: options);
+
+final restore = interpreter.getSignatureRunner('restore');
+restore.run({'checkpoint_path': ['${appDocDir.path}/model.ckpt']}, {'status': status});
+restore.close();
+
+// Model weights are now restored — ready for inference or continued training
+```
+
+#### Choosing a persistence approach
+
+| | Lightweight (`get_weights`/`set_weights`) | Checkpoint (`save`/`restore`) |
+|---|---|---|
+| **Extra download** | None | Flex delegate (~123 MB) |
+| **File format** | JSON (or any Dart serialization) | TF V1 checkpoint (`.index` + `.data`) |
+| **Ops required** | `TFLITE_BUILTINS` only | `SELECT_TF_OPS` |
+| **Best for** | Simple models, size-constrained apps | Google-standard models, complex architectures |
+| **Model prep** | `get_weights`/`set_weights` signatures | `save`/`restore` signatures with `tf.raw_ops` |
+
+### FlexDelegate for complex model training
+
+The weight persistence approach above works with any model using only TFLite builtins. However, training models with layers like `Conv2D` or `BatchNormalization` generates gradient ops (e.g., `Conv2DBackpropFilter`) that require `SELECT_TF_OPS`. For these models, you need the **Flex delegate** — a separate native library (~123 MB per platform).
+
+**Desktop (macOS, Linux, Windows):**
+
+Call `download()` once during development to fetch the library:
+
+```dart
+// One-time download during development
+await FlexDelegate.download();
+```
+
+The library is cached locally and **automatically bundled into your app** on the next build. The build systems (CocoaPods on macOS, CMake on Linux/Windows) detect the cached library and include it in the app bundle. End users never need to download anything.
+
+```dart
+// Use like any other delegate
+final options = InterpreterOptions();
+options.addDelegate(FlexDelegate());
+final interpreter = Interpreter.fromFile(model, options: options);
+```
+
+> **macOS note:** After calling `download()`, run `pod install` in your app's `macos/` directory to pick up the library. Subsequent builds will include it automatically.
+
+**Android:**
+
+Add the Maven dependency to `android/app/build.gradle`:
+
+```gradle
+dependencies {
+    implementation 'org.tensorflow:tensorflow-lite-select-tf-ops:+'
+}
+```
+
+Then use `FlexDelegate()` directly — no download needed.
+
+**Environment variable override:**
+
+Set `TFLITE_FLEX_PATH` to point to a local copy of the flex library:
+
+```bash
+TFLITE_FLEX_PATH=/path/to/libtensorflowlite_flex-mac.dylib flutter run
+```
+
+> **Note:** Dense-only models (linear regression, MLP classifiers) do not need the Flex delegate — their gradient ops decompose into TFLite builtins. The Flex delegate is only needed when training convolutional or batch-normalized layers.
 
 ## Platform support
 

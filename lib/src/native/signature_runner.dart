@@ -29,10 +29,10 @@ import 'tensor.dart';
 /// Signatures allow models to expose multiple named entry points. This is the
 /// foundation for on-device training, where a model typically exposes:
 ///
-/// - `train`:   runs one training step (forward pass + backprop + optimizer)
-/// - `infer`:   runs inference / prediction
-/// - `save`:    saves model weights to a checkpoint file
-/// - `restore`: restores model weights from a checkpoint file
+/// - `train`:       runs one training step (forward pass + backprop + optimizer)
+/// - `infer`:       runs inference / prediction
+/// - `get_weights`: reads current model weights into Dart buffers
+/// - `set_weights`: writes weight values from Dart buffers into the model
 ///
 /// ## On-device training example
 ///
@@ -41,7 +41,7 @@ import 'tensor.dart';
 /// final interpreter = await Interpreter.fromAsset('trainable_model.tflite');
 ///
 /// // Optionally inspect available signatures:
-/// print(interpreter.signatureKeys); // ['train', 'infer', 'save', 'restore']
+/// print(interpreter.signatureKeys); // ['train', 'infer', 'get_weights', 'set_weights']
 ///
 /// // --- Training loop ---
 /// final trainRunner = interpreter.getSignatureRunner('train');
@@ -62,25 +62,28 @@ import 'tensor.dart';
 /// inferRunner.run({'x': testImage}, {'output': predictions});
 /// inferRunner.close();
 ///
-/// // --- Save weights ---
-/// final saveRunner = interpreter.getSignatureRunner('save');
-/// saveRunner.run({'checkpoint_path': '/path/to/checkpoint'}, {});
-/// saveRunner.close();
+/// // --- Weight persistence (get/set) ---
+/// final getRunner = interpreter.getSignatureRunner('get_weights');
+/// final w = [[0.0]];
+/// final b = [0.0];
+/// getRunner.run({}, {'w': w, 'b': b});
+/// getRunner.close();
+///
+/// // Restore weights into a fresh interpreter:
+/// final setRunner = freshInterpreter.getSignatureRunner('set_weights');
+/// setRunner.run({'w': w, 'b': b}, {});
+/// setRunner.close();
 ///
 /// interpreter.close();
 /// ```
 ///
 /// ## Building a training-capable model (Python)
 ///
-/// Export a TensorFlow model with `train`, `infer`, `save`, and `restore`
-/// signatures, then convert with `SELECT_TF_OPS` enabled:
+/// Export a TensorFlow model with `train`, `infer`, `get_weights`, and
+/// `set_weights` signatures and convert with resource variables enabled:
 ///
 /// ```python
 /// converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
-/// converter.target_spec.supported_ops = [
-///   tf.lite.OpsSet.TFLITE_BUILTINS,
-///   tf.lite.OpsSet.SELECT_TF_OPS,
-/// ]
 /// converter.experimental_enable_resource_variables = True
 /// tflite_model = converter.convert()
 /// ```
@@ -278,7 +281,7 @@ class SignatureRunner {
   /// [outputs] — map from output tensor name to a pre-allocated object that
   ///             will receive the output data (List, Float32List, etc.).
   ///             Pass an empty map if the signature produces no outputs you
-  ///             need to read (e.g. the `save` signature).
+  ///             need to read (e.g. the `set_weights` signature).
   ///
   /// Example — training step:
   /// ```dart
@@ -289,11 +292,12 @@ class SignatureRunner {
   /// );
   /// ```
   ///
-  /// Example — checkpoint save:
+  /// Example — restore weights:
   /// ```dart
-  /// saveRunner.run({'checkpoint_path': '/data/model.ckpt'}, {});
+  /// setWeightsRunner.run({'w': w, 'b': b}, {});
   /// ```
   void run(Map<String, Object> inputs, Map<String, Object> outputs) {
+    checkState(!_closed, message: 'SignatureRunner is already closed.');
     // Resize input tensors if shapes differ.
     for (final entry in inputs.entries) {
       final tensor = getInputTensor(entry.key);

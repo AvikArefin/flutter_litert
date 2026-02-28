@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_litert/flutter_litert.dart';
 
@@ -131,6 +133,73 @@ void main() {
         () => ByteConversionUtils.convertObjectToBytes(1.1, TensorType.noType),
         throwsA(isA<ArgumentError>()),
       );
+    });
+  });
+
+  group('string encoding', () {
+    test('encodeTFStrings single string round-trip', () {
+      final encoded = ByteConversionUtils.encodeTFStrings(['hello']);
+      final decoded = ByteConversionUtils.decodeTFStrings(encoded);
+      expect(decoded, ['hello']);
+    });
+
+    test('encodeTFStrings multiple strings round-trip', () {
+      final strings = ['hello', 'world', 'test'];
+      final encoded = ByteConversionUtils.encodeTFStrings(strings);
+      final decoded = ByteConversionUtils.decodeTFStrings(encoded);
+      expect(decoded, strings);
+    });
+
+    test('encodeTFStrings empty string round-trip', () {
+      final encoded = ByteConversionUtils.encodeTFStrings(['']);
+      final decoded = ByteConversionUtils.decodeTFStrings(encoded);
+      expect(decoded, ['']);
+    });
+
+    test('encodeTFStrings file path round-trip', () {
+      final path = '/tmp/flutter_litert/checkpoints/model.ckpt';
+      final encoded = ByteConversionUtils.encodeTFStrings([path]);
+      final decoded = ByteConversionUtils.decodeTFStrings(encoded);
+      expect(decoded, [path]);
+    });
+
+    test('encodeTFStrings binary layout for "ab"', () {
+      final encoded = ByteConversionUtils.encodeTFStrings(['ab']);
+      final bd = ByteData.view(encoded.buffer);
+
+      // Header: numStrings=1, offset_0=12, sentinel=14
+      // (1+2)*4 = 12 bytes header, then 2 bytes of UTF-8 data
+      expect(bd.getInt32(0, Endian.little), 1); // numStrings
+      expect(bd.getInt32(4, Endian.little), 12); // offset where "ab" starts
+      expect(bd.getInt32(8, Endian.little), 14); // sentinel (total used)
+      expect(encoded[12], 0x61); // 'a'
+      expect(encoded[13], 0x62); // 'b'
+      expect(encoded.length, 14);
+    });
+
+    test('convertObjectToBytes with String and TensorType.string', () {
+      final bytes = ByteConversionUtils.convertObjectToBytes(
+        'test',
+        TensorType.string,
+      );
+      final decoded = ByteConversionUtils.decodeTFStrings(bytes);
+      expect(decoded, ['test']);
+    });
+
+    test('convertObjectToBytes with List<String> and TensorType.string', () {
+      final bytes = ByteConversionUtils.convertObjectToBytes([
+        'foo',
+        'bar',
+      ], TensorType.string);
+      final decoded = ByteConversionUtils.decodeTFStrings(bytes);
+      expect(decoded, ['foo', 'bar']);
+    });
+
+    test('encodeTFStrings Unicode round-trip', () {
+      final strings = ['café', '日本語', '🎉'];
+      final encoded = ByteConversionUtils.encodeTFStrings(strings);
+      final decoded = ByteConversionUtils.decodeTFStrings(encoded);
+      expect(decoded, strings);
     });
   });
 }

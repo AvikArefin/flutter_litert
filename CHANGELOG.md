@@ -1,5 +1,6 @@
 ## 1.0.3
-* Add `SignatureRunner` for on-device training workflows (`train`, `infer`, `save`, `restore` signatures)
+* Add `SignatureRunner` for on-device training workflows (`train`, `infer`, `get_weights`, `set_weights` signatures)
+* Add weight persistence via `get_weights`/`set_weights` signatures (no Flex delegate required)
 * Add `Interpreter.signatureCount`, `signatureKeys`, `getSignatureKey()`, `getSignatureRunner()`
 * Add `SignatureRunner.cancel()`, `getInputTensors()`, `getOutputTensors()`, `lastNativeInferenceDurationMicroSeconds`
 

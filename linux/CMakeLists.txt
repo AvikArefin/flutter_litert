@@ -50,7 +50,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_BINARY_DI
 set(flutter_tflite_bundled_libraries
   "$<TARGET_FILE:tflite_custom_ops>"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libtensorflowlite_c-linux.so"
-  PARENT_SCOPE
 )
 
 # Flutter's generated_plugins.cmake references plugins by their directory name
@@ -59,8 +58,24 @@ set(flutter_tflite_bundled_libraries
 set(flutter_litert_bundled_libraries
   "$<TARGET_FILE:tflite_custom_ops>"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libtensorflowlite_c-linux.so"
-  PARENT_SCOPE
 )
+
+# FlexDelegate auto-bundling: if the developer has called FlexDelegate.download(),
+# detect the cached library and bundle it in the app.
+if(DEFINED ENV{XDG_CACHE_HOME})
+  set(_FLEX_CACHE_DIR "$ENV{XDG_CACHE_HOME}/flutter_litert")
+else()
+  set(_FLEX_CACHE_DIR "$ENV{HOME}/.cache/flutter_litert")
+endif()
+set(_FLEX_CACHE_PATH "${_FLEX_CACHE_DIR}/libtensorflowlite_flex-linux.so")
+if(EXISTS "${_FLEX_CACHE_PATH}")
+  message(STATUS "[flutter_litert] Bundling FlexDelegate from ${_FLEX_CACHE_PATH}")
+  list(APPEND flutter_tflite_bundled_libraries "${_FLEX_CACHE_PATH}")
+  list(APPEND flutter_litert_bundled_libraries "${_FLEX_CACHE_PATH}")
+endif()
+
+set(flutter_tflite_bundled_libraries ${flutter_tflite_bundled_libraries} PARENT_SCOPE)
+set(flutter_litert_bundled_libraries ${flutter_litert_bundled_libraries} PARENT_SCOPE)
 
 # === Tests ===
 # These unit tests can be run from a terminal after building the example.

@@ -10,5 +10,6 @@ export 'delegates/xnnpack_delegate_native.dart';
 export 'delegates/gpu_delegate_native.dart';
 export 'delegates/metal_delegate_native.dart';
 export 'delegates/coreml_delegate_native.dart';
+export 'delegates/flex_delegate_native.dart';
 export 'util/byte_conversion_utils_native.dart';
 export 'custom_ops/transpose_conv_bias_native.dart';

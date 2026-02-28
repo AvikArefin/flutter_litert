@@ -9,5 +9,6 @@ export 'delegates/xnnpack_delegate_unsupported.dart';
 export 'delegates/gpu_delegate_unsupported.dart';
 export 'delegates/metal_delegate_unsupported.dart';
 export 'delegates/coreml_delegate_unsupported.dart';
+export 'delegates/flex_delegate_unsupported.dart';
 export 'util/byte_conversion_utils_unsupported.dart';
 export 'custom_ops/transpose_conv_bias_unsupported.dart';

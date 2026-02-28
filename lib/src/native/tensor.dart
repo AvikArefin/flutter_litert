@@ -162,6 +162,19 @@ class Tensor {
   void setTo(Object src) {
     Uint8List bytes = _convertObjectToBytes(src);
     int size = bytes.length;
+
+    // String tensors require buffer reallocation because the pre-allocated
+    // buffer size does not match the encoded string data size.
+    if (type.value == TfLiteType.kTfLiteString) {
+      final reallocStatus = tfliteBinding.TfLiteTensorRealloc(size, _tensor);
+      checkState(
+        reallocStatus == TfLiteStatus.kTfLiteOk,
+        message:
+            'TfLiteTensorRealloc failed for string tensor '
+            '(requested $size bytes, status=$reallocStatus).',
+      );
+    }
+
     final ptr = calloc<Uint8>(size);
     checkState(isNotNull(ptr), message: 'unallocated');
     final externalTypedData = ptr.asTypedList(size);
@@ -174,6 +187,9 @@ class Tensor {
               bytes.length,
             ) ==
             TfLiteStatus.kTfLiteOk,
+        message:
+            'TfLiteTensorCopyFromBuffer failed '
+            '(buffer=$size bytes, tensor=${numBytes()} bytes).',
       );
     } catch (_) {
       rethrow;

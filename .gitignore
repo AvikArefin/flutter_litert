@@ -84,6 +84,9 @@ example/object_detection_ssd_mobilenet/assets/models/ssd_mobilenet.tflite
 **/assets/models/!README
 **/assets/models/.gitkeep
 
+# FlexDelegate library (auto-bundled from user cache, ~123 MB)
+**/libtensorflowlite_flex*
+
 # FVM Version Cache
 .fvm/
 .fvmrc

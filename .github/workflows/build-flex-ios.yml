@@ -3,6 +3,9 @@ name: Build TFLiteFlex iOS xcframework
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-14
@@ -116,7 +119,8 @@ jobs:
         run: |
           cd ~/tf-src
           USE_BAZEL_VERSION=$BAZEL_VERSION bazelisk build -c opt \
-            --config=ios_arm64 \
+            --config=ios \
+            --cpu=ios_arm64 \
             --local_ram_resources=HOST_RAM*0.7 \
             --jobs=4 \
             //tensorflow/lite/ios:TensorFlowLiteFlex_framework
@@ -136,7 +140,8 @@ jobs:
         run: |
           cd ~/tf-src
           USE_BAZEL_VERSION=$BAZEL_VERSION bazelisk build -c opt \
-            --config=ios_sim_arm64 \
+            --config=ios \
+            --cpu=ios_sim_arm64 \
             --local_ram_resources=HOST_RAM*0.7 \
             --jobs=4 \
             //tensorflow/lite/ios:TensorFlowLiteFlex_framework

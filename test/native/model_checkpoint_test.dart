@@ -31,50 +31,87 @@ void main() {
   // ─── Group 1: save/restore round-trip ───────────────────────────────────
 
   group('save/restore round-trip', () {
-    test('trained weights survive save → fresh interpreter → restore', () async {
-      final interpreter = Interpreter.fromFile(_modelFile);
+    test(
+      'trained weights survive save → fresh interpreter → restore',
+      () async {
+        final interpreter = Interpreter.fromFile(_modelFile);
 
-      // Train
-      final trainRunner = interpreter.getSignatureRunner('train');
-      final loss = Float32List(1);
-      for (int i = 0; i < 50; i++) {
-        trainRunner.run(
-          {'x': [[1.0]], 'y': [[2.0]]},
-          {'loss': loss},
+        // Train
+        final trainRunner = interpreter.getSignatureRunner('train');
+        final loss = Float32List(1);
+        for (int i = 0; i < 50; i++) {
+          trainRunner.run(
+            {
+              'x': [
+                [1.0],
+              ],
+              'y': [
+                [2.0],
+              ],
+            },
+            {'loss': loss},
+          );
+        }
+        trainRunner.close();
+
+        // Record trained prediction
+        final inferA = interpreter.getSignatureRunner('infer');
+        final predA = [
+          [0.0],
+        ];
+        inferA.run(
+          {
+            'x': [
+              [1.0],
+            ],
+          },
+          {'output': predA},
         );
-      }
-      trainRunner.close();
+        inferA.close();
 
-      // Record trained prediction
-      final inferA = interpreter.getSignatureRunner('infer');
-      final predA = [[0.0]];
-      inferA.run({'x': [[1.0]]}, {'output': predA});
-      inferA.close();
+        // Save checkpoint
+        final ckptFile = File('${tmpDir.path}/model.flwt');
+        await ModelCheckpoint.save(interpreter, ckptFile);
+        interpreter.close();
 
-      // Save checkpoint
-      final ckptFile = File('${tmpDir.path}/model.flwt');
-      await ModelCheckpoint.save(interpreter, ckptFile);
-      interpreter.close();
+        // Fresh interpreter — should predict 0
+        final fresh = Interpreter.fromFile(_modelFile);
+        final inferFresh = fresh.getSignatureRunner('infer');
+        final predFresh = [
+          [0.0],
+        ];
+        inferFresh.run(
+          {
+            'x': [
+              [1.0],
+            ],
+          },
+          {'output': predFresh},
+        );
+        inferFresh.close();
+        expect(predFresh[0][0], closeTo(0.0, 1e-5));
 
-      // Fresh interpreter — should predict 0
-      final fresh = Interpreter.fromFile(_modelFile);
-      final inferFresh = fresh.getSignatureRunner('infer');
-      final predFresh = [[0.0]];
-      inferFresh.run({'x': [[1.0]]}, {'output': predFresh});
-      inferFresh.close();
-      expect(predFresh[0][0], closeTo(0.0, 1e-5));
+        // Restore and verify
+        await ModelCheckpoint.restore(fresh, ckptFile);
+        final inferB = fresh.getSignatureRunner('infer');
+        final predB = [
+          [0.0],
+        ];
+        inferB.run(
+          {
+            'x': [
+              [1.0],
+            ],
+          },
+          {'output': predB},
+        );
+        inferB.close();
+        fresh.close();
 
-      // Restore and verify
-      await ModelCheckpoint.restore(fresh, ckptFile);
-      final inferB = fresh.getSignatureRunner('infer');
-      final predB = [[0.0]];
-      inferB.run({'x': [[1.0]]}, {'output': predB});
-      inferB.close();
-      fresh.close();
-
-      expect(predB[0][0], closeTo(predA[0][0], 1e-5));
-      expect(predB[0][0], greaterThan(0.5));
-    });
+        expect(predB[0][0], closeTo(predA[0][0], 1e-5));
+        expect(predB[0][0], greaterThan(0.5));
+      },
+    );
   });
 
   // ─── Group 2: multiple checkpoints ──────────────────────────────────────
@@ -87,27 +124,65 @@ void main() {
 
       // Train 10 steps → save A
       for (int i = 0; i < 10; i++) {
-        trainRunner.run({'x': [[1.0]], 'y': [[2.0]]}, {'loss': loss});
+        trainRunner.run(
+          {
+            'x': [
+              [1.0],
+            ],
+            'y': [
+              [2.0],
+            ],
+          },
+          {'loss': loss},
+        );
       }
       final ckptA = File('${tmpDir.path}/a.flwt');
       await ModelCheckpoint.save(interpreter, ckptA);
 
       final inferA = interpreter.getSignatureRunner('infer');
-      final predA = [[0.0]];
-      inferA.run({'x': [[1.0]]}, {'output': predA});
+      final predA = [
+        [0.0],
+      ];
+      inferA.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': predA},
+      );
       inferA.close();
 
       // Train 40 more steps → save B
       for (int i = 0; i < 40; i++) {
-        trainRunner.run({'x': [[1.0]], 'y': [[2.0]]}, {'loss': loss});
+        trainRunner.run(
+          {
+            'x': [
+              [1.0],
+            ],
+            'y': [
+              [2.0],
+            ],
+          },
+          {'loss': loss},
+        );
       }
       trainRunner.close();
       final ckptB = File('${tmpDir.path}/b.flwt');
       await ModelCheckpoint.save(interpreter, ckptB);
 
       final inferB = interpreter.getSignatureRunner('infer');
-      final predB = [[0.0]];
-      inferB.run({'x': [[1.0]]}, {'output': predB});
+      final predB = [
+        [0.0],
+      ];
+      inferB.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': predB},
+      );
       inferB.close();
       interpreter.close();
 
@@ -115,8 +190,17 @@ void main() {
       final freshA = Interpreter.fromFile(_modelFile);
       await ModelCheckpoint.restore(freshA, ckptA);
       final inferRA = freshA.getSignatureRunner('infer');
-      final restoredA = [[0.0]];
-      inferRA.run({'x': [[1.0]]}, {'output': restoredA});
+      final restoredA = [
+        [0.0],
+      ];
+      inferRA.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': restoredA},
+      );
       inferRA.close();
       freshA.close();
 
@@ -126,8 +210,17 @@ void main() {
       final freshB = Interpreter.fromFile(_modelFile);
       await ModelCheckpoint.restore(freshB, ckptB);
       final inferRB = freshB.getSignatureRunner('infer');
-      final restoredB = [[0.0]];
-      inferRB.run({'x': [[1.0]]}, {'output': restoredB});
+      final restoredB = [
+        [0.0],
+      ];
+      inferRB.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': restoredB},
+      );
       inferRB.close();
       freshB.close();
 
@@ -184,7 +277,17 @@ void main() {
     test('restore throws FormatException on invalid magic bytes', () async {
       final interpreter = Interpreter.fromFile(_modelFile);
       final badFile = File('${tmpDir.path}/bad.flwt');
-      await badFile.writeAsBytes([0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]);
+      await badFile.writeAsBytes([
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+      ]);
       expect(
         () => ModelCheckpoint.restore(interpreter, badFile),
         throwsA(isA<FormatException>()),

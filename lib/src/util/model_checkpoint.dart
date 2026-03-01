@@ -82,12 +82,14 @@ class ModelCheckpoint {
       final tensors = <_TensorRecord>[];
       for (final name in runner.outputNames) {
         final tensor = runner.getOutputTensor(name);
-        tensors.add(_TensorRecord(
-          name: name,
-          type: tensor.type.value,
-          shape: tensor.shape,
-          data: Uint8List.fromList(tensor.data),
-        ));
+        tensors.add(
+          _TensorRecord(
+            name: name,
+            type: tensor.type.value,
+            shape: tensor.shape,
+            data: Uint8List.fromList(tensor.data),
+          ),
+        );
       }
 
       final builder = BytesBuilder(copy: false);
@@ -214,12 +216,9 @@ class ModelCheckpoint {
       final data = Uint8List.fromList(bytes.sublist(offset, offset + dataLen));
       offset += dataLen;
 
-      records.add(_TensorRecord(
-        name: name,
-        type: type,
-        shape: shape,
-        data: data,
-      ));
+      records.add(
+        _TensorRecord(name: name, type: type, shape: shape, data: data),
+      );
     }
 
     return records;

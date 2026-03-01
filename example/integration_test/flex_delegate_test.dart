@@ -20,8 +20,9 @@ void main() {
   });
 
   group('FlexDelegate on iOS', () {
-    testWidgets('isAvailable returns true when flex is bundled',
-        (tester) async {
+    testWidgets('isAvailable returns true when flex is bundled', (
+      tester,
+    ) async {
       expect(FlexDelegate.isAvailable, isTrue);
     });
 
@@ -63,8 +64,9 @@ void main() {
       opts.delete();
     });
 
-    testWidgets('training with FlexDelegate works and loss decreases',
-        (tester) async {
+    testWidgets('training with FlexDelegate works and loss decreases', (
+      tester,
+    ) async {
       final flex = FlexDelegate();
       final opts = InterpreterOptions()..addDelegate(flex);
       final interpreter = Interpreter.fromFile(modelFile, options: opts);

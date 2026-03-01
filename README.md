@@ -11,7 +11,7 @@
 </p>
 
 A Flutter plugin for on-device ML inference using LiteRT (formerly TensorFlow Lite), with native libraries bundled automatically on every platform.
-
+ 
 ## Background  
 
 This project started as a fork of [`tflite_flutter`](https://pub.dev/packages/tflite_flutter), the official TensorFlow Lite plugin for Flutter. TensorFlow Lite has since been discontinued by Google and rebranded as [LiteRT](https://ai.google.dev/edge/litert).

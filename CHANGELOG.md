@@ -1,3 +1,8 @@
+## 1.0.4
+* Add Linux FlexDelegate support: `FlexDelegate.download()` now works on Linux x86_64, fetching `libtensorflowlite_flex-linux.so` from GitHub Releases (built from TF 2.20.0 source). Auto-bundled into Linux app builds via CMake (already configured). All three desktop platforms (macOS, Windows, Linux) now fully support on-device training with `SELECT_TF_OPS` models and checkpoint save/restore.
+* Add Linux CI job (`ubuntu-latest`) alongside the existing macOS job, with FlexDelegate library caching.
+* Add `scripts/build_flex_delegate_linux.md` build guide.
+
 ## 1.0.3
 * Add `SignatureRunner` for on-device training workflows (`train`, `infer`, `get_weights`, `set_weights` signatures)
 * Add weight persistence via `get_weights`/`set_weights` signatures (no Flex delegate required)

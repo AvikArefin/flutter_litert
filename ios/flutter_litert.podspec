@@ -58,6 +58,69 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
     puts '[flutter_litert] TensorFlow Lite iOS frameworks installed.'
   end
 
+  # When flutter_litert_flex is present, TensorFlowLiteFlex needs -all_load to
+  # pull in C++ static initializers for TF op registration. TFLiteC and TFLiteFlex
+  # share 15 symbols (XNNPack delegate + AcquireFlexDelegate). Make those symbols
+  # local in TFLiteC so TFLiteFlex's versions are used (important for
+  # AcquireFlexDelegate which must return the real flex delegate, not a stub).
+  flex_detected = false
+  flex_xcfw_mono = File.join(framework_dir, '..', 'flutter_litert_flex',
+                             'ios', 'TensorFlowLiteFlex.xcframework')
+  flex_detected = File.exist?(flex_xcfw_mono)
+  unless flex_detected
+    parent_dir = File.expand_path(File.join(framework_dir, '..', '..'))
+    Dir.glob(File.join(parent_dir, 'flutter_litert_flex*', 'ios',
+                       'TensorFlowLiteFlex.xcframework')).each do |_|
+      flex_detected = true
+      break
+    end
+  end
+  unless flex_detected
+    [Dir.pwd, File.join(Dir.pwd, '..')].each do |dir|
+      deps_file = File.join(dir, '.flutter-plugins-dependencies')
+      if File.exist?(deps_file)
+        flex_detected = File.read(deps_file).include?('flutter_litert_flex')
+        break if flex_detected
+      end
+    end
+  end
+
+  if flex_detected
+    dedup_marker = File.join(framework_dir, 'TensorFlowLiteC.xcframework', '.flex_deduped')
+    unless File.exist?(dedup_marker)
+      puts '[flutter_litert] FlexDelegate detected — hiding overlapping symbols in TensorFlowLiteC...'
+      syms_file = File.join(framework_dir, '_overlap_syms.txt')
+      File.write(syms_file, <<~SYMS)
+        _TfLiteXNNPackDelegateCanUseInMemoryWeightCacheProvider
+        _TfLiteXNNPackDelegateCreate
+        _TfLiteXNNPackDelegateCreateWithThreadpool
+        _TfLiteXNNPackDelegateDelete
+        _TfLiteXNNPackDelegateGetFlags
+        _TfLiteXNNPackDelegateGetOptions
+        _TfLiteXNNPackDelegateGetThreadPool
+        _TfLiteXNNPackDelegateInMemoryFilePath
+        _TfLiteXNNPackDelegateOptionsDefault
+        _TfLiteXNNPackDelegateWeightsCacheCreate
+        _TfLiteXNNPackDelegateWeightsCacheCreateWithSize
+        _TfLiteXNNPackDelegateWeightsCacheDelete
+        _TfLiteXNNPackDelegateWeightsCacheFinalizeHard
+        _TfLiteXNNPackDelegateWeightsCacheFinalizeSoft
+        __ZN6tflite19AcquireFlexDelegateEv
+      SYMS
+
+      ['ios-arm64', 'ios-arm64_x86_64-simulator'].each do |arch|
+        tflc_binary = File.join(framework_dir, 'TensorFlowLiteC.xcframework', arch,
+                                'TensorFlowLiteC.framework', 'TensorFlowLiteC')
+        next unless File.exist?(tflc_binary)
+        system("xcrun nmedit -R '#{syms_file}' '#{tflc_binary}'")
+      end
+
+      File.delete(syms_file)
+      File.write(dedup_marker, 'done')
+      puts '[flutter_litert] Symbol deduplication complete.'
+    end
+  end
+
   s.vendored_frameworks = 'TensorFlowLiteC.xcframework',
                            'TensorFlowLiteCMetal.xcframework',
                            'TensorFlowLiteCCoreML.xcframework'

@@ -3,6 +3,7 @@
 <p align="center">
 <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Platform-Flutter-02569B?logo=flutter" alt="Platform"></a>
 <a href="https://dart.dev"><img src="https://img.shields.io/badge/language-Dart-blue" alt="Language: Dart"></a>
+<br>
 <a href="https://pub.dev/packages/flutter_litert"><img src="https://img.shields.io/pub/v/flutter_litert?label=pub.dev&labelColor=333940&logo=dart" alt="Pub Version"></a>
 <a href="https://pub.dev/packages/flutter_litert/score"><img src="https://img.shields.io/pub/points/flutter_litert?color=2E8B57&label=pub%20points" alt="pub points"></a>
 <a href="https://github.com/hugocornellier/flutter_litert/actions/workflows/flutter-ci.yml"><img src="https://github.com/hugocornellier/flutter_litert/actions/workflows/flutter-ci.yml/badge.svg" alt="Flutter CI"></a>

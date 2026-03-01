@@ -45,7 +45,14 @@ import '../native/delegate.dart';
 /// build time (via CocoaPods on macOS, CMake on Linux/Windows). End users
 /// never need to download anything — the library ships inside the app bundle.
 ///
-/// On Android, add the Maven dependency instead:
+/// **iOS:** Add the `flutter_litert_flex` package to your `pubspec.yaml`:
+/// ```yaml
+/// dependencies:
+///   flutter_litert: ^1.0.3
+///   flutter_litert_flex: ^1.0.0
+/// ```
+///
+/// **Android:** Add the Maven dependency:
 /// ```gradle
 /// implementation 'org.tensorflow:tensorflow-lite-select-tf-ops:+'
 /// ```
@@ -109,6 +116,18 @@ class FlexDelegate implements Delegate {
     if (Platform.isAndroid) {
       try {
         DynamicLibrary.open(_libName);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // iOS: statically linked at build time by flutter_litert_flex podspec.
+    if (Platform.isIOS) {
+      try {
+        DynamicLibrary.process().lookup<NativeFunction<Void Function()>>(
+          'tflite_plugin_create_delegate',
+        );
         return true;
       } catch (_) {
         return false;
@@ -214,6 +233,8 @@ class FlexDelegate implements Delegate {
         '${appBundle.path}/Frameworks/flutter_litert.framework/Versions/A/Resources/$libName',
         '${appBundle.path}/Frameworks/flutter_litert.framework/Resources/$libName',
         '${appBundle.path}/Resources/flutter_litert_flutter_litert.bundle/Contents/Resources/$libName',
+        // flutter_litert_flex bundle path
+        '${appBundle.path}/Resources/flutter_litert_flex_flutter_litert_flex.bundle/Contents/Resources/$libName',
       ];
     }
     if (Platform.isLinux) {
@@ -257,6 +278,18 @@ class FlexDelegate implements Delegate {
 
   static DynamicLibrary _openLibrary() {
     final List<String> attemptedPaths = [];
+
+    // iOS: symbols are statically linked into the app binary.
+    if (Platform.isIOS) {
+      try {
+        return DynamicLibrary.process();
+      } catch (e) {
+        throw UnsupportedError(
+          'FlexDelegate not available on iOS.\n'
+          'Add flutter_litert_flex to your pubspec.yaml to bundle it.',
+        );
+      }
+    }
 
     // Android: load from system (Maven dependency)
     if (Platform.isAndroid) {

@@ -1,0 +1,185 @@
+name: Build TFLiteFlex iOS xcframework
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 360
+    env:
+      TF_VERSION: v2.20.0
+      BAZEL_VERSION: 7.4.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          echo "Before cleanup:"
+          df -h /
+          # Remove unnecessary large tools
+          sudo rm -rf /usr/local/share/powershell /usr/local/.ghcup \
+            /usr/local/lib/android /usr/local/share/chromium 2>/dev/null || true
+          echo "After cleanup:"
+          df -h /
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install numpy
+          brew install bazelisk
+
+      - name: Clone TensorFlow
+        run: |
+          git clone --depth 1 --branch $TF_VERSION \
+            https://github.com/tensorflow/tensorflow.git ~/tf-src
+          cd ~/tf-src
+
+      - name: Configure TensorFlow
+        run: |
+          cd ~/tf-src
+          PYTHON_BIN_PATH=$(which python3) \
+          TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_NEED_TENSORRT=0 \
+          TF_CONFIGURE_IOS=1 CC_OPT_FLAGS="-march=native" \
+          python3 configure.py
+
+      - name: Add custom plugin wrapper
+        run: |
+          cd ~/tf-src
+
+          # Create flex_delegate_plugin.cc
+          cat > tensorflow/lite/delegates/flex/flex_delegate_plugin.cc << 'CPPEOF'
+          #include "tensorflow/lite/delegates/flex/delegate.h"
+
+          extern "C" {
+
+          __attribute__((visibility("default")))
+          TfLiteDelegate* tflite_plugin_create_delegate(
+              const char* const* options_keys,
+              const char* const* options_values,
+              size_t num_options,
+              void (*report_error)(const char*)) {
+            auto delegate = tflite::FlexDelegate::Create();
+            return delegate.release();
+          }
+
+          __attribute__((visibility("default")))
+          void tflite_plugin_destroy_delegate(TfLiteDelegate* delegate) {
+            delete reinterpret_cast<tflite::FlexDelegate*>(delegate);
+          }
+
+          }  // extern "C"
+          CPPEOF
+
+          # Add BUILD target for the plugin
+          cat >> tensorflow/lite/delegates/flex/BUILD << 'BUILDEOF'
+
+          cc_library(
+              name = "flex_delegate_plugin",
+              srcs = ["flex_delegate_plugin.cc"],
+              copts = tflite_copts(),
+              features = tf_features_nolayering_check_if_ios(),
+              visibility = ["//visibility:public"],
+              deps = [
+                  ":delegate",
+              ],
+              alwayslink = True,
+          )
+          BUILDEOF
+
+          # Add ios_static_framework target to BUILD.apple
+          # Insert before the last line
+          cat >> tensorflow/lite/ios/BUILD.apple << 'BUILDEOF'
+
+          ios_static_framework(
+              name = "TensorFlowLiteFlex_framework",
+              avoid_deps = [
+                  "//tensorflow/lite/core/c:common",
+                  "//tensorflow/lite/core/async/interop/c:types",
+                  "//tensorflow/lite/profiling/telemetry/c:telemetry_setting",
+              ],
+              bundle_name = "TensorFlowLiteFlex",
+              minimum_os_version = TFL_MINIMUM_OS_VERSION,
+              deps = [
+                  "//tensorflow/lite/delegates/flex:delegate",
+                  "//tensorflow/lite/delegates/flex:flex_delegate_plugin",
+              ],
+          )
+          BUILDEOF
+
+      - name: Build for iOS device (arm64)
+        run: |
+          cd ~/tf-src
+          USE_BAZEL_VERSION=$BAZEL_VERSION bazelisk build -c opt \
+            --config=ios_arm64 \
+            --local_ram_resources=HOST_RAM*0.7 \
+            --jobs=4 \
+            //tensorflow/lite/ios:TensorFlowLiteFlex_framework
+
+          mkdir -p ~/flex-build/device
+          unzip -o bazel-bin/tensorflow/lite/ios/TensorFlowLiteFlex_framework.zip \
+            -d ~/flex-build/device/
+
+      - name: Clean Bazel cache before next build
+        run: |
+          cd ~/tf-src
+          USE_BAZEL_VERSION=$BAZEL_VERSION bazelisk clean
+          echo "Disk space after clean:"
+          df -h /
+
+      - name: Build for iOS simulator (arm64)
+        run: |
+          cd ~/tf-src
+          USE_BAZEL_VERSION=$BAZEL_VERSION bazelisk build -c opt \
+            --config=ios_sim_arm64 \
+            --local_ram_resources=HOST_RAM*0.7 \
+            --jobs=4 \
+            //tensorflow/lite/ios:TensorFlowLiteFlex_framework
+
+          mkdir -p ~/flex-build/sim-arm64
+          unzip -o bazel-bin/tensorflow/lite/ios/TensorFlowLiteFlex_framework.zip \
+            -d ~/flex-build/sim-arm64/
+
+      - name: Verify symbols
+        run: |
+          echo "=== Device arm64 symbols ==="
+          nm -gU ~/flex-build/device/TensorFlowLiteFlex.framework/TensorFlowLiteFlex \
+            | grep -E "(tflite_plugin|EagerContextC1|StepContainer|NewFunctionLibrary|cpuinfo_init)" | head -10
+
+          echo ""
+          echo "=== Simulator arm64 symbols ==="
+          nm -gU ~/flex-build/sim-arm64/TensorFlowLiteFlex.framework/TensorFlowLiteFlex \
+            | grep -E "(tflite_plugin|EagerContextC1|StepContainer|NewFunctionLibrary|cpuinfo_init)" | head -10
+
+      - name: Create xcframework
+        run: |
+          xcodebuild -create-xcframework \
+            -framework ~/flex-build/device/TensorFlowLiteFlex.framework \
+            -framework ~/flex-build/sim-arm64/TensorFlowLiteFlex.framework \
+            -output ~/flex-build/TensorFlowLiteFlex.xcframework
+
+      - name: Package xcframework
+        run: |
+          cd ~/flex-build
+          zip -r TensorFlowLiteFlex-ios.xcframework.zip TensorFlowLiteFlex.xcframework
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TensorFlowLiteFlex-ios-xcframework
+          path: ~/flex-build/TensorFlowLiteFlex-ios.xcframework.zip
+          retention-days: 30
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload flex-v1.0.0 \
+            ~/flex-build/TensorFlowLiteFlex-ios.xcframework.zip \
+            --repo ${{ github.repository }} \
+            --clobber

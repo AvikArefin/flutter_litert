@@ -20,6 +20,9 @@ class Interpreter {
   bool _deleted = false;
   int _lastNativeInferenceDurationMicroSeconds = 0;
 
+  /// Returns 'web' on web platforms (no native TFLite version available).
+  static String get version => 'web';
+
   List<Tensor>? _inputTensors;
   List<Tensor>? _outputTensors;
 
@@ -264,6 +267,14 @@ class Interpreter {
 
   /// No-op on web.
   void resetVariableTensors() {}
+
+  /// Returns 0 on web (no variable tensor support).
+  int getVariableTensorCount() => 0;
+
+  /// Not supported on web.
+  Tensor getVariableTensor(int index) => throw UnsupportedError(
+    'Interpreter.getVariableTensor is not supported on web.',
+  );
 
   /// Not supported on web (no pointer addresses).
   int get address =>

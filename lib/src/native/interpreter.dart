@@ -36,6 +36,10 @@ class Interpreter {
   bool _allocated = false;
   int _lastNativeInferenceDurationMicroSeconds = 0;
 
+  /// Returns the TensorFlow Lite runtime version string.
+  static String get version =>
+      tfliteBinding.TfLiteVersion().cast<Utf8>().toDartString();
+
   List<Tensor>? _inputTensors;
   List<Tensor>? _outputTensors;
 
@@ -365,10 +369,34 @@ class Interpreter {
   // Resets all variable tensors to the defaul value
   void resetVariableTensors() {
     checkState(
-      _deleted,
-      message: 'Should not acces delegate after it has been closed.',
+      !_deleted,
+      message: 'Should not access interpreter after it has been closed.',
     );
     tfliteBinding.TfLiteInterpreterResetVariableTensors(_interpreter);
+  }
+
+  /// Returns the number of variable (trainable) tensors in the model.
+  int getVariableTensorCount() {
+    checkState(
+      !_deleted,
+      message: 'Should not access interpreter after it has been closed.',
+    );
+    return tfliteBinding.TfLiteInterpreterGetVariableTensorCount(_interpreter);
+  }
+
+  /// Gets the variable (trainable) tensor at the given [index].
+  Tensor getVariableTensor(int index) {
+    checkState(
+      !_deleted,
+      message: 'Should not access interpreter after it has been closed.',
+    );
+    final count = getVariableTensorCount();
+    if (index < 0 || index >= count) {
+      throw ArgumentError('Invalid variable Tensor index: $index');
+    }
+    return Tensor(
+      tfliteBinding.TfLiteInterpreterGetVariableTensor(_interpreter, index),
+    );
   }
 
   /// Returns the address to the interpreter

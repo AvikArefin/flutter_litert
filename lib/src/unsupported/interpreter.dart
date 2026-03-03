@@ -11,6 +11,11 @@ import 'tensor.dart';
 
 /// TensorFlowLite interpreter for running inference on a model.
 class Interpreter {
+  /// Returns the TensorFlow Lite runtime version string.
+  static String get version => throw UnsupportedError(
+    'Interpreter.version is not supported on this platform',
+  );
+
   int get lastNativeInferenceDurationMicroSeconds => throw UnsupportedError(
     'Interpreter.lastNativeInferenceDurationMicroSeconds is not supported on this platform',
   );
@@ -118,6 +123,14 @@ class Interpreter {
   // Resets all variable tensors to the defaul value
   void resetVariableTensors() => throw UnsupportedError(
     'Interpreter.resetVariableTensors is not supported on this platform',
+  );
+
+  int getVariableTensorCount() => throw UnsupportedError(
+    'Interpreter.getVariableTensorCount is not supported on this platform',
+  );
+
+  Tensor getVariableTensor(int index) => throw UnsupportedError(
+    'Interpreter.getVariableTensor is not supported on this platform',
   );
 
   /// Returns the address to the interpreter

@@ -4,3 +4,22 @@
 ios/TensorFlowLiteC.xcframework/
 ios/TensorFlowLiteCCoreML.xcframework/
 ios/TensorFlowLiteCMetal.xcframework/
+
+# flutter_litert_flex is a separate package (3.3 GB of .o files + xcframeworks)
+flutter_litert_flex/
+
+# Build artifacts
+build/
+
+# Old example subdirectories (leftover from tflite_flutter)
+example/live_object_detection_ssd_mobilenet/
+example/reinforcement_learning/
+example/text_classification/
+
+# Dev/CI files
+.github/
+makefile
+melos.yaml
+scripts/
+flutter-tflite.code-workspace
+ffigen_tensorflow_lite.yaml

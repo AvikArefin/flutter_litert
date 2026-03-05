@@ -31,9 +31,8 @@ class GpuDelegateV2 implements Delegate {
 
   GpuDelegateV2._(this._delegate);
 
-  /// Creates [GpuDelegateV2] using the specified [options]
-  /// uses [GpuDelegateOptionsV2.defaultOptions()] if options not
-  /// specified.
+  /// Creates [GpuDelegateV2] using the specified [options].
+  /// Uses default options if [options] is not specified.
   factory GpuDelegateV2({GpuDelegateOptionsV2? options}) {
     if (options == null) {
       return GpuDelegateV2._(

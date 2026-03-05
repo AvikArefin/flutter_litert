@@ -60,7 +60,7 @@ class Tensor {
         .asUnmodifiableView();
   }
 
-  /// Quantization Params associated with the model, [only Android]
+  /// Quantization Params associated with the model (only Android).
   QuantizationParams get params {
     final ref = tfliteBinding.TfLiteTensorQuantizationParams(_tensor);
     return QuantizationParams(ref.scale, ref.zero_point);

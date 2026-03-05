@@ -184,7 +184,7 @@ class SignatureRunner {
 
   /// Allocates memory for all tensors in this signature.
   ///
-  /// Must be called after [getSignatureRunner] and after any
+  /// Must be called after [Interpreter.getSignatureRunner] and after any
   /// [resizeInputTensor] calls, before the first [invoke].
   void allocateTensors() {
     checkState(!_closed, message: 'SignatureRunner is already closed.');

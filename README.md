@@ -715,6 +715,121 @@ final interpreter = await Interpreter.fromAsset('model.tflite', options: options
 - **Windows CRT heap mismatch.** If your custom op DLL calls `malloc` but TFLite frees with its own `free` (from a different DLL), you get heap corruption. Resolve `TfLiteIntArrayCreate` from the TFLite DLL at runtime so allocations use TFLite's heap. See `src/custom_ops/transpose_conv_bias.c` for a working example.
 - **Web is not supported.** The TFLite.js/WASM runtime does not have a custom op registration API.
 
+## Inference utilities
+
+`flutter_litert` includes common utilities for building detection and inference pipelines, so you don't have to rewrite boilerplate across projects.
+
+### PerformanceConfig
+
+Unified hardware acceleration configuration. Instead of manually wiring up delegates per platform, declare what you want:
+
+```dart
+import 'package:flutter_litert/flutter_litert.dart';
+
+// Let the library pick the best delegate for the current platform
+final config = PerformanceConfig.auto(numThreads: 4);
+
+// Or pick explicitly
+final config = PerformanceConfig.gpu();
+final config = PerformanceConfig.coreml();
+final config = PerformanceConfig.xnnpack(numThreads: 2);
+final config = PerformanceConfig.disabled; // no delegate
+```
+
+### InterpreterFactory
+
+Creates an interpreter with the right delegate for the current platform — no more per-platform `if (Platform.isIOS)` chains:
+
+```dart
+import 'package:flutter_litert/flutter_litert.dart';
+
+final config = PerformanceConfig.auto(numThreads: 4);
+final (options, delegate) = InterpreterFactory.create(config);
+
+final interpreter = await Interpreter.fromAsset('model.tflite', options: options);
+interpreter.allocateTensors();
+
+// For models with MediaPipe custom ops (e.g. selfie segmentation):
+final (options, delegate) = InterpreterFactory.create(config, addMediaPipeCustomOps: true);
+```
+
+`InterpreterFactory.create()` returns both the configured `InterpreterOptions` and the `Delegate` (if one was created). The delegate is needed if you want to manage its lifecycle or decide whether to use an `IsolateInterpreter`:
+
+```dart
+// IsolateInterpreter is only useful when no hardware delegate is active
+final isolate = await InterpreterFactory.createIsolateIfNeeded(interpreter, delegate);
+```
+
+### InterpreterPool
+
+Thread-safe round-robin pool of interpreters with per-slot serialization locks. Useful when you need concurrent inference (e.g. processing video frames) without XNNPACK thread contention:
+
+```dart
+import 'package:flutter_litert/flutter_litert.dart';
+
+final pool = InterpreterPool(poolSize: 3);
+await pool.initialize(
+  (options, delegate) async {
+    final interp = await Interpreter.fromAsset('model.tflite', options: options);
+    interp.resizeInputTensor(0, [1, 224, 224, 3]);
+    interp.allocateTensors();
+    return interp;
+  },
+  performanceConfig: PerformanceConfig.auto(numThreads: 2),
+);
+
+// Each call gets exclusive access to one interpreter (round-robin)
+final result = await pool.withInterpreter((interpreter, isolate) async {
+  final runner = isolate ?? interpreter;
+  runner.run(input, output);
+  return output;
+});
+
+await pool.dispose();
+```
+
+### SSD anchor generation
+
+Generates anchor boxes for SSD-style detection models (MediaPipe face detection, palm detection, etc.):
+
+```dart
+import 'package:flutter_litert/flutter_litert.dart';
+
+final anchors = generateAnchors(SSDAnchorOptions(
+  numLayers: 4,
+  minScale: 0.1484375,
+  maxScale: 0.75,
+  inputSizeHeight: 128,
+  inputSizeWidth: 128,
+  anchorOffsetX: 0.5,
+  anchorOffsetY: 0.5,
+  strides: [8, 16, 16, 16],
+  aspectRatios: [1.0],
+  reduceBoxesInLowestLayer: false,
+  interpolatedScaleAspectRatio: 1.0,
+  fixedAnchorSize: true,
+));
+
+// Each anchor is [xCenter, yCenter, width, height] in normalized coordinates
+// Use these to decode raw detection model outputs into bounding boxes
+```
+
+### Letterbox coordinate mapping
+
+Transforms bounding box coordinates from letterbox (padded/resized) space back to original image space:
+
+```dart
+import 'package:flutter_litert/flutter_litert.dart';
+
+// After running detection on a letterboxed image:
+final originalBox = scaleFromLetterbox(
+  [x1, y1, x2, y2],  // box in letterbox space
+  ratio,              // scale ratio from letterbox preprocessing
+  dw,                 // horizontal padding
+  dh,                 // vertical padding
+);
+```
+
 ## Credits
 
 Based on [`tflite_flutter`](https://pub.dev/packages/tflite_flutter) by the TensorFlow team and contributors.

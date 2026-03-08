@@ -1,3 +1,13 @@
+## 1.1.1
+* Fix package layout to follow Pub conventions
+
+## 1.1.0
+* Add `PerformanceConfig` and `PerformanceMode` for unified hardware acceleration configuration (auto, xnnpack, gpu, coreml, disabled)
+* Add `InterpreterFactory` for platform-aware delegate selection and interpreter creation
+* Add `InterpreterPool` for thread-safe round-robin interpreter access with Future-based locks
+* Add `generateAnchors()` and `SSDAnchorOptions` for SSD anchor generation (MediaPipe-style detection models)
+* Add `scaleFromLetterbox()` utility for letterbox-to-original coordinate mapping
+
 ## 1.0.3
 * Add `SignatureRunner` for on-device training workflows (`train`, `infer`, `get_weights`, `set_weights` signatures)
 * Add Linux FlexDelegate support via `flutter_litert_flex` (Linux x86_64, built from TF 2.20.0 source). All three desktop platforms (macOS, Windows, Linux) now fully support on-device training with `SELECT_TF_OPS` models and checkpoint save/restore.

@@ -8,3 +8,6 @@ library;
 export 'src/all_native.dart' if (dart.library.js_interop) 'src/all_web.dart';
 export 'src/quanitzation_params.dart';
 export 'src/util/list_shape_extension.dart';
+export 'src/util/detection_utils.dart';
+export 'src/performance_config.dart';
+export 'src/ssd_anchors.dart';

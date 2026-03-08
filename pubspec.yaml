@@ -1,6 +1,6 @@
 name: flutter_litert
 description: LiteRT (formerly TensorFlow Lite) Flutter plugin. Drop-in on-device ML inference with bundled native libraries for all platforms.
-version: 1.0.3
+version: 1.1.1
 homepage: https://github.com/hugocornellier/flutter_litert
 repository: https://github.com/hugocornellier/flutter_litert
 

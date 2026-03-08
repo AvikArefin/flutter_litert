@@ -1,11 +1,20 @@
+## 1.2.0
+* Add shared ML utility functions
+  * `sigmoid`, `sigmoidClipped`, `clip`, `clamp01`, `argSortDesc`, `median`, `normalizeRadians` (math utilities)
+  * `iouXYXY`, `nms` (non-maximum suppression)
+  * `computeLetterboxParams`, `computeAspectPadParams`, `LetterboxParams`, `AspectPadParams` (image preprocessing)
+  * `bgrBytesToRgbFloat32`, `bgrBytesToSignedFloat32`, `fillNHWC4DFromBgrBytes` (image-to-tensor conversion)
+  * `allocTensorShape`, `createOutputBuffers`, `zeroOutputBuffers`, `createNHWCTensor4D`, `fillNHWC4D`, `flattenDynamicTensor` (tensor allocation)
+  * `decodeDetectionOutputs`, `transpose2D`, `concat0`, `ensure2D`, `xywhToXyxy` (model output decoding)
+  * `postProcessDetections`, `Detection`, `decodeAndSplitOutputs` (end-to-end detection post-processing with NMS)
+
 ## 1.1.1
 * Fix package layout to follow Pub conventions
 
 ## 1.1.0
-* Add `PerformanceConfig` and `PerformanceMode` for unified hardware acceleration configuration (auto, xnnpack, gpu, coreml, disabled)
-* Add `InterpreterFactory` for platform-aware delegate selection and interpreter creation
-* Add `InterpreterPool` for thread-safe round-robin interpreter access with Future-based locks
-* Add `generateAnchors()` and `SSDAnchorOptions` for SSD anchor generation (MediaPipe-style detection models)
+* Add `PerformanceConfig` and `PerformanceMode`, 
+* Add `InterpreterFactory` and `InterpreterPool`
+* Add `generateAnchors()` and `SSDAnchorOptions`
 * Add `scaleFromLetterbox()` utility for letterbox-to-original coordinate mapping
 
 ## 1.0.3

@@ -6,7 +6,7 @@
 library;
 
 export 'src/all_native.dart' if (dart.library.js_interop) 'src/all_web.dart';
-export 'src/quanitzation_params.dart';
+export 'src/quantization_params.dart';
 export 'src/util/list_shape_extension.dart';
 export 'src/util/detection_utils.dart';
 export 'src/util/math_utils.dart';
@@ -17,3 +17,5 @@ export 'src/util/letterbox_params.dart';
 export 'src/util/model_output_utils.dart';
 export 'src/performance_config.dart';
 export 'src/ssd_anchors.dart';
+export 'src/isolate_rpc_client.dart';
+export 'src/point.dart';

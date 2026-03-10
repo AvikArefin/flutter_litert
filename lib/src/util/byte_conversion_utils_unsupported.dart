@@ -17,16 +17,9 @@
 import 'dart:typed_data';
 
 import '../tensor.dart';
+import 'byte_conversion_utils_shared.dart' as shared;
 
-class ByteConversionError extends ArgumentError {
-  ByteConversionError({required this.input, required this.tensorType})
-    : super(
-        'The input element is ${input.runtimeType} while tensor data type is $tensorType',
-      );
-
-  final Object input;
-  final TensorType tensorType;
-}
+typedef ByteConversionError = shared.ByteConversionError;
 
 class ByteConversionUtils {
   static Uint8List convertObjectToBytes(Object o, TensorType tensorType) {

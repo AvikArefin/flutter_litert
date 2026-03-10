@@ -21,6 +21,7 @@ import 'package:quiver/check.dart';
 import '../bindings/bindings.dart';
 import '../bindings/tensorflow_lite_bindings_generated.dart';
 import '../native/delegate.dart';
+import 'delegate_library_loader.dart';
 
 /// Lazily loaded CoreML-specific binding.
 ///
@@ -118,41 +119,10 @@ class CoreMlDelegateOptions {
 }
 
 /// Opens the CoreML delegate dylib on macOS.
-DynamicLibrary _openCoremlLibrary() {
-  if (CoreMlDelegate._coremlLib != null) return CoreMlDelegate._coremlLib!;
-
-  final List<String> attemptedPaths = [];
-
-  // Strategy 1: Environment variable override
-  final envPath = Platform.environment['TFLITE_COREML_PATH'];
-  if (envPath != null && envPath.isNotEmpty) {
-    attemptedPaths.add('TFLITE_COREML_PATH: $envPath');
-    try {
-      final lib = DynamicLibrary.open(envPath);
-      CoreMlDelegate._coremlLib = lib;
-      return lib;
-    } catch (e) {
-      // Continue
-    }
-  }
-
-  // Strategy 2: App bundle paths (dylib is bundled in the package)
-  for (final path in CoreMlDelegate._bundlePaths) {
-    attemptedPaths.add(path);
-    try {
-      final lib = DynamicLibrary.open(path);
-      CoreMlDelegate._coremlLib = lib;
-      return lib;
-    } catch (e) {
-      // Continue
-    }
-  }
-
-  throw UnsupportedError(
-    'CoreML delegate library not found. Attempted paths:\n'
-    '${attemptedPaths.map((p) => '  - $p').join('\n')}\n\n'
-    'Solutions:\n'
-    '  1. Set TFLITE_COREML_PATH environment variable to the library path\n'
-    '  2. The CoreML delegate requires macOS on Apple Silicon (arm64)\n',
-  );
-}
+DynamicLibrary _openCoremlLibrary() => openDelegateLibrary(
+  envVar: 'TFLITE_COREML_PATH',
+  bundlePaths: CoreMlDelegate._bundlePaths,
+  description: 'CoreML delegate',
+  getCached: () => CoreMlDelegate._coremlLib,
+  setCached: (lib) => CoreMlDelegate._coremlLib = lib,
+);

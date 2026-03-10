@@ -21,6 +21,7 @@ import 'package:quiver/check.dart';
 import '../bindings/bindings.dart';
 import '../bindings/tensorflow_lite_bindings_generated.dart';
 import '../native/delegate.dart';
+import 'delegate_library_loader.dart';
 
 /// Lazily loaded Metal-specific binding.
 ///
@@ -131,41 +132,10 @@ class GpuDelegateOptions {
 }
 
 /// Opens the Metal GPU delegate dylib on macOS.
-DynamicLibrary _openMetalLibrary() {
-  if (GpuDelegate._metalLib != null) return GpuDelegate._metalLib!;
-
-  final List<String> attemptedPaths = [];
-
-  // Strategy 1: Environment variable override
-  final envPath = Platform.environment['TFLITE_METAL_PATH'];
-  if (envPath != null && envPath.isNotEmpty) {
-    attemptedPaths.add('TFLITE_METAL_PATH: $envPath');
-    try {
-      final lib = DynamicLibrary.open(envPath);
-      GpuDelegate._metalLib = lib;
-      return lib;
-    } catch (e) {
-      // Continue
-    }
-  }
-
-  // Strategy 2: App bundle paths (dylib is bundled in the package)
-  for (final path in GpuDelegate._bundlePaths) {
-    attemptedPaths.add(path);
-    try {
-      final lib = DynamicLibrary.open(path);
-      GpuDelegate._metalLib = lib;
-      return lib;
-    } catch (e) {
-      // Continue
-    }
-  }
-
-  throw UnsupportedError(
-    'Metal GPU delegate library not found. Attempted paths:\n'
-    '${attemptedPaths.map((p) => '  - $p').join('\n')}\n\n'
-    'Solutions:\n'
-    '  1. Set TFLITE_METAL_PATH environment variable to the library path\n'
-    '  2. The Metal GPU delegate requires macOS on Apple Silicon (arm64)\n',
-  );
-}
+DynamicLibrary _openMetalLibrary() => openDelegateLibrary(
+  envVar: 'TFLITE_METAL_PATH',
+  bundlePaths: GpuDelegate._bundlePaths,
+  description: 'Metal GPU delegate',
+  getCached: () => GpuDelegate._metalLib,
+  setCached: (lib) => GpuDelegate._metalLib = lib,
+);

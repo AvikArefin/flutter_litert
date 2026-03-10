@@ -7,6 +7,7 @@ ios/TensorFlowLiteCMetal.xcframework/
 
 # flutter_litert_flex is a separate package (3.3 GB of .o files + xcframeworks)
 flutter_litert_flex/
+litert_flex/
 
 # Build artifacts
 build/

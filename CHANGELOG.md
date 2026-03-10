@@ -1,3 +1,12 @@
+## 1.4.0
+* Fix tensor cache bug, add shared Point class, dedup internals
+
+## 1.3.1
+* Add NaN handling to `clamp01()` — returns 0.0 for NaN inputs
+
+## 1.3.0
+* Add `IsolateRpcClient` and `setupIsolateHandshake` for reusable isolate request/response communication
+
 ## 1.2.0
 * Add shared ML utility functions
   * `sigmoid`, `sigmoidClipped`, `clip`, `clamp01`, `argSortDesc`, `median`, `normalizeRadians` (math utilities)

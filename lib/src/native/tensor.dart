@@ -25,8 +25,9 @@ import '../util/byte_conversion_utils_native.dart';
 import 'package:flutter/foundation.dart';
 
 import '../ffi/helper.dart';
-import '../quanitzation_params.dart';
+import '../quantization_params.dart';
 import '../util/list_shape_extension.dart';
+import '../util/tensor_shape_utils.dart' as shape_utils;
 
 export '../bindings/tensorflow_lite_bindings_generated.dart' show TfLiteType;
 
@@ -94,50 +95,19 @@ class Tensor {
   }
 
   /// Returns the number of elements in a flattened (1-D) view of the tensor's shape.
-  static int computeNumElements(List<int> shape) {
-    int n = 1;
-    for (var i = 0; i < shape.length; i++) {
-      n *= shape[i];
-    }
-    return n;
-  }
+  static int computeNumElements(List<int> shape) =>
+      shape_utils.computeNumElements(shape);
 
   /// Returns shape of an object as an int list
-  static List<int> computeShapeOf(Object o) {
-    int size = computeNumDimensions(o);
-    List<int> dimensions = List.filled(size, 0, growable: false);
-    fillShape(o, 0, dimensions);
-    return dimensions;
-  }
+  static List<int> computeShapeOf(Object o) => shape_utils.computeShapeOf(o);
 
   /// Returns the number of dimensions of a multi-dimensional array, otherwise 0.
-  static int computeNumDimensions(Object? o) {
-    if (o == null || o is! List) {
-      return 0;
-    }
-    if (o.isEmpty) {
-      throw ArgumentError('Array lengths cannot be 0.');
-    }
-    return 1 + computeNumDimensions(o.elementAt(0));
-  }
+  static int computeNumDimensions(Object? o) =>
+      shape_utils.computeNumDimensions(o);
 
   /// Recursively populates the shape dimensions for a given (multi-dimensional) array)
-  static void fillShape(Object o, int dim, List<int>? shape) {
-    if (shape == null || dim == shape.length) {
-      return;
-    }
-    final len = (o as List).length;
-    if (shape[dim] == 0) {
-      shape[dim] = len;
-    } else if (shape[dim] != len) {
-      throw ArgumentError(
-        'Mismatched lengths ${shape[dim]} and $len in dimension $dim',
-      );
-    }
-    for (var i = 0; i < len; ++i) {
-      fillShape(o.elementAt(0), dim + 1, shape);
-    }
-  }
+  static void fillShape(Object o, int dim, List<int>? shape) =>
+      shape_utils.fillShape(o, dim, shape);
 
   /// Returns data type of given object
   static int dataTypeOf(Object o) {

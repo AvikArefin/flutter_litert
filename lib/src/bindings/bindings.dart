@@ -19,6 +19,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter_litert/src/bindings/tensorflow_lite_bindings_generated.dart';
+import 'package:flutter_litert/src/util/desktop_library_loader.dart';
 
 // Top-level finals are initialized lazily on first access in Dart.
 final DynamicLibrary _dylib = () {
@@ -71,53 +72,16 @@ DynamicLibrary _loadDesktopLibrary() {
     libName = 'libtensorflowlite_c-win.dll';
   }
 
-  // macOS: Check various locations where CocoaPods puts libraries
+  // macOS: Check various locations where CocoaPods/SPM puts libraries
   if (Platform.isMacOS) {
-    final appBundle = Directory(Platform.resolvedExecutable).parent.parent;
-
-    // Strategy 2: Check inside flutter_litert.framework/Resources
-    // This is where CocoaPods puts s.resources for framework targets
-    final frameworkResourcesPath =
-        '${appBundle.path}/Frameworks/flutter_litert.framework/Versions/A/Resources/$libName';
-    attemptedPaths.add('Framework Resources path: $frameworkResourcesPath');
-    try {
-      return DynamicLibrary.open(frameworkResourcesPath);
-    } catch (e) {
-      // Continue
-    }
-
-    // Also check without Versions/A (for symlinked frameworks)
-    final frameworkResourcesPathAlt =
-        '${appBundle.path}/Frameworks/flutter_litert.framework/Resources/$libName';
-    attemptedPaths.add(
-      'Framework Resources path (alt): $frameworkResourcesPathAlt',
+    // Strategies 2-4: standard bundle paths
+    final bundleLib = tryLoadMacOSBundlePaths(
+      libName,
+      frameworkName: 'flutter_litert',
+      spmBundleName: 'flutter_litert_flutter_litert',
+      attemptedPaths: attemptedPaths,
     );
-    try {
-      return DynamicLibrary.open(frameworkResourcesPathAlt);
-    } catch (e) {
-      // Continue
-    }
-
-    // Strategy 3: App bundle Resources directory
-    final resourcesPath = '${appBundle.path}/Resources/$libName';
-    attemptedPaths.add('App Resources path: $resourcesPath');
-    try {
-      return DynamicLibrary.open(resourcesPath);
-    } catch (e) {
-      // Continue
-    }
-
-    // Strategy 4: SPM bundle path
-    // When resolved via Swift Package Manager, resources end up inside
-    // a .bundle in the app's Resources directory.
-    final spmBundlePath =
-        '${appBundle.path}/Resources/flutter_litert_flutter_litert.bundle/Contents/Resources/$libName';
-    attemptedPaths.add('SPM bundle path: $spmBundlePath');
-    try {
-      return DynamicLibrary.open(spmBundlePath);
-    } catch (e) {
-      // Continue
-    }
+    if (bundleLib != null) return bundleLib;
 
     // Strategy 5: Resolve from flutter_litert package source (for flutter test)
     final packagePath = _resolvePackagePath('flutter_litert');

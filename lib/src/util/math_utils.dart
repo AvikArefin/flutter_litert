@@ -7,8 +7,9 @@ double sigmoid(double x) => 1.0 / (1.0 + math.exp(-x));
 double sigmoidClipped(double x, {double limit = 80.0}) =>
     sigmoid(clip(x, -limit, limit));
 
-/// Clamps [v] to the range [0.0, 1.0].
-double clamp01(double v) => clip(v, 0.0, 1.0);
+/// Clamps [v] to the range [0.0, 1.0]. Returns 0.0 for NaN inputs.
+double clamp01(double v) =>
+    v.isNaN ? 0.0 : (v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v));
 
 /// Clamps [v] to the range [lo, hi].
 double clip(double v, double lo, double hi) => v < lo ? lo : (v > hi ? hi : v);

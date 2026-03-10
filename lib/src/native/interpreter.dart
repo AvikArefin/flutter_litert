@@ -255,7 +255,7 @@ class Interpreter {
       growable: false,
     );
 
-    return tensors;
+    return _inputTensors = tensors;
   }
 
   /// Gets all output tensors associated with the model.
@@ -275,7 +275,7 @@ class Interpreter {
       growable: false,
     );
 
-    return tensors;
+    return _outputTensors = tensors;
   }
 
   /// Resize input tensor for the given tensor index. `allocateTensors` must be called again afterward.

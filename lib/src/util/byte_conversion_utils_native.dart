@@ -19,17 +19,10 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import '../native/tensor.dart';
+import 'byte_conversion_utils_shared.dart' as shared;
 import 'list_shape_extension.dart';
 
-class ByteConversionError extends ArgumentError {
-  ByteConversionError({required this.input, required this.tensorType})
-    : super(
-        'The input element is ${input.runtimeType} while tensor data type is $tensorType',
-      );
-
-  final Object input;
-  final TensorType tensorType;
-}
+typedef ByteConversionError = shared.ByteConversionError;
 
 class ByteConversionUtils {
   static Uint8List convertObjectToBytes(Object o, TensorType tensorType) {
@@ -151,35 +144,8 @@ class ByteConversionUtils {
   }
 
   /// Decodes a TensorFlow string to a `List<String>`
-  static List<String> decodeTFStrings(Uint8List bytes) {
-    /// The decoded string
-    List<String> decodedStrings = [];
-
-    /// get the first 32bit int representing num of strings
-    int numStrings = ByteData.view(
-      bytes.sublist(0, sizeOf<Int32>()).buffer,
-    ).getInt32(0, Endian.little);
-
-    /// parse subsequent string position and sizes
-    for (int s = 0; s < numStrings; s++) {
-      // get current str index
-      int startIdx = ByteData.view(
-        bytes
-            .sublist((1 + s) * sizeOf<Int32>(), (2 + s) * sizeOf<Int32>())
-            .buffer,
-      ).getInt32(0, Endian.little);
-      // get next str index, or in last case the ending byte position
-      int endIdx = ByteData.view(
-        bytes
-            .sublist((2 + s) * sizeOf<Int32>(), (3 + s) * sizeOf<Int32>())
-            .buffer,
-      ).getInt32(0, Endian.little);
-
-      decodedStrings.add(utf8.decode(bytes.sublist(startIdx, endIdx)));
-    }
-
-    return decodedStrings;
-  }
+  static List<String> decodeTFStrings(Uint8List bytes) =>
+      shared.decodeTFStrings(bytes);
 
   /// Encodes a list of Dart strings into the TFLite string tensor binary format.
   ///
@@ -262,7 +228,7 @@ class ByteConversionUtils {
     } else if (tensorType.value == TfLiteType.kTfLiteFloat16) {
       for (var i = 0; i < bytes.length; i += 2) {
         int float16 = ByteData.view(bytes.buffer).getUint16(i, Endian.little);
-        double float32 = _float16ToFloat32(float16);
+        double float32 = shared.float16ToFloat32(float16);
         list.add(float32);
       }
       return list.reshape<double>(shape);
@@ -288,71 +254,8 @@ class ByteConversionUtils {
     throw UnsupportedError("$tensorType is not Supported.");
   }
 
-  static Uint8List floatToFloat16Bytes(double value) {
-    int float16 = _float32ToFloat16(value);
-    final ByteData byteDataBuffer = ByteData(2)
-      ..setUint16(0, float16, Endian.little);
-    return Uint8List.fromList(byteDataBuffer.buffer.asUint8List());
-  }
+  static Uint8List floatToFloat16Bytes(double value) =>
+      shared.floatToFloat16Bytes(value);
 
-  static int _float32ToFloat16(double value) {
-    final Float32List float32Buffer = Float32List(1);
-    final Uint32List int32Buffer = float32Buffer.buffer.asUint32List();
-
-    float32Buffer[0] = value;
-    int f = int32Buffer[0];
-    int sign = (f >> 16) & 0x8000;
-    int exponent = (f >> 23) & 0xFF;
-    int mantissa = f & 0x007FFFFF;
-
-    if (exponent == 0) return sign;
-    if (exponent == 255) return sign | 0x7C00;
-
-    exponent = exponent - 127 + 15;
-    if (exponent >= 31) return sign | 0x7C00;
-    if (exponent <= 0) return sign;
-
-    // Implement rounding
-    int roundMantissa = (mantissa >> 13) + ((mantissa >> 12) & 1);
-
-    return sign | (exponent << 10) | roundMantissa;
-  }
-
-  static double bytesToFloat32(Uint8List bytes) {
-    final ByteData byteDataBuffer = ByteData(2);
-    int float16 = byteDataBuffer.buffer
-        .asUint8List()
-        .buffer
-        .asByteData()
-        .getUint16(0, Endian.little);
-    return _float16ToFloat32(float16);
-  }
-
-  static double _float16ToFloat32(int value) {
-    final Float32List float32Buffer = Float32List(1);
-    final Uint32List int32Buffer = float32Buffer.buffer.asUint32List();
-
-    int sign = (value & 0x8000) << 16;
-    int exponent = (value & 0x7C00) >> 10;
-    int mantissa = (value & 0x03FF) << 13;
-
-    if (exponent == 0) {
-      if (mantissa == 0) return sign == 0 ? 0.0 : -0.0;
-      while ((mantissa & 0x00800000) == 0) {
-        mantissa <<= 1;
-        exponent -= 1;
-      }
-      exponent += 1;
-    } else if (exponent == 31) {
-      if (mantissa == 0) {
-        return sign == 0 ? double.infinity : double.negativeInfinity;
-      }
-      return double.nan;
-    }
-
-    exponent = exponent - 15 + 127;
-    int32Buffer[0] = sign | (exponent << 23) | mantissa;
-
-    return float32Buffer[0];
-  }
+  static double bytesToFloat32(Uint8List bytes) => shared.bytesToFloat32(bytes);
 }

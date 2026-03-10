@@ -5,7 +5,7 @@
 
 import 'dart:typed_data';
 
-import '../quanitzation_params.dart';
+import '../quantization_params.dart';
 
 /// TensorFlowLite tensor.
 class Tensor {

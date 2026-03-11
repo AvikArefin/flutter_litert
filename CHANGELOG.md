@@ -1,3 +1,7 @@
+## 2.0.2
+
+* Fix: use-after-free when interpreter reads model weights from freed buffer, transfer buffer ownership from `Model` to `Interpreter`
+
 ## 2.0.1
 
 * Add `IsolateWorkerBase` for shared isolate lifecycle management

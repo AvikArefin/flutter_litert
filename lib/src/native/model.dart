@@ -33,6 +33,15 @@ class Model {
 
   Model._(this._model, [this._bufferPtr]);
 
+  /// Detaches the native buffer pointer from this model, transferring
+  /// ownership to the caller. After this call, [delete] will NOT free the
+  /// buffer — the caller is responsible for freeing it.
+  Pointer<Uint8>? detachBuffer() {
+    final ptr = _bufferPtr;
+    _bufferPtr = null;
+    return ptr;
+  }
+
   /// Loads model from a file or throws if unsuccessful.
   factory Model.fromFile(String path) {
     final cpath = path.toNativeUtf8().cast<Char>();

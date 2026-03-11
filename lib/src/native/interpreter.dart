@@ -33,6 +33,7 @@ import 'tensor.dart';
 /// TensorFlowLite interpreter for running inference on a model.
 class Interpreter {
   final Pointer<TfLiteInterpreter> _interpreter;
+  Pointer<Uint8>? _modelBuffer;
   bool _deleted = false;
   bool _allocated = false;
   int _lastNativeInferenceDurationMicroSeconds = 0;
@@ -68,7 +69,10 @@ class Interpreter {
       isNotNull(interpreter),
       message: 'Unable to create interpreter.',
     );
-    return Interpreter._(interpreter);
+    // Transfer buffer ownership: the interpreter references model weight data
+    // directly via zero-copy, so the buffer must stay alive until the
+    // interpreter is destroyed.
+    return Interpreter._(interpreter).._modelBuffer = model.detachBuffer();
   }
 
   /// Creates [Interpreter] from a model file
@@ -167,6 +171,10 @@ class Interpreter {
   void close() {
     checkState(!_deleted, message: 'Interpreter already deleted.');
     tfliteBinding.TfLiteInterpreterDelete(_interpreter);
+    if (_modelBuffer != null) {
+      calloc.free(_modelBuffer!);
+      _modelBuffer = null;
+    }
     _deleted = true;
   }
 

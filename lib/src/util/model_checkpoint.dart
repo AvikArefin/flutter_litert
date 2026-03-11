@@ -19,8 +19,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../native/interpreter.dart';
-import '../native/tensor.dart';
-import 'byte_conversion_utils_native.dart';
+import '../tensor_type.dart';
+import 'byte_conversion_utils_shared.dart';
 
 /// Dart-side weight persistence for on-device training models.
 ///

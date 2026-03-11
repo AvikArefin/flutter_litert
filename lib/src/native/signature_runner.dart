@@ -123,27 +123,40 @@ class SignatureRunner {
   List<String> get inputNames =>
       List.generate(inputCount, getInputName, growable: false);
 
-  /// Returns the input [Tensor] identified by [name].
-  ///
-  /// Throws [ArgumentError] if [name] is not a valid input name.
-  Tensor getInputTensor(String name) {
+  Tensor _getTensorByName(
+    String name,
+    Pointer<TfLiteTensor> Function(
+      Pointer<TfLiteSignatureRunner>,
+      Pointer<Char>,
+    )
+    nativeGetter,
+    String kind,
+    List<String> validNames,
+  ) {
     final namePtr = name.toNativeUtf8();
     try {
-      final tensor = tfliteBinding.TfLiteSignatureRunnerGetInputTensor(
-        _runner,
-        namePtr.cast(),
-      );
+      final tensor = nativeGetter(_runner, namePtr.cast());
       checkArgument(
         isNotNull(tensor),
         message:
-            'Input tensor "$name" not found. '
-            'Valid input names: ${inputNames.join(', ')}',
+            '$kind tensor "$name" not found. '
+            'Valid $kind names: ${validNames.join(', ')}',
       );
       return Tensor(tensor);
     } finally {
       calloc.free(namePtr);
     }
   }
+
+  /// Returns the input [Tensor] identified by [name].
+  ///
+  /// Throws [ArgumentError] if [name] is not a valid input name.
+  Tensor getInputTensor(String name) => _getTensorByName(
+    name,
+    tfliteBinding.TfLiteSignatureRunnerGetInputTensor,
+    'Input',
+    inputNames,
+  );
 
   /// Returns all input tensors for this signature.
   List<Tensor> getInputTensors() =>
@@ -245,24 +258,12 @@ class SignatureRunner {
   /// Returns the output [Tensor] identified by [name].
   ///
   /// Throws [ArgumentError] if [name] is not a valid output name.
-  Tensor getOutputTensor(String name) {
-    final namePtr = name.toNativeUtf8();
-    try {
-      final tensor = tfliteBinding.TfLiteSignatureRunnerGetOutputTensor(
-        _runner,
-        namePtr.cast(),
-      );
-      checkArgument(
-        isNotNull(tensor),
-        message:
-            'Output tensor "$name" not found. '
-            'Valid output names: ${outputNames.join(', ')}',
-      );
-      return Tensor(tensor);
-    } finally {
-      calloc.free(namePtr);
-    }
-  }
+  Tensor getOutputTensor(String name) => _getTensorByName(
+    name,
+    tfliteBinding.TfLiteSignatureRunnerGetOutputTensor,
+    'Output',
+    outputNames,
+  );
 
   /// Returns all output tensors for this signature.
   List<Tensor> getOutputTensors() =>

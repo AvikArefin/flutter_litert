@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import 'tensor_shape_utils.dart' as shape_utils;
+
 extension ListShape on List {
   /// Reshape list to a another [shape]
   ///
@@ -26,10 +28,7 @@ extension ListShape on List {
   /// mismatch with current number of elements in list
   List reshape<T>(List<int> shape) {
     var dims = shape.length;
-    var numElements = 1;
-    for (var i = 0; i < dims; i++) {
-      numElements *= shape[i];
-    }
+    var numElements = shape_utils.computeNumElements(shape);
 
     if (numElements != computeNumElements) {
       throw ArgumentError(
@@ -173,11 +172,5 @@ extension ListShape on List {
   }
 
   /// Get the total number of elements in list
-  int get computeNumElements {
-    var n = 1;
-    for (var i = 0; i < shape.length; i++) {
-      n *= shape[i];
-    }
-    return n;
-  }
+  int get computeNumElements => shape_utils.computeNumElements(shape);
 }

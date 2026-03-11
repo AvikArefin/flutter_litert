@@ -1,6 +1,44 @@
 import 'dart:ffi';
 import 'dart:io';
 
+/// Returns the standard app-bundle search paths for a macOS delegate dylib
+/// bundled inside `flutter_litert`'s resource directories.
+List<String> delegateBundlePaths(String libName) {
+  final appBundle = Directory(Platform.resolvedExecutable).parent.parent;
+  return [
+    '${appBundle.path}/Resources/$libName',
+    '${appBundle.path}/Frameworks/flutter_litert.framework/Versions/A/Resources/$libName',
+    '${appBundle.path}/Frameworks/flutter_litert.framework/Resources/$libName',
+    '${appBundle.path}/Resources/flutter_litert_flutter_litert.bundle/Contents/Resources/$libName',
+  ];
+}
+
+/// Tries to open a [DynamicLibrary] from [paths], optionally checking [envVar]
+/// first. Appends all attempted entries to [attemptedPaths] for error
+/// reporting. Returns the loaded library, or `null` if all attempts fail.
+DynamicLibrary? probeLibraryPaths({
+  String? envVar,
+  required List<String> paths,
+  required List<String> attemptedPaths,
+}) {
+  if (envVar != null) {
+    final envPath = Platform.environment[envVar];
+    if (envPath != null && envPath.isNotEmpty) {
+      attemptedPaths.add('$envVar: $envPath');
+      try {
+        return DynamicLibrary.open(envPath);
+      } catch (_) {}
+    }
+  }
+  for (final path in paths) {
+    attemptedPaths.add(path);
+    try {
+      return DynamicLibrary.open(path);
+    } catch (_) {}
+  }
+  return null;
+}
+
 /// Opens a delegate dylib on macOS using a standard search strategy:
 /// 1. Check [getCached] for a previously loaded library
 /// 2. Try environment variable override via [envVar]
@@ -17,30 +55,14 @@ DynamicLibrary openDelegateLibrary({
   if (cached != null) return cached;
 
   final List<String> attemptedPaths = [];
-
-  // Strategy 1: Environment variable override
-  final envPath = Platform.environment[envVar];
-  if (envPath != null && envPath.isNotEmpty) {
-    attemptedPaths.add('$envVar: $envPath');
-    try {
-      final lib = DynamicLibrary.open(envPath);
-      setCached(lib);
-      return lib;
-    } catch (e) {
-      // Continue
-    }
-  }
-
-  // Strategy 2: App bundle paths
-  for (final path in bundlePaths) {
-    attemptedPaths.add(path);
-    try {
-      final lib = DynamicLibrary.open(path);
-      setCached(lib);
-      return lib;
-    } catch (e) {
-      // Continue
-    }
+  final lib = probeLibraryPaths(
+    envVar: envVar,
+    paths: bundlePaths,
+    attemptedPaths: attemptedPaths,
+  );
+  if (lib != null) {
+    setCached(lib);
+    return lib;
   }
 
   throw UnsupportedError(

@@ -34,10 +34,10 @@ class InterpreterFactory {
       return _createXnnpack(options, threadCount);
     }
     if (effectiveConfig.mode == PerformanceMode.gpu) {
-      return _createGpu(options, threadCount);
+      return _createGpu(options);
     }
     if (effectiveConfig.mode == PerformanceMode.coreml) {
-      return _createCoreml(options, threadCount);
+      return _createCoreml(options);
     }
     return (options, null);
   }
@@ -58,7 +58,7 @@ class InterpreterFactory {
       return _createXnnpack(options, threadCount);
     }
     if (Platform.isIOS) {
-      return _createGpu(options, threadCount);
+      return _createGpu(options);
     }
     return (options, null);
   }
@@ -71,9 +71,9 @@ class InterpreterFactory {
       return (options, null);
     }
     try {
-      final xnnpackDelegate = XNNPackDelegate(
-        options: XNNPackDelegateOptions(numThreads: threadCount),
-      );
+      final xnnOpts = XNNPackDelegateOptions(numThreads: threadCount);
+      final xnnpackDelegate = XNNPackDelegate(options: xnnOpts);
+      xnnOpts.delete();
       options.addDelegate(xnnpackDelegate);
       return (options, xnnpackDelegate);
     } catch (_) {
@@ -83,7 +83,6 @@ class InterpreterFactory {
 
   static (InterpreterOptions, Delegate?) _createGpu(
     InterpreterOptions options,
-    int threadCount,
   ) {
     if (!Platform.isIOS && !Platform.isMacOS && !Platform.isAndroid) {
       return (options, null);
@@ -101,15 +100,14 @@ class InterpreterFactory {
 
   static (InterpreterOptions, Delegate?) _createCoreml(
     InterpreterOptions options,
-    int threadCount,
   ) {
     if (!Platform.isIOS && !Platform.isMacOS) {
       return (options, null);
     }
     try {
-      final coremlDelegate = CoreMlDelegate(
-        options: CoreMlDelegateOptions(enabledDevices: 1),
-      );
+      final coreOpts = CoreMlDelegateOptions(enabledDevices: 1);
+      final coremlDelegate = CoreMlDelegate(options: coreOpts);
+      coreOpts.delete();
       options.addDelegate(coremlDelegate);
       return (options, coremlDelegate);
     } catch (_) {

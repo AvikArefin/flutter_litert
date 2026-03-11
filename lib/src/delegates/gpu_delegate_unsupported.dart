@@ -35,6 +35,8 @@ class GpuDelegateOptionsV2 {
     int inferencePriority3 = 0,
     List<int> experimentalFlags = const [],
     int maxDelegatePartitions = 1,
+    String? serializationDir,
+    String? modelToken,
   }) {
     throw UnsupportedError(
       'GpuDelegateOptionsV2 is not supported on this platform',

@@ -88,16 +88,7 @@ class GpuDelegate implements Delegate {
   static String get _libName => 'libtensorflowlite_gpu-mac.dylib';
 
   /// Paths where the library may exist inside a built app bundle.
-  static List<String> get _bundlePaths {
-    final libName = _libName;
-    final appBundle = Directory(Platform.resolvedExecutable).parent.parent;
-    return [
-      '${appBundle.path}/Resources/$libName',
-      '${appBundle.path}/Frameworks/flutter_litert.framework/Versions/A/Resources/$libName',
-      '${appBundle.path}/Frameworks/flutter_litert.framework/Resources/$libName',
-      '${appBundle.path}/Resources/flutter_litert_flutter_litert.bundle/Contents/Resources/$libName',
-    ];
-  }
+  static List<String> get _bundlePaths => delegateBundlePaths(_libName);
 }
 
 /// Metal Delegate options

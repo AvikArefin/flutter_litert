@@ -19,7 +19,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter_litert/src/bindings/tensorflow_lite_bindings_generated.dart';
-import 'package:flutter_litert/src/util/desktop_library_loader.dart';
+import 'package:flutter_litert/src/delegates/delegate_library_loader.dart';
 
 // Top-level finals are initialized lazily on first access in Dart.
 final DynamicLibrary _dylib = () {
@@ -39,31 +39,10 @@ final DynamicLibrary _dylib = () {
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
 }();
 
-/// Loads the TensorFlow Lite library for desktop platforms.
-///
-/// This function tries multiple strategies to locate the native library:
-/// 1. Environment variable override (TFLITE_LIB_PATH)
-/// 2. Framework Resources path (where CocoaPods puts s.resources)
-/// 3. App bundle Resources path
-/// 4. Development/testing fallback paths (for flutter test)
-///
-/// This ensures the library works in both production and testing environments.
 DynamicLibrary _loadDesktopLibrary() {
   final List<String> attemptedPaths = [];
 
-  // Strategy 1: Check for environment variable override
-  final envPath = Platform.environment['TFLITE_LIB_PATH'];
-  if (envPath != null && envPath.isNotEmpty) {
-    attemptedPaths.add('TFLITE_LIB_PATH: $envPath');
-    try {
-      return DynamicLibrary.open(envPath);
-    } catch (e) {
-      // Continue to fallback paths if env var path fails
-    }
-  }
-
-  // Platform-specific library name
-  String libName;
+  final String libName;
   if (Platform.isMacOS) {
     libName = 'libtensorflowlite_c-mac.dylib';
   } else if (Platform.isLinux) {
@@ -72,76 +51,32 @@ DynamicLibrary _loadDesktopLibrary() {
     libName = 'libtensorflowlite_c-win.dll';
   }
 
-  // macOS: Check various locations where CocoaPods/SPM puts libraries
+  final List<String> paths;
   if (Platform.isMacOS) {
-    // Strategies 2-4: standard bundle paths
-    final bundleLib = tryLoadMacOSBundlePaths(
-      libName,
-      frameworkName: 'flutter_litert',
-      spmBundleName: 'flutter_litert_flutter_litert',
-      attemptedPaths: attemptedPaths,
-    );
-    if (bundleLib != null) return bundleLib;
-
-    // Strategy 5: Resolve from flutter_litert package source (for flutter test)
     final packagePath = _resolvePackagePath('flutter_litert');
-    if (packagePath != null) {
-      final packageMacosPath =
-          '$packagePath/macos/flutter_litert/Sources/flutter_litert/Resources/$libName';
-      attemptedPaths.add('Package source path: $packageMacosPath');
-      try {
-        return DynamicLibrary.open(packageMacosPath);
-      } catch (e) {
-        // Continue
-      }
-    }
-  } else if (Platform.isLinux) {
-    // Linux: Try production and fallback paths
-    final productionPath =
-        '${Directory(Platform.resolvedExecutable).parent.path}/lib/$libName';
-    attemptedPaths.add('Production path: $productionPath');
-    try {
-      return DynamicLibrary.open(productionPath);
-    } catch (e) {
-      // Continue
-    }
-
-    // Resolve from flutter_litert package source (for flutter test)
-    final packagePath = _resolvePackagePath('flutter_litert');
-    if (packagePath != null) {
-      final packageLinuxPath = '$packagePath/linux/lib/$libName';
-      attemptedPaths.add('Package source path: $packageLinuxPath');
-      try {
-        return DynamicLibrary.open(packageLinuxPath);
-      } catch (e) {
-        // Continue
-      }
-    }
+    paths = [
+      ...delegateBundlePaths(libName),
+      if (packagePath != null)
+        '$packagePath/macos/flutter_litert/Sources/flutter_litert/Resources/$libName',
+    ];
   } else {
-    // Windows: Try production and fallback paths
-    final productionPath =
-        '${Directory(Platform.resolvedExecutable).parent.path}/$libName';
-    attemptedPaths.add('Production path: $productionPath');
-    try {
-      return DynamicLibrary.open(productionPath);
-    } catch (e) {
-      // Continue
-    }
-
-    // Resolve from flutter_litert package source (for flutter test)
+    final execDir = Directory(Platform.resolvedExecutable).parent.path;
+    final subDir = Platform.isLinux ? 'lib/' : '';
     final packagePath = _resolvePackagePath('flutter_litert');
-    if (packagePath != null) {
-      final packageWindowsPath = '$packagePath/windows/$libName';
-      attemptedPaths.add('Package source path: $packageWindowsPath');
-      try {
-        return DynamicLibrary.open(packageWindowsPath);
-      } catch (e) {
-        // Continue
-      }
-    }
+    final platformDir = Platform.isLinux ? 'linux/lib' : 'windows';
+    paths = [
+      '$execDir/$subDir$libName',
+      if (packagePath != null) '$packagePath/$platformDir/$libName',
+    ];
   }
 
-  // If all strategies fail, provide a helpful error message
+  final lib = probeLibraryPaths(
+    envVar: 'TFLITE_LIB_PATH',
+    paths: paths,
+    attemptedPaths: attemptedPaths,
+  );
+  if (lib != null) return lib;
+
   throw UnsupportedError(
     'Failed to load TensorFlow Lite library. Attempted paths:\n'
     '${attemptedPaths.map((p) => '  - $p').join('\n')}\n\n'

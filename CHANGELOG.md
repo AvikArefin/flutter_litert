@@ -1,3 +1,26 @@
+## 2.0.1
+
+* Add `IsolateWorkerBase` for shared isolate lifecycle management
+* Add `RoundRobinPool` generic round-robin pool utility
+* Add `TensorType` enum, `LandmarkMixin`, `listUtils` shared helpers
+* Add weighted NMS with spatial grid optimization to `nms()`
+* Consolidate platform-specific byte conversion into shared implementation
+* Consolidate platform-specific tensor logic (native/web/unsupported)
+* Consolidate desktop library loading into `DelegateLibraryLoader`
+* Remove dead files: `all_unsupported.dart`, `version.dart`, `flutter_litert_method_channel.dart`, `flutter_litert_platform_interface.dart`
+* Fix: `Model` buffer leak, delegate options leak, stale tensor cache
+
+## 2.0.0
+
+**Breaking:** `Point.x` and `Point.y` changed from `int` to `double`.
+
+* Upgrade `Point` to double-precision with optional `z` depth, `==`/`hashCode`, `toMap()`/`fromMap()`, `is3D`
+* Add shared `BoundingBox` class (4-corner Point-based, supports rotated boxes)
+  * `BoundingBox.ltrb()` factory for axis-aligned boxes
+  * `left`/`top`/`right`/`bottom` convenience getters
+  * `width`, `height`, `center`, `corners` computed properties
+  * `toMap()`/`fromMap()` serialization
+
 ## 1.4.0
 * Fix tensor cache bug, add shared Point class, dedup internals
 

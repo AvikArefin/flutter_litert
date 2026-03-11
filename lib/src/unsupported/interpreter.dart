@@ -120,7 +120,7 @@ class Interpreter {
     'Interpreter.getOutputIndex is not supported on this platform',
   );
 
-  // Resets all variable tensors to the defaul value
+  // Resets all variable tensors to the default value
   void resetVariableTensors() => throw UnsupportedError(
     'Interpreter.resetVariableTensors is not supported on this platform',
   );

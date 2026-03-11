@@ -22,14 +22,15 @@ import 'package:quiver/check.dart';
 import '../bindings/bindings.dart';
 import '../bindings/tensorflow_lite_bindings_generated.dart';
 import '../util/byte_conversion_utils_native.dart';
-import 'package:flutter/foundation.dart';
 
 import '../ffi/helper.dart';
 import '../quantization_params.dart';
-import '../util/list_shape_extension.dart';
+import '../tensor_type.dart';
+import '../util/list_utils.dart' as list_utils;
 import '../util/tensor_shape_utils.dart' as shape_utils;
 
 export '../bindings/tensorflow_lite_bindings_generated.dart' show TfLiteType;
+export '../tensor_type.dart';
 
 /// TensorFlowLite tensor.
 class Tensor {
@@ -91,42 +92,7 @@ class Tensor {
 
   /// Returns the number of elements in a flattened (1-D) view of the tensor.
   int numElements() {
-    return computeNumElements(shape);
-  }
-
-  /// Returns the number of elements in a flattened (1-D) view of the tensor's shape.
-  static int computeNumElements(List<int> shape) =>
-      shape_utils.computeNumElements(shape);
-
-  /// Returns shape of an object as an int list
-  static List<int> computeShapeOf(Object o) => shape_utils.computeShapeOf(o);
-
-  /// Returns the number of dimensions of a multi-dimensional array, otherwise 0.
-  static int computeNumDimensions(Object? o) =>
-      shape_utils.computeNumDimensions(o);
-
-  /// Recursively populates the shape dimensions for a given (multi-dimensional) array)
-  static void fillShape(Object o, int dim, List<int>? shape) =>
-      shape_utils.fillShape(o, dim, shape);
-
-  /// Returns data type of given object
-  static int dataTypeOf(Object o) {
-    while (o is List) {
-      o = o.elementAt(0);
-    }
-    Object c = o;
-    if (c is double) {
-      return TfLiteType.kTfLiteFloat32;
-    } else if (c is int) {
-      return TfLiteType.kTfLiteInt32;
-    } else if (c is String) {
-      return TfLiteType.kTfLiteString;
-    } else if (c is bool) {
-      return TfLiteType.kTfLiteBool;
-    }
-    throw ArgumentError(
-      'DataType error: cannot resolve DataType of ${o.runtimeType}',
-    );
+    return shape_utils.computeNumElements(shape);
   }
 
   void setTo(Object src) {
@@ -135,7 +101,7 @@ class Tensor {
 
     // String tensors require buffer reallocation because the pre-allocated
     // buffer size does not match the encoded string data size.
-    if (type.value == TfLiteType.kTfLiteString) {
+    if (type == TensorType.string) {
       final reallocStatus = tfliteBinding.TfLiteTensorRealloc(size, _tensor);
       checkState(
         reallocStatus == TfLiteStatus.kTfLiteOk,
@@ -161,8 +127,6 @@ class Tensor {
             'TfLiteTensorCopyFromBuffer failed '
             '(buffer=$size bytes, tensor=${numBytes()} bytes).',
       );
-    } catch (_) {
-      rethrow;
     } finally {
       calloc.free(ptr);
     }
@@ -195,9 +159,7 @@ class Tensor {
     }
     calloc.free(ptr);
     if (obj is List && dst is List) {
-      _duplicateList(obj, dst);
-    } else {
-      dst = obj;
+      list_utils.duplicateList(obj, dst);
     }
     return obj;
   }
@@ -210,120 +172,11 @@ class Tensor {
     return ByteConversionUtils.convertBytesToObject(bytes, type, shape);
   }
 
-  void _duplicateList(List obj, List dst) {
-    var objShape = obj.shape;
-    var dstShape = dst.shape;
-    var equal = true;
-    if (objShape.length == dst.shape.length) {
-      for (var i = 0; i < objShape.length; i++) {
-        if (objShape[i] != dstShape[i]) {
-          equal = false;
-          break;
-        }
-      }
-    } else {
-      equal = false;
-    }
-    if (equal == false) {
-      throw ArgumentError(
-        'Output object shape mismatch, interpreter returned output of shape: ${obj.shape} while shape of output provided as argument in run is: ${dst.shape}',
-      );
-    }
-    for (var i = 0; i < obj.length; i++) {
-      dst[i] = obj[i];
-    }
-  }
-
-  List<int>? getInputShapeIfDifferent(Object? input) {
-    if (input == null) {
-      return null;
-    }
-    if (input is ByteBuffer || input is Uint8List) {
-      return null;
-    }
-
-    final inputShape = computeShapeOf(input);
-    if (listEquals(inputShape, shape)) {
-      return null;
-    }
-
-    return inputShape;
-  }
+  List<int>? getInputShapeIfDifferent(Object? input) =>
+      list_utils.getInputShapeIfDifferent(input, shape);
 
   @override
   String toString() {
     return 'Tensor{_tensor: $_tensor, name: $name, type: $type, shape: $shape, data: ${data.length}}';
   }
-}
-
-enum TensorType {
-  noType(TfLiteType.kTfLiteNoType),
-  float32(TfLiteType.kTfLiteFloat32),
-  int32(TfLiteType.kTfLiteInt32),
-  uint8(TfLiteType.kTfLiteUInt8),
-  int64(TfLiteType.kTfLiteInt64),
-  string(TfLiteType.kTfLiteString),
-  boolean(TfLiteType.kTfLiteBool),
-  int16(TfLiteType.kTfLiteInt16),
-  complex64(TfLiteType.kTfLiteComplex64),
-  int8(TfLiteType.kTfLiteInt8),
-  float16(TfLiteType.kTfLiteFloat16),
-  float64(TfLiteType.kTfLiteFloat64),
-  complex128(TfLiteType.kTfLiteComplex128),
-  uint64(TfLiteType.kTfLiteUInt64),
-  resource(TfLiteType.kTfLiteResource),
-  variant(TfLiteType.kTfLiteVariant),
-  uint32(TfLiteType.kTfLiteUInt32),
-  uint16(TfLiteType.kTfLiteUInt16),
-  int4(TfLiteType.kTfLiteInt4);
-
-  const TensorType(this.value);
-
-  static TensorType fromValue(int tfLiteValue) {
-    switch (tfLiteValue) {
-      case TfLiteType.kTfLiteFloat32:
-        return TensorType.float32;
-      case TfLiteType.kTfLiteInt32:
-        return TensorType.int32;
-      case TfLiteType.kTfLiteUInt8:
-        return TensorType.uint8;
-      case TfLiteType.kTfLiteInt64:
-        return TensorType.int64;
-      case TfLiteType.kTfLiteString:
-        return TensorType.string;
-      case TfLiteType.kTfLiteBool:
-        return TensorType.boolean;
-      case TfLiteType.kTfLiteInt16:
-        return TensorType.int16;
-      case TfLiteType.kTfLiteComplex64:
-        return TensorType.complex64;
-      case TfLiteType.kTfLiteInt8:
-        return TensorType.int8;
-      case TfLiteType.kTfLiteFloat16:
-        return TensorType.float16;
-      case TfLiteType.kTfLiteFloat64:
-        return TensorType.float64;
-      case TfLiteType.kTfLiteComplex128:
-        return TensorType.complex128;
-      case TfLiteType.kTfLiteUInt64:
-        return TensorType.uint64;
-      case TfLiteType.kTfLiteResource:
-        return TensorType.resource;
-      case TfLiteType.kTfLiteVariant:
-        return TensorType.variant;
-      case TfLiteType.kTfLiteUInt32:
-        return TensorType.uint32;
-      case TfLiteType.kTfLiteUInt16:
-        return TensorType.uint16;
-      case TfLiteType.kTfLiteInt4:
-        return TensorType.int4;
-      default:
-        return TensorType.noType;
-    }
-  }
-
-  final int value;
-
-  @override
-  String toString() => name;
 }

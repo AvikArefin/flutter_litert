@@ -7,8 +7,9 @@ import 'tensor.dart';
 
 /// Unsupported platform stub for [SignatureRunner].
 class SignatureRunner {
-  SignatureRunner(dynamic runner)
-    : assert(false, 'SignatureRunner is not supported on this platform.');
+  SignatureRunner(dynamic runner) {
+    throw UnsupportedError('SignatureRunner is not supported on this platform');
+  }
 
   int get inputCount => throw UnsupportedError(
     'SignatureRunner.inputCount is not supported on this platform',

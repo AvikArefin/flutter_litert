@@ -65,11 +65,4 @@ class InterpreterOptions {
   void addMediaPipeCustomOps() {
     TransposeConvBiasOp.registerWithOptions(_options);
   }
-
-  // Unimplemented:
-  // TfLiteInterpreterOptionsSetErrorReporter
-  // TODO: TfLiteInterpreterOptionsSetErrorReporter
-  // TODO: setAllowFp16PrecisionForFp32(bool allow)
-
-  // setAllowBufferHandleOutput(bool allow)
 }

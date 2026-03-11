@@ -76,7 +76,7 @@ void main() {
 
     test('TensorType.int64', () async {
       var bytes = ByteConversionUtils.convertObjectToBytes(1, TensorType.int64);
-      expect(bytes, [0, 0, 0, 0, 0, 0, 0, 1]);
+      expect(bytes, [1, 0, 0, 0, 0, 0, 0, 0]);
       var object =
           ByteConversionUtils.convertBytesToObject(bytes, TensorType.int64, [1])
               as List;

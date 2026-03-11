@@ -40,6 +40,6 @@ void fillShape(Object o, int dim, List<int>? shape) {
     );
   }
   for (var i = 0; i < len; ++i) {
-    fillShape(o.elementAt(0), dim + 1, shape);
+    fillShape(o.elementAt(i), dim + 1, shape);
   }
 }

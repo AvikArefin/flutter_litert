@@ -6,6 +6,7 @@ import 'native/delegate.dart';
 import 'native/isolate_interpreter.dart';
 import 'interpreter_factory.dart';
 import 'performance_config.dart';
+import 'round_robin_pool.dart';
 
 /// Factory function to create and configure an [Interpreter] for one pool slot.
 ///
@@ -46,11 +47,10 @@ typedef InterpreterCreator =
 class InterpreterPool {
   final int poolSize;
 
+  RoundRobinPool<(Interpreter, IsolateInterpreter?)>? _pool;
   final List<Interpreter> _interpreters = [];
   final List<IsolateInterpreter?> _isolates = [];
   final List<Delegate> _delegates = [];
-  final List<Future<void>> _locks = [];
-  int _counter = 0;
   bool _isInitialized = false;
 
   InterpreterPool({int poolSize = 1}) : poolSize = poolSize.clamp(1, 10);
@@ -73,6 +73,8 @@ class InterpreterPool {
   }) async {
     if (_isInitialized) await dispose();
 
+    final slots = <(Interpreter, IsolateInterpreter?)>[];
+
     for (int i = 0; i < poolSize; i++) {
       final (options, delegate) = InterpreterFactory.create(performanceConfig);
       if (delegate != null) _delegates.add(delegate);
@@ -85,9 +87,10 @@ class InterpreterPool {
 
       _interpreters.add(interpreter);
       _isolates.add(isolate);
-      _locks.add(Future.value());
+      slots.add((interpreter, isolate));
     }
 
+    _pool = RoundRobinPool(slots);
     _isInitialized = true;
   }
 
@@ -97,29 +100,17 @@ class InterpreterPool {
   Future<T> withInterpreter<T>(
     Future<T> Function(Interpreter, IsolateInterpreter?) fn,
   ) async {
-    if (_interpreters.isEmpty) {
+    final pool = _pool;
+    if (pool == null || pool.isEmpty) {
       throw StateError('InterpreterPool is empty. Call initialize() first.');
     }
-
-    final idx = _counter % _interpreters.length;
-    _counter = (_counter + 1) % _interpreters.length;
-
-    final prev = _locks[idx];
-    final completer = Completer<void>();
-    _locks[idx] = completer.future;
-
-    try {
-      await prev;
-      return await fn(_interpreters[idx], _isolates[idx]);
-    } finally {
-      completer.complete();
-    }
+    return pool.withItem((slot) => fn(slot.$1, slot.$2));
   }
 
   /// Disposes all interpreters, isolates, and delegates.
   Future<void> dispose() async {
     for (int i = 0; i < _interpreters.length; i++) {
-      _isolates[i]?.close();
+      await _isolates[i]?.close();
       _interpreters[i].close();
     }
     _interpreters.clear();
@@ -129,8 +120,7 @@ class InterpreterPool {
       d.delete();
     }
     _delegates.clear();
-    _locks.clear();
-    _counter = 0;
+    _pool = null;
     _isInitialized = false;
   }
 }

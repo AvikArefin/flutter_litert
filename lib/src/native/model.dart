@@ -26,11 +26,12 @@ import '../ffi/helper.dart';
 /// TensorFlowLite model.
 class Model {
   final Pointer<TfLiteModel> _model;
+  Pointer<Uint8>? _bufferPtr;
   bool _deleted = false;
 
   Pointer<TfLiteModel> get base => _model;
 
-  Model._(this._model);
+  Model._(this._model, [this._bufferPtr]);
 
   /// Loads model from a file or throws if unsuccessful.
   factory Model.fromFile(String path) {
@@ -51,17 +52,26 @@ class Model {
     final externalTypedData = ptr.asTypedList(size);
     externalTypedData.setRange(0, buffer.length, buffer);
     final model = tfliteBinding.TfLiteModelCreate(ptr.cast(), buffer.length);
-    checkArgument(
-      isNotNull(model),
-      message: 'Unable to create model from buffer',
-    );
-    return Model._(model);
+    try {
+      checkArgument(
+        isNotNull(model),
+        message: 'Unable to create model from buffer',
+      );
+    } catch (_) {
+      calloc.free(ptr);
+      rethrow;
+    }
+    return Model._(model, ptr);
   }
 
   /// Destroys the model instance.
   void delete() {
     checkState(!_deleted, message: 'Model already deleted.');
     tfliteBinding.TfLiteModelDelete(_model);
+    if (_bufferPtr != null) {
+      calloc.free(_bufferPtr!);
+      _bufferPtr = null;
+    }
     _deleted = true;
   }
 }

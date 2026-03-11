@@ -19,9 +19,4 @@ class PerformanceConfig {
   static const PerformanceConfig disabled = PerformanceConfig(
     mode: PerformanceMode.disabled,
   );
-
-  int? getEffectiveThreadCount() {
-    if (mode == PerformanceMode.disabled) return null;
-    return numThreads?.clamp(0, 8);
-  }
 }

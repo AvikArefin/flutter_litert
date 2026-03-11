@@ -3,6 +3,8 @@
 // This file is used when compiling for platforms where neither dart:io
 // nor dart:js_interop is available.
 
+import '../isolate_interpreter_state.dart';
+
 /// `IsolateInterpreter` allows for the execution of TensorFlow models within an isolate.
 class IsolateInterpreter {
   // Private constructor for the interpreter.
@@ -49,6 +51,3 @@ class IsolateInterpreter {
     'IsolateInterpreter.close is not supported on this platform',
   );
 }
-
-// Represents the state of the IsolateInterpreter.
-enum IsolateInterpreterState { idle, loading }

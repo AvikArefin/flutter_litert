@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../isolate_interpreter_state.dart';
 import 'interpreter.dart';
 
 /// Web implementation of IsolateInterpreter.
@@ -85,6 +86,3 @@ class IsolateInterpreter {
     await _stateController.close();
   }
 }
-
-/// Represents the state of the IsolateInterpreter.
-enum IsolateInterpreterState { idle, loading }

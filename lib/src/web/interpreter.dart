@@ -1,7 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
-
 import 'interpreter_options.dart';
 import 'js_interop/model_tensor_info.dart';
 import 'js_interop/tflite_js.dart';
@@ -9,7 +7,9 @@ import 'js_interop/tfjs_tensor.dart';
 import 'model.dart';
 import 'signature_runner.dart';
 import 'tensor.dart';
+import 'version.dart' as tflite_version;
 import '../util/byte_conversion_utils_web.dart';
+import '../util/flutter_asset_utils.dart';
 
 /// Web implementation of Interpreter.
 ///
@@ -20,8 +20,8 @@ class Interpreter {
   bool _deleted = false;
   int _lastNativeInferenceDurationMicroSeconds = 0;
 
-  /// Returns 'web' on web platforms (no native TFLite version available).
-  static String get version => 'web';
+  /// Returns the TFLite web runtime version string.
+  static String get version => tflite_version.version;
 
   List<Tensor>? _inputTensors;
   List<Tensor>? _outputTensors;
@@ -60,7 +60,7 @@ class Interpreter {
     String assetName, {
     InterpreterOptions? options,
   }) async {
-    final buffer = await _getBuffer(assetName);
+    final buffer = await loadAssetBytes(assetName);
     final model = await Model.fromBuffer(buffer);
     return Interpreter._(model.base);
   }
@@ -72,11 +72,6 @@ class Interpreter {
   }) async {
     final model = await Model.fromBuffer(buffer);
     return Interpreter._(model.base);
-  }
-
-  static Future<Uint8List> _getBuffer(String assetFileName) async {
-    ByteData rawAssetFile = await rootBundle.load(assetFileName);
-    return rawAssetFile.buffer.asUint8List();
   }
 
   /// Not supported on web (no pointer addresses).
@@ -223,11 +218,12 @@ class Interpreter {
     }, growable: false);
   }
 
-  /// Resize input tensor (updates metadata on web).
-  void resizeInputTensor(int tensorIndex, List<int> shape) {
-    _inputTensors = null;
-    _outputTensors = null;
-  }
+  /// Not supported on web — TFLite.js does not expose a tensor resize API.
+  void resizeInputTensor(int tensorIndex, List<int> shape) =>
+      throw UnsupportedError(
+        'Interpreter.resizeInputTensor is not supported on web. '
+        'TFLite.js uses fixed-shape WASM models with no resize API.',
+      );
 
   /// Gets the input Tensor for the provided input index.
   Tensor getInputTensor(int index) {

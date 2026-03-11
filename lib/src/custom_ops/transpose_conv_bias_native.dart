@@ -19,7 +19,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import '../bindings/bindings.dart';
 import '../bindings/tensorflow_lite_bindings_generated.dart';
-import '../util/desktop_library_loader.dart';
+import '../delegates/delegate_library_loader.dart';
 
 /// Loads and provides access to the Convolution2DTransposeBias custom op.
 ///
@@ -46,9 +46,14 @@ class TransposeConvBiasOp {
   static void loadLibrary() {
     if (_customOpsLib != null) return;
 
-    _customOpsLib = _loadCustomOpsLibrary();
+    final attempted = <String>[];
+    _customOpsLib = _loadCustomOpsLibrary(attempted);
     if (_customOpsLib == null) {
-      throw UnsupportedError('Failed to load custom ops library');
+      throw UnsupportedError(
+        'Failed to load custom ops library.\n'
+        'Attempted paths:\n'
+        '${attempted.map((p) => '  - $p').join('\n')}',
+      );
     }
 
     // Get the registration function
@@ -86,41 +91,30 @@ class TransposeConvBiasOp {
   }
 
   /// Attempts to load the custom ops library from various locations.
-  static DynamicLibrary? _loadCustomOpsLibrary() {
-    // iOS: Custom ops are statically linked into the app via CocoaPods
-    // Use DynamicLibrary.process() to access symbols from the main executable
+  /// Populates [outAttemptedPaths] (if provided) with tried paths for desktop
+  /// platforms; callers can include them in error messages.
+  static DynamicLibrary? _loadCustomOpsLibrary([
+    List<String>? outAttemptedPaths,
+  ]) {
+    // iOS: Custom ops are statically linked into the app via CocoaPods.
     if (Platform.isIOS) {
       try {
         return DynamicLibrary.process();
-      } catch (e) {
-        // Fall back to DynamicLibrary.executable() if process() fails
+      } catch (_) {
         try {
           return DynamicLibrary.executable();
-        } catch (e) {
+        } catch (_) {
           return null;
         }
       }
     }
 
-    // Android: Custom ops are built as a separate .so via CMake
+    // Android: Custom ops are built as a separate .so via CMake.
     if (Platform.isAndroid) {
       try {
         return DynamicLibrary.open('libtflite_custom_ops.so');
-      } catch (e) {
+      } catch (_) {
         return null;
-      }
-    }
-
-    final List<String> attemptedPaths = [];
-
-    // Desktop platforms: Check for environment variable override
-    final envPath = Platform.environment['TFLITE_CUSTOM_OPS_PATH'];
-    if (envPath != null && envPath.isNotEmpty) {
-      attemptedPaths.add('TFLITE_CUSTOM_OPS_PATH: $envPath');
-      try {
-        return DynamicLibrary.open(envPath);
-      } catch (e) {
-        // Continue to fallback paths
       }
     }
 
@@ -132,62 +126,33 @@ class TransposeConvBiasOp {
     } else if (Platform.isWindows) {
       libName = 'tflite_custom_ops.dll';
     } else {
-      // Unknown platform
       return null;
     }
 
-    // Desktop: Try production app bundle path
-    String productionPath;
-    if (Platform.isMacOS) {
-      productionPath =
-          '${Directory(Platform.resolvedExecutable).parent.parent.path}/Resources/$libName';
-    } else if (Platform.isLinux) {
-      productionPath =
-          '${Directory(Platform.resolvedExecutable).parent.path}/lib/$libName';
-    } else {
-      productionPath =
-          '${Directory(Platform.resolvedExecutable).parent.path}/$libName';
-    }
-
-    attemptedPaths.add('Production path: $productionPath');
-    try {
-      return DynamicLibrary.open(productionPath);
-    } catch (e) {
-      // Continue to fallback paths
-    }
-
-    // macOS: Check various locations where CocoaPods/SPM puts libraries
+    // Build the full ordered search path list for this desktop platform.
+    final List<String> paths;
     if (Platform.isMacOS) {
       final appBundle = Directory(Platform.resolvedExecutable).parent.parent;
-
-      // Standard bundle paths (framework Versions/A, framework alt, Resources, SPM)
-      final bundleLib = tryLoadMacOSBundlePaths(
-        libName,
-        frameworkName: 'flutter_litert',
-        spmBundleName: 'flutter_litert_flutter_litert',
-        attemptedPaths: attemptedPaths,
-      );
-      if (bundleLib != null) return bundleLib;
-
-      // Frameworks directory (fallback for custom ops placed directly in Frameworks/)
-      final frameworksPath = '${appBundle.path}/Frameworks/$libName';
-      attemptedPaths.add('Frameworks path: $frameworksPath');
-      try {
-        return DynamicLibrary.open(frameworksPath);
-      } catch (e) {
-        // Continue
-      }
-
-      final fallbackPath = '${Directory.current.path}/macos/$libName';
-      attemptedPaths.add('Fallback path: $fallbackPath');
-      try {
-        return DynamicLibrary.open(fallbackPath);
-      } catch (e) {
-        // Continue
-      }
+      paths = [
+        ...delegateBundlePaths(libName),
+        '${appBundle.path}/Frameworks/$libName',
+        '${Directory.current.path}/macos/$libName',
+      ];
+    } else if (Platform.isLinux) {
+      paths = [
+        '${Directory(Platform.resolvedExecutable).parent.path}/lib/$libName',
+      ];
+    } else {
+      paths = [
+        '${Directory(Platform.resolvedExecutable).parent.path}/$libName',
+      ];
     }
 
-    // If we got here, library loading failed
-    return null;
+    final attempted = outAttemptedPaths ?? <String>[];
+    return probeLibraryPaths(
+      envVar: 'TFLITE_CUSTOM_OPS_PATH',
+      paths: paths,
+      attemptedPaths: attempted,
+    );
   }
 }

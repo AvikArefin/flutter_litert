@@ -17,6 +17,7 @@
 import 'dart:async';
 import 'dart:isolate';
 
+import '../isolate_interpreter_state.dart';
 import 'interpreter.dart';
 
 /// `IsolateInterpreter` allows for the execution of TensorFlow models within an isolate.
@@ -168,9 +169,6 @@ class IsolateInterpreter {
     await _stateChanges.close();
   }
 }
-
-// Represents the state of the IsolateInterpreter.
-enum IsolateInterpreterState { idle, loading }
 
 // Helper class to encapsulate data for the isolate.
 class _IsolateInterpreterData {

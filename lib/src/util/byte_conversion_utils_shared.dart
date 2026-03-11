@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../tensor_type.dart';
+import 'list_shape_extension.dart';
+
 /// Size of int32 in bytes (avoids dart:ffi dependency for web compatibility).
 const int kInt32ByteSize = 4;
 
@@ -14,23 +17,191 @@ class ByteConversionError extends ArgumentError {
   final Object tensorType;
 }
 
-/// Converts a float32 value to float16 bytes (little-endian).
-Uint8List floatToFloat16Bytes(double value) {
-  int float16 = float32ToFloat16(value);
-  final ByteData byteDataBuffer = ByteData(2)
-    ..setUint16(0, float16, Endian.little);
-  return Uint8List.fromList(byteDataBuffer.buffer.asUint8List());
-}
+class ByteConversionUtils {
+  static Uint8List convertObjectToBytes(Object o, TensorType tensorType) {
+    if (o is Uint8List) {
+      return o;
+    }
+    if (o is ByteBuffer) {
+      return o.asUint8List();
+    }
+    // String tensors must be encoded as a single block (not element-by-element).
+    if (tensorType == TensorType.string) {
+      if (o is String) {
+        return encodeTFStrings([o]);
+      }
+      if (o is List) {
+        final strings = o.whereType<String>().toList();
+        if (strings.length == o.length && o.isNotEmpty) {
+          return encodeTFStrings(strings);
+        }
+      }
+    }
+    List<int> bytes = <int>[];
+    if (o is List) {
+      for (var e in o) {
+        bytes.addAll(convertObjectToBytes(e, tensorType));
+      }
+    } else {
+      return _convertElementToBytes(o, tensorType);
+    }
+    return Uint8List.fromList(bytes);
+  }
 
-/// Converts float16 bytes to a float32 value.
-double bytesToFloat32(Uint8List bytes) {
-  final ByteData byteDataBuffer = ByteData(2);
-  int float16 = byteDataBuffer.buffer
-      .asUint8List()
-      .buffer
-      .asByteData()
-      .getUint16(0, Endian.little);
-  return float16ToFloat32(float16);
+  static Uint8List _convertElementToBytes(Object o, TensorType tensorType) {
+    if (tensorType == TensorType.float32) {
+      if (o is num) {
+        var buffer = Uint8List(4).buffer;
+        var bdata = ByteData.view(buffer);
+        bdata.setFloat32(0, o.toDouble(), Endian.little);
+        return buffer.asUint8List();
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.uint8) {
+      if (o is int) {
+        var buffer = Uint8List(1).buffer;
+        var bdata = ByteData.view(buffer);
+        bdata.setUint8(0, o);
+        return buffer.asUint8List();
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.int32) {
+      if (o is int) {
+        var buffer = Uint8List(4).buffer;
+        var bdata = ByteData.view(buffer);
+        bdata.setInt32(0, o, Endian.little);
+        return buffer.asUint8List();
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.int64) {
+      if (o is int) {
+        var buffer = Uint8List(8).buffer;
+        var bdata = ByteData.view(buffer);
+        bdata.setInt64(0, o, Endian.little);
+        return buffer.asUint8List();
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.int16) {
+      if (o is int) {
+        var buffer = Uint8List(2).buffer;
+        var bdata = ByteData.view(buffer);
+        bdata.setInt16(0, o, Endian.little);
+        return buffer.asUint8List();
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.float16) {
+      if (o is num) {
+        return floatToFloat16Bytes(o.toDouble());
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.int8) {
+      if (o is int) {
+        var buffer = Uint8List(1).buffer;
+        var bdata = ByteData.view(buffer);
+        bdata.setInt8(0, o);
+        return buffer.asUint8List();
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    if (tensorType == TensorType.string) {
+      if (o is String) {
+        return encodeTFStrings([o]);
+      }
+      throw ByteConversionError(input: o, tensorType: tensorType);
+    }
+
+    throw ArgumentError(
+      'The input data tfliteType ${o.runtimeType} is unsupported',
+    );
+  }
+
+  /// Decodes a TensorFlow string tensor to a `List<String>`.
+  static List<String> decodeTFStrings(Uint8List bytes) =>
+      _decodeTFStrings(bytes);
+
+  /// Encodes a list of Dart strings into the TFLite string tensor binary format.
+  ///
+  /// Binary layout (all integers are little-endian int32):
+  /// ```
+  /// [numStrings]
+  /// [offset_0]       // byte offset where string 0 data begins
+  /// [offset_1]       // byte offset where string 1 data begins
+  /// ...
+  /// [offset_N]       // total buffer length (sentinel for last string end)
+  /// [UTF-8 bytes for all strings, concatenated]
+  /// ```
+  ///
+  /// This is the inverse of [decodeTFStrings].
+  static Uint8List encodeTFStrings(List<String> strings) =>
+      _encodeTFStrings(strings);
+
+  static Object convertBytesToObject(
+    Uint8List bytes,
+    TensorType tensorType,
+    List<int> shape,
+  ) {
+    List<dynamic> list = [];
+    if (tensorType == TensorType.int32) {
+      for (var i = 0; i < bytes.length; i += 4) {
+        list.add(ByteData.view(bytes.buffer).getInt32(i, Endian.little));
+      }
+      return list.reshape<int>(shape);
+    } else if (tensorType == TensorType.float32) {
+      for (var i = 0; i < bytes.length; i += 4) {
+        list.add(ByteData.view(bytes.buffer).getFloat32(i, Endian.little));
+      }
+      return list.reshape<double>(shape);
+    } else if (tensorType == TensorType.int16) {
+      for (var i = 0; i < bytes.length; i += 2) {
+        list.add(ByteData.view(bytes.buffer).getInt16(i, Endian.little));
+      }
+      return list.reshape<int>(shape);
+    } else if (tensorType == TensorType.float16) {
+      for (var i = 0; i < bytes.length; i += 2) {
+        int float16 = ByteData.view(bytes.buffer).getUint16(i, Endian.little);
+        double float32 = float16ToFloat32(float16);
+        list.add(float32);
+      }
+      return list.reshape<double>(shape);
+    } else if (tensorType == TensorType.int8) {
+      for (var i = 0; i < bytes.length; i += 1) {
+        list.add(ByteData.view(bytes.buffer).getInt8(i));
+      }
+      return list.reshape<int>(shape);
+    } else if (tensorType == TensorType.uint8) {
+      for (var i = 0; i < bytes.length; i += 1) {
+        list.add(ByteData.view(bytes.buffer).getUint8(i));
+      }
+      return list.reshape<int>(shape);
+    } else if (tensorType == TensorType.int64) {
+      for (var i = 0; i < bytes.length; i += 8) {
+        list.add(ByteData.view(bytes.buffer).getInt64(i, Endian.little));
+      }
+      return list.reshape<int>(shape);
+    } else if (tensorType == TensorType.string) {
+      list.add(decodeTFStrings(bytes));
+      return list;
+    }
+    throw UnsupportedError("$tensorType is not Supported.");
+  }
+
+  static Uint8List floatToFloat16Bytes(double value) =>
+      _floatToFloat16Bytes(value);
+
+  static double bytesToFloat32(Uint8List bytes) => _bytesToFloat32(bytes);
 }
 
 /// Converts a float32 to float16 representation (as int).
@@ -51,7 +222,6 @@ int float32ToFloat16(double value) {
   if (exponent >= 31) return sign | 0x7C00;
   if (exponent <= 0) return sign;
 
-  // Implement rounding
   int roundMantissa = (mantissa >> 13) + ((mantissa >> 12) & 1);
 
   return sign | (exponent << 10) | roundMantissa;
@@ -86,8 +256,28 @@ double float16ToFloat32(int value) {
   return float32Buffer[0];
 }
 
-/// Decodes a TensorFlow string tensor's binary format to a `List<String>`.
-List<String> decodeTFStrings(Uint8List bytes) {
+// ---------------------------------------------------------------------------
+// Private implementations
+// ---------------------------------------------------------------------------
+
+Uint8List _floatToFloat16Bytes(double value) {
+  int float16 = float32ToFloat16(value);
+  final ByteData byteDataBuffer = ByteData(2)
+    ..setUint16(0, float16, Endian.little);
+  return Uint8List.fromList(byteDataBuffer.buffer.asUint8List());
+}
+
+double _bytesToFloat32(Uint8List bytes) {
+  final ByteData byteDataBuffer = ByteData.view(
+    bytes.buffer,
+    bytes.offsetInBytes,
+    2,
+  );
+  int float16 = byteDataBuffer.getUint16(0, Endian.little);
+  return float16ToFloat32(float16);
+}
+
+List<String> _decodeTFStrings(Uint8List bytes) {
   List<String> decodedStrings = [];
 
   int numStrings = ByteData.view(
@@ -106,4 +296,37 @@ List<String> decodeTFStrings(Uint8List bytes) {
   }
 
   return decodedStrings;
+}
+
+Uint8List _encodeTFStrings(List<String> strings) {
+  final encodedStrings = strings.map((s) => utf8.encode(s)).toList();
+  final int numStrings = strings.length;
+
+  final int headerSize = (numStrings + 2) * kInt32ByteSize;
+  final int dataSize = encodedStrings.fold<int>(0, (sum, e) => sum + e.length);
+  final int totalSize = headerSize + dataSize;
+
+  final buffer = Uint8List(totalSize);
+  final byteData = ByteData.view(buffer.buffer);
+
+  byteData.setInt32(0, numStrings, Endian.little);
+
+  int dataOffset = headerSize;
+  for (int i = 0; i < numStrings; i++) {
+    byteData.setInt32((1 + i) * kInt32ByteSize, dataOffset, Endian.little);
+    buffer.setRange(
+      dataOffset,
+      dataOffset + encodedStrings[i].length,
+      encodedStrings[i],
+    );
+    dataOffset += encodedStrings[i].length;
+  }
+
+  byteData.setInt32(
+    (1 + numStrings) * kInt32ByteSize,
+    dataOffset,
+    Endian.little,
+  );
+
+  return buffer;
 }

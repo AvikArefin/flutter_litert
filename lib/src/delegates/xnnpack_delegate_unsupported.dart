@@ -27,7 +27,11 @@ class XNNPackDelegate {
 
 /// XNNPackDelegate Options (unsupported platform)
 class XNNPackDelegateOptions {
-  XNNPackDelegateOptions({int numThreads = 1}) {
+  XNNPackDelegateOptions({
+    int numThreads = 1,
+    int flags = 0,
+    String? weightCacheFilePath,
+  }) {
     throw UnsupportedError(
       'XNNPackDelegateOptions is not supported on this platform',
     );

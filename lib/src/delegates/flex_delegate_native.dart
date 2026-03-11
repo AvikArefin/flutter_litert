@@ -21,6 +21,7 @@ import 'package:flutter/services.dart' hide Size;
 import 'package:quiver/check.dart';
 import '../bindings/tensorflow_lite_bindings_generated.dart';
 import '../native/delegate.dart';
+import 'delegate_library_loader.dart';
 
 /// Flex delegate for running models that use `SELECT_TF_OPS`.
 ///
@@ -81,15 +82,10 @@ class FlexDelegate implements Delegate {
   /// Throws [UnsupportedError] if the library cannot be loaded.
   factory FlexDelegate() {
     if (Platform.isAndroid) {
-      if (_androidDelegatePtr == null) {
-        throw UnsupportedError(
-          'On Android, call FlexDelegate.create() instead of FlexDelegate().\n'
-          'The Android FlexDelegate requires async initialization via method channel.',
-        );
-      }
-      final ptr = Pointer<TfLiteDelegate>.fromAddress(_androidDelegatePtr!);
-      _androidDelegatePtr = null;
-      return FlexDelegate._(ptr, isAndroid: true);
+      throw UnsupportedError(
+        'On Android, call FlexDelegate.create() instead of FlexDelegate().\n'
+        'The Android FlexDelegate requires async initialization via method channel.',
+      );
     }
     _loadLibrary();
     final delegate = _createFn!(nullptr, nullptr, 0, nullptr);
@@ -121,8 +117,6 @@ class FlexDelegate implements Delegate {
     }
     return FlexDelegate();
   }
-
-  static int? _androidDelegatePtr;
 
   @override
   void delete() {
@@ -252,21 +246,18 @@ class FlexDelegate implements Delegate {
     }
 
     // Desktop: try app bundle paths (bundled by flutter_litert_flex).
-    final List<String> attemptedPaths = [];
-    for (final path in _bundlePaths) {
-      attemptedPaths.add(path);
-      try {
-        return DynamicLibrary.open(path);
-      } catch (e) {
-        // Continue
-      }
-    }
+    final attempted = <String>[];
+    final lib = probeLibraryPaths(
+      paths: _bundlePaths,
+      attemptedPaths: attempted,
+    );
+    if (lib != null) return lib;
 
     throw UnsupportedError(
       'FlexDelegate library not found.\n'
       'Add flutter_litert_flex to your pubspec.yaml.\n\n'
       'Attempted paths:\n'
-      '${attemptedPaths.map((p) => '  - $p').join('\n')}',
+      '${attempted.map((p) => '  - $p').join('\n')}',
     );
   }
 }

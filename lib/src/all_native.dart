@@ -16,3 +16,5 @@ export 'util/model_checkpoint.dart';
 export 'custom_ops/transpose_conv_bias_native.dart';
 export 'interpreter_factory.dart';
 export 'interpreter_pool.dart';
+export 'isolate_rpc_client.dart';
+export 'isolate_worker_base.dart';

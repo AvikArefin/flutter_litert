@@ -1,3 +1,7 @@
+## 2.0.3
+
+* Fix WASM compatibility: move `dart:isolate` imports behind conditional exports so web compilation path is WASM-safe
+
 ## 2.0.2
 
 * Fix: use-after-free when interpreter reads model weights from freed buffer, transfer buffer ownership from `Model` to `Interpreter`

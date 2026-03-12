@@ -18,8 +18,6 @@ export 'src/util/letterbox_params.dart';
 export 'src/util/model_output_utils.dart';
 export 'src/performance_config.dart';
 export 'src/ssd_anchors.dart';
-export 'src/isolate_rpc_client.dart';
-export 'src/isolate_worker_base.dart';
 export 'src/round_robin_pool.dart';
 export 'src/point.dart';
 export 'src/bounding_box.dart';

@@ -1,3 +1,7 @@
+## 2.0.5
+
+* Fix native crash during repeated inference by removing unsafe output tensor writeback
+
 ## 2.0.4
 
 * Fix macOS native crashes by disabling auto IsolateInterpreter for no-delegate interpreters.

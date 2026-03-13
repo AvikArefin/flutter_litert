@@ -208,6 +208,11 @@ class Interpreter {
     if (outputs.isEmpty) {
       throw ArgumentError('Input error: Outputs should not be null or empty.');
     }
+    // Invalidate cached tensor handles before each run so we always use
+    // fresh pointers from the interpreter. TFLite may relocate internal
+    // tensor storage between invocations (e.g. XNNPACK workspace reuse).
+    _inputTensors = null;
+    _outputTensors = null;
     runInference(inputs);
     var outputTensors = getOutputTensors();
     for (var i = 0; i < outputTensors.length; i++) {

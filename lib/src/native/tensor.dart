@@ -144,7 +144,6 @@ class Tensor {
     // Clone the data, because once `free(ptr)`, `externalTypedData` will be
     // volatile
     final bytes = externalTypedData.sublist(0);
-    data = bytes;
     late Object obj;
     if (dst is Uint8List) {
       obj = bytes;

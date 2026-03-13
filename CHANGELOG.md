@@ -1,3 +1,7 @@
+## 2.0.4
+
+* Fix macOS native crashes by disabling auto IsolateInterpreter for no-delegate interpreters.
+
 ## 2.0.3
 
 * Fix WASM compatibility: move `dart:isolate` imports behind conditional exports so web compilation path is WASM-safe

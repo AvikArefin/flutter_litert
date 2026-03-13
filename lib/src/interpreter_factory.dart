@@ -47,6 +47,8 @@ class InterpreterFactory {
     Delegate? delegate,
   ) async {
     if (delegate != null) return null;
+    // Sharing a native interpreter across isolates is unstable on macOS.
+    if (Platform.isMacOS) return null;
     return IsolateInterpreter.create(address: interpreter.address);
   }
 

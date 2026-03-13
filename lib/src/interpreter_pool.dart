@@ -66,7 +66,8 @@ class InterpreterPool {
   /// Initializes the pool by calling [factory] once per slot.
   ///
   /// If already initialized, disposes all resources first.
-  /// [IsolateInterpreter] is created automatically when no delegate is used.
+  /// [IsolateInterpreter] is created automatically when no delegate is used,
+  /// except on macOS where shared-interpreter isolate execution is disabled.
   Future<void> initialize(
     InterpreterCreator factory, {
     PerformanceConfig? performanceConfig,

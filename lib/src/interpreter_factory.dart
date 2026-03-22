@@ -44,8 +44,10 @@ class InterpreterFactory {
 
   static Future<IsolateInterpreter?> createIsolateIfNeeded(
     Interpreter interpreter,
-    Delegate? delegate,
-  ) async {
+    Delegate? delegate, {
+    bool useIsolateInterpreter = true,
+  }) async {
+    if (!useIsolateInterpreter) return null;
     if (delegate != null) return null;
     // Sharing a native interpreter across isolates is unstable on macOS.
     if (Platform.isMacOS) return null;

@@ -1,3 +1,7 @@
+## 2.0.6
+
+* Add useIsolateInterpreter parameter to skip nested isolate creation
+
 ## 2.0.5
 
 * Fix native crash during repeated inference by removing unsafe output tensor writeback

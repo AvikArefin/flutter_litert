@@ -71,6 +71,7 @@ class InterpreterPool {
   Future<void> initialize(
     InterpreterCreator factory, {
     PerformanceConfig? performanceConfig,
+    bool useIsolateInterpreter = true,
   }) async {
     if (_isInitialized) await dispose();
 
@@ -84,6 +85,7 @@ class InterpreterPool {
       final isolate = await InterpreterFactory.createIsolateIfNeeded(
         interpreter,
         delegate,
+        useIsolateInterpreter: useIsolateInterpreter,
       );
 
       _interpreters.add(interpreter);

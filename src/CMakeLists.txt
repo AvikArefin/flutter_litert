@@ -31,6 +31,10 @@ if(ANDROID)
     target_compile_options(tflite_custom_ops PRIVATE
         -fvisibility=default
     )
+    
+    target_link_options(tflite_custom_ops PRIVATE
+        -Wl,-z,max-page-size=16384
+    )
 elseif(WIN32)
     set_target_properties(tflite_custom_ops PROPERTIES
         OUTPUT_NAME "tflite_custom_ops"

@@ -1,6 +1,6 @@
 ## 2.0.7
 
-* Update documentation
+* Fix Android custom ops library alignment for 16 KB page-size devices
 
 ## 2.0.6
 

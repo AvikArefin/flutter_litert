@@ -17,6 +17,7 @@ import 'dart:ffi';
 
 import '../bindings/tensorflow_lite_bindings_generated.dart';
 
+/// Abstract base class for LiteRT hardware delegates.
 abstract class Delegate {
   /// Get pointer to TfLiteDelegate
   Pointer<TfLiteDelegate> get base;

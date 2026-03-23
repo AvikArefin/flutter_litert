@@ -22,7 +22,7 @@ import '../bindings/tensorflow_lite_bindings_generated.dart';
 import 'delegate.dart';
 import '../custom_ops/transpose_conv_bias.dart';
 
-/// TensorFlowLite interpreter options.
+/// LiteRT interpreter options.
 class InterpreterOptions {
   final Pointer<TfLiteInterpreterOptions> _options;
   bool _deleted = false;

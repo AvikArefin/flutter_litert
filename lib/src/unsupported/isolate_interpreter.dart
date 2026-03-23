@@ -5,7 +5,7 @@
 
 import '../isolate_interpreter_state.dart';
 
-/// `IsolateInterpreter` allows for the execution of TensorFlow models within an isolate.
+/// Allows running LiteRT inference in a separate isolate.
 class IsolateInterpreter {
   // Private constructor for the interpreter.
   IsolateInterpreter._({required this.address, required this.debugName}) {
@@ -33,12 +33,12 @@ class IsolateInterpreter {
     'IsolateInterpreter.state is not supported on this platform',
   );
 
-  /// Run TensorFlow model for single input and output.
+  /// Run LiteRT model for single input and output.
   Future<void> run(Object input, Object output) => throw UnsupportedError(
     'IsolateInterpreter.run is not supported on this platform',
   );
 
-  /// Run TensorFlow model for multiple inputs and outputs.
+  /// Run LiteRT model for multiple inputs and outputs.
   Future<void> runForMultipleInputs(
     List<Object> inputs,
     Map<int, Object> outputs,

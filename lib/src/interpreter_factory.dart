@@ -11,7 +11,9 @@ import 'delegates/gpu_delegate_native.dart';
 import 'delegates/coreml_delegate_native.dart';
 import 'performance_config.dart';
 
+/// Factory for creating interpreter options with platform-optimal delegates.
 class InterpreterFactory {
+  /// Creates [InterpreterOptions] and an optional [Delegate] based on [config].
   static (InterpreterOptions, Delegate?) create(
     PerformanceConfig? config, {
     bool addMediaPipeCustomOps = false,
@@ -42,6 +44,10 @@ class InterpreterFactory {
     return (options, null);
   }
 
+  /// Creates an [IsolateInterpreter] if conditions allow isolate-based inference.
+  ///
+  /// Returns null if [useIsolateInterpreter] is false, a delegate is active,
+  /// or the platform is macOS (where isolate sharing is unstable).
   static Future<IsolateInterpreter?> createIsolateIfNeeded(
     Interpreter interpreter,
     Delegate? delegate, {

@@ -5,7 +5,7 @@
 
 import 'delegate.dart';
 
-/// TensorFlowLite interpreter options.
+/// LiteRT interpreter options.
 class InterpreterOptions {
   dynamic get base => throw UnsupportedError(
     'InterpreterOptions.base is not supported on this platform',

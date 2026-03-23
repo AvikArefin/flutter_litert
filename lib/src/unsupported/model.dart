@@ -5,7 +5,7 @@
 
 import 'dart:typed_data';
 
-/// TensorFlowLite model.
+/// LiteRT model.
 class Model {
   dynamic get base =>
       throw UnsupportedError('Model.base is not supported on this platform');

@@ -32,10 +32,11 @@ import '../util/tensor_shape_utils.dart' as shape_utils;
 export '../bindings/tensorflow_lite_bindings_generated.dart' show TfLiteType;
 export '../tensor_type.dart';
 
-/// TensorFlowLite tensor.
+/// LiteRT tensor.
 class Tensor {
   final Pointer<TfLiteTensor> _tensor;
 
+  /// Creates a tensor wrapper around a native tensor pointer.
   Tensor(this._tensor) {
     ArgumentError.checkNotNull(_tensor);
   }
@@ -62,7 +63,7 @@ class Tensor {
         .asUnmodifiableView();
   }
 
-  /// Quantization Params associated with the model (only Android).
+  /// Quantization params associated with the tensor.
   QuantizationParams get params {
     final ref = tfliteBinding.TfLiteTensorQuantizationParams(_tensor);
     return QuantizationParams(ref.scale, ref.zero_point);
@@ -95,6 +96,7 @@ class Tensor {
     return shape_utils.computeNumElements(shape);
   }
 
+  /// Copies the given [src] data into this tensor.
   void setTo(Object src) {
     Uint8List bytes = _convertObjectToBytes(src);
     int size = bytes.length;
@@ -132,6 +134,7 @@ class Tensor {
     }
   }
 
+  /// Copies this tensor's data into [dst].
   Object copyTo(Object dst) {
     int size = tfliteBinding.TfLiteTensorByteSize(_tensor);
     final ptr = calloc<Uint8>(size);

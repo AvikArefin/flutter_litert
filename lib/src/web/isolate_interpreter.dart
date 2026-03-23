@@ -46,14 +46,19 @@ class IsolateInterpreter {
     );
   }
 
+  /// The interpreter address (always 0 on web).
   final int address;
+
+  /// Debug label for this interpreter.
   final String debugName;
 
+  /// Stream of interpreter state changes.
   Stream<IsolateInterpreterState> get stateChanges => _stateController.stream;
 
+  /// The current interpreter state.
   IsolateInterpreterState get state => _state;
 
-  /// Run TensorFlow model for single input and output.
+  /// Run LiteRT model for single input and output.
   Future<void> run(Object input, Object output) async {
     _state = IsolateInterpreterState.loading;
     _stateController.add(_state);
@@ -65,7 +70,7 @@ class IsolateInterpreter {
     }
   }
 
-  /// Run TensorFlow model for multiple inputs and outputs.
+  /// Run LiteRT model for multiple inputs and outputs.
   Future<void> runForMultipleInputs(
     List<Object> inputs,
     Map<int, Object> outputs,

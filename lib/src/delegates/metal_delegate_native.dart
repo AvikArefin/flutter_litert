@@ -50,6 +50,7 @@ class GpuDelegate implements Delegate {
 
   GpuDelegate._(this._delegate);
 
+  /// Creates a Metal GPU delegate with optional [options].
   factory GpuDelegate({GpuDelegateOptions? options}) {
     if (options == null) {
       return GpuDelegate._(_metalBinding.TFLGpuDelegateCreate(nullptr));
@@ -57,6 +58,7 @@ class GpuDelegate implements Delegate {
     return GpuDelegate._(_metalBinding.TFLGpuDelegateCreate(options.base));
   }
 
+  /// Releases native Metal delegate resources.
   @override
   void delete() {
     checkState(!_deleted, message: 'TfLiteGpuDelegate already deleted.');
@@ -96,10 +98,12 @@ class GpuDelegateOptions {
   Pointer<TFLGpuDelegateOptions> _options;
   bool _deleted = false;
 
+  /// Pointer to the underlying native options struct.
   Pointer<TFLGpuDelegateOptions> get base => _options;
 
   GpuDelegateOptions._(this._options);
 
+  /// Creates default Metal delegate options.
   factory GpuDelegateOptions({
     bool allowPrecisionLoss = false,
     int waitType = TFLGpuDelegateWaitType.TFLGpuDelegateWaitTypePassive,
@@ -115,6 +119,7 @@ class GpuDelegateOptions {
     return GpuDelegateOptions._(options);
   }
 
+  /// Releases native resources for these options.
   void delete() {
     checkState(!_deleted, message: 'TfLiteGpuDelegate already deleted.');
     calloc.free(_options);

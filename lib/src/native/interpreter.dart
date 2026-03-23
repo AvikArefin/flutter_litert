@@ -30,7 +30,7 @@ import 'model.dart';
 import 'signature_runner.dart';
 import 'tensor.dart';
 
-/// TensorFlowLite interpreter for running inference on a model.
+/// LiteRT interpreter for running inference on a model.
 class Interpreter {
   final Pointer<TfLiteInterpreter> _interpreter;
   Pointer<Uint8>? _modelBuffer;
@@ -38,7 +38,7 @@ class Interpreter {
   bool _allocated = false;
   int _lastNativeInferenceDurationMicroSeconds = 0;
 
-  /// Returns the TensorFlow Lite runtime version string.
+  /// Returns the LiteRT runtime version string.
   static String get version =>
       tfliteBinding.TfLiteVersion().cast<Utf8>().toDartString();
 
@@ -48,6 +48,7 @@ class Interpreter {
   int? _inputTensorsCount;
   int? _outputTensorsCount;
 
+  /// Duration of the last native inference call in microseconds.
   int get lastNativeInferenceDurationMicroSeconds =>
       _lastNativeInferenceDurationMicroSeconds;
 
@@ -349,7 +350,7 @@ class Interpreter {
   int getOutputIndex(String opName) =>
       _findTensorIndex(opName, getOutputTensors(), 'Output');
 
-  // Resets all variable tensors to the default value
+  /// Resets all variable tensors to their default values.
   void resetVariableTensors() {
     checkState(
       !_deleted,
@@ -385,8 +386,10 @@ class Interpreter {
   /// Returns the address to the interpreter
   int get address => _interpreter.address;
 
+  /// Whether tensors have been allocated.
   bool get isAllocated => _allocated;
 
+  /// Whether this interpreter has been closed.
   bool get isDeleted => _deleted;
 
   //TODO: (JAVA) void modifyGraphWithDelegate(Delegate delegate)

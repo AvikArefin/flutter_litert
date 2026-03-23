@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 
+/// RPC client that sends requests to and receives responses from an isolate.
 class IsolateRpcClient {
   final Map<int, Completer<dynamic>> _pending = {};
   int _nextId = 0;
@@ -9,6 +10,7 @@ class IsolateRpcClient {
   Isolate? isolate;
   final ReceivePort receivePort = ReceivePort();
 
+  /// Sends an RPC request to the isolate and returns the typed response future.
   Future<T> sendRequest<T>(
     String operation,
     Map<String, dynamic> params,
@@ -30,6 +32,7 @@ class IsolateRpcClient {
     }
   }
 
+  /// Dispatches an incoming isolate message to the matching pending completer.
   void handleResponse(
     dynamic message, {
     Object Function(String)? errorWrapper,
@@ -53,6 +56,7 @@ class IsolateRpcClient {
     }
   }
 
+  /// Fails all pending requests, optionally sends a dispose op, and kills the isolate.
   void failAllAndDispose({String? disposeOp}) {
     for (final completer in _pending.values) {
       if (!completer.isCompleted) {
@@ -75,6 +79,7 @@ class IsolateRpcClient {
   }
 }
 
+/// Performs the initial SendPort handshake with a newly spawned isolate.
 Future<SendPort> setupIsolateHandshake({
   required ReceivePort receivePort,
   required void Function(dynamic) onResponse,

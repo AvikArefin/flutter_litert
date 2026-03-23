@@ -34,7 +34,7 @@ import 'delegate_library_loader.dart';
 ///
 /// ```yaml
 /// dependencies:
-///   flutter_litert: ^1.0.3
+///   flutter_litert: ^2.0.7
 ///   flutter_litert_flex: ^0.0.1
 /// ```
 ///
@@ -118,6 +118,7 @@ class FlexDelegate implements Delegate {
     return FlexDelegate();
   }
 
+  /// Releases native Flex delegate resources.
   @override
   void delete() {
     checkState(!_deleted, message: 'FlexDelegate already deleted.');

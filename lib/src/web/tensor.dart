@@ -19,6 +19,7 @@ class Tensor {
   final List<int> _shape;
   Uint8List _data;
 
+  /// Creates a tensor from metadata (name, type, and shape).
   Tensor.fromMetadata({
     required String name,
     required TensorType type,
@@ -65,10 +66,12 @@ class Tensor {
   /// Returns the number of elements in a flattened (1-D) view of the tensor.
   int numElements() => shape_utils.computeNumElements(_shape);
 
+  /// Copies the given data into this tensor.
   void setTo(Object src) {
     _data = ByteConversionUtils.convertObjectToBytes(src, _type);
   }
 
+  /// Copies this tensor's data into the destination.
   Object copyTo(Object dst) {
     Object obj;
     if (dst is Uint8List) {
@@ -90,6 +93,7 @@ class Tensor {
     return obj;
   }
 
+  /// Returns the input shape if it differs from this tensor's shape.
   List<int>? getInputShapeIfDifferent(Object? input) =>
       list_utils.getInputShapeIfDifferent(input, _shape);
 

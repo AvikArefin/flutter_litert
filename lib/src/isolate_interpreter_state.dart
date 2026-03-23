@@ -1,2 +1,2 @@
-/// Represents the state of the IsolateInterpreter.
+/// State of an [IsolateInterpreter] lifecycle.
 enum IsolateInterpreterState { idle, loading }

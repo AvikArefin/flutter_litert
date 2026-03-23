@@ -4,12 +4,25 @@ import 'dart:math' as math;
 ///
 /// Returned by [computeLetterboxParams].
 class LetterboxParams {
+  /// Scale factor applied to the source image.
   final double scale;
+
+  /// Width of the scaled image before padding.
   final int newWidth;
+
+  /// Height of the scaled image before padding.
   final int newHeight;
+
+  /// Left padding in pixels.
   final int padLeft;
+
+  /// Top padding in pixels.
   final int padTop;
+
+  /// Right padding in pixels.
   final int padRight;
+
+  /// Bottom padding in pixels.
   final int padBottom;
 
   const LetterboxParams({

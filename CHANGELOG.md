@@ -1,3 +1,7 @@
+## 2.0.7
+
+* Update documentation
+
 ## 2.0.6
 
 * Add useIsolateInterpreter parameter to skip nested isolate creation

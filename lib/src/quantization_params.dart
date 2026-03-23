@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
+/// Quantization parameters for a tensor.
 class QuantizationParams {
+  /// The scale factor for dequantization.
   final double scale;
+
+  /// The zero point offset for dequantization.
   final int zeroPoint;
 
+  /// Creates quantization params with the given [scale] and [zeroPoint].
   QuantizationParams(this.scale, this.zeroPoint);
 
   @override

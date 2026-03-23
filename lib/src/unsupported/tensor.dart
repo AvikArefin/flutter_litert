@@ -10,7 +10,7 @@ import '../tensor_type.dart';
 
 export '../tensor_type.dart';
 
-/// TensorFlowLite tensor.
+/// LiteRT tensor.
 class Tensor {
   Tensor(dynamic tensor) {
     throw UnsupportedError('Tensor is not supported on this platform');

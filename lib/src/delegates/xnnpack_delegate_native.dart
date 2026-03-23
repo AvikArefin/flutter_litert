@@ -32,6 +32,7 @@ class XNNPackDelegate implements Delegate {
 
   XNNPackDelegate._(this._delegate);
 
+  /// Creates an XNNPACK delegate with optional [options].
   factory XNNPackDelegate({XNNPackDelegateOptions? options}) {
     if (options == null) {
       return XNNPackDelegate._(
@@ -43,6 +44,7 @@ class XNNPackDelegate implements Delegate {
     );
   }
 
+  /// Releases native XNNPACK delegate resources.
   @override
   void delete() {
     checkState(!_deleted, message: 'XNNPackDelegate already deleted.');
@@ -57,10 +59,12 @@ class XNNPackDelegateOptions {
   bool _deleted = false;
   Pointer<Utf8>? _nativeWeightCacheFilePath;
 
+  /// Pointer to the underlying native options struct.
   Pointer<TfLiteXNNPackDelegateOptions> get base => _options;
 
   XNNPackDelegateOptions._(this._options, this._nativeWeightCacheFilePath);
 
+  /// Creates XNNPACK delegate options.
   factory XNNPackDelegateOptions({
     int numThreads = 1,
     int flags = 0,
@@ -79,6 +83,7 @@ class XNNPackDelegateOptions {
     return XNNPackDelegateOptions._(options, nativePath);
   }
 
+  /// Releases native resources for these options.
   void delete() {
     checkState(!_deleted, message: 'XNNPackDelegate already deleted.');
     if (_nativeWeightCacheFilePath != null) {

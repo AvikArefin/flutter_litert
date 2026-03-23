@@ -23,7 +23,7 @@ import '../bindings/tensorflow_lite_bindings_generated.dart';
 
 import '../ffi/helper.dart';
 
-/// TensorFlowLite model.
+/// LiteRT model.
 class Model {
   final Pointer<TfLiteModel> _model;
   Pointer<Uint8>? _bufferPtr;

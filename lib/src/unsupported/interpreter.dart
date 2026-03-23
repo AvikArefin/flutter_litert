@@ -9,9 +9,9 @@ import 'interpreter_options.dart';
 import 'signature_runner.dart';
 import 'tensor.dart';
 
-/// TensorFlowLite interpreter for running inference on a model.
+/// LiteRT interpreter for running inference on a model.
 class Interpreter {
-  /// Returns the TensorFlow Lite runtime version string.
+  /// Returns the LiteRT runtime version string.
   static String get version => throw UnsupportedError(
     'Interpreter.version is not supported on this platform',
   );

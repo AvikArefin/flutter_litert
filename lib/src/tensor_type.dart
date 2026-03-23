@@ -1,4 +1,4 @@
-/// Data type of a TensorFlow Lite tensor.
+/// Data type of a LiteRT tensor.
 ///
 /// This is a platform-independent enum shared across native, web, and
 /// unsupported implementations. The integer [value] matches the TfLiteType

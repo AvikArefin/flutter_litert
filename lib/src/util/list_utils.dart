@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'list_shape_extension.dart';
 import 'tensor_shape_utils.dart' as shape_utils;
 
-// TFLite type integer constants (matching TfLiteType / TensorType enum values).
+/// TFLite type integer constants (matching TfLiteType / TensorType enum values).
 const int _kFloat32 = 1;
 const int _kInt32 = 2;
 const int _kString = 5;

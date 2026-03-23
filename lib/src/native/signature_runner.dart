@@ -79,7 +79,7 @@ import 'tensor.dart';
 ///
 /// ## Building a training-capable model (Python)
 ///
-/// Export a TensorFlow model with `train`, `infer`, `get_weights`, and
+/// Export a LiteRT model with `train`, `infer`, `get_weights`, and
 /// `set_weights` signatures and convert with resource variables enabled:
 ///
 /// ```python

@@ -7,6 +7,7 @@ import 'list_shape_extension.dart';
 /// Size of int32 in bytes (avoids dart:ffi dependency for web compatibility).
 const int kInt32ByteSize = 4;
 
+/// Error thrown when an input value cannot be converted to the expected tensor type.
 class ByteConversionError extends ArgumentError {
   ByteConversionError({required this.input, required this.tensorType})
     : super(
@@ -17,7 +18,9 @@ class ByteConversionError extends ArgumentError {
   final Object tensorType;
 }
 
+/// Utilities for converting between Dart objects and raw tensor byte buffers.
 class ByteConversionUtils {
+  /// Converts a Dart object to its byte representation for the given [tensorType].
   static Uint8List convertObjectToBytes(Object o, TensorType tensorType) {
     if (o is Uint8List) {
       return o;
@@ -148,6 +151,7 @@ class ByteConversionUtils {
   static Uint8List encodeTFStrings(List<String> strings) =>
       _encodeTFStrings(strings);
 
+  /// Converts raw tensor bytes back to a Dart object with the given [shape] and [tensorType].
   static Object convertBytesToObject(
     Uint8List bytes,
     TensorType tensorType,
@@ -198,9 +202,11 @@ class ByteConversionUtils {
     throw UnsupportedError("$tensorType is not Supported.");
   }
 
+  /// Converts a float64 [value] to its float16 byte representation.
   static Uint8List floatToFloat16Bytes(double value) =>
       _floatToFloat16Bytes(value);
 
+  /// Converts float16 [bytes] to a float64 value via float32.
   static double bytesToFloat32(Uint8List bytes) => _bytesToFloat32(bytes);
 }
 

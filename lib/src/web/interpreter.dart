@@ -26,6 +26,7 @@ class Interpreter {
   List<Tensor>? _inputTensors;
   List<Tensor>? _outputTensors;
 
+  /// Duration of the last native inference call in microseconds.
   int get lastNativeInferenceDurationMicroSeconds =>
       _lastNativeInferenceDurationMicroSeconds;
 
@@ -276,8 +277,10 @@ class Interpreter {
   int get address =>
       throw UnsupportedError('Interpreter.address is not supported on web.');
 
+  /// Whether the interpreter is still allocated.
   bool get isAllocated => !_deleted;
 
+  /// Whether the interpreter has been deleted.
   bool get isDeleted => _deleted;
 
   // -- Helpers --

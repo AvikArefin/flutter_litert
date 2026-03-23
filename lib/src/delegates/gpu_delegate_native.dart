@@ -43,6 +43,8 @@ class GpuDelegateV2 implements Delegate {
       tfliteBindingGpu.TfLiteGpuDelegateV2Create(options.base),
     );
   }
+
+  /// Releases native GPU delegate resources.
   @override
   void delete() {
     checkState(!_deleted, message: 'TfLiteGpuDelegateV2 already deleted.');
@@ -58,6 +60,7 @@ class GpuDelegateOptionsV2 {
   Pointer<Utf8> _serializationDirPtr = nullptr;
   Pointer<Utf8> _modelTokenPtr = nullptr;
 
+  /// Pointer to the underlying native options struct.
   Pointer<TfLiteGpuDelegateOptionsV2> get base => _options;
   GpuDelegateOptionsV2._(this._options);
 
@@ -160,6 +163,7 @@ class GpuDelegateOptionsV2 {
     return result;
   }
 
+  /// Releases native resources for these options.
   void delete() {
     checkState(!_deleted, message: 'TfLiteGpuDelegateV2 already deleted.');
     if (_serializationDirPtr != nullptr) {

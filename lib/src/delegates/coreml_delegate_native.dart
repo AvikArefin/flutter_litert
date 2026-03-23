@@ -50,6 +50,7 @@ class CoreMlDelegate implements Delegate {
 
   CoreMlDelegate._(this._delegate);
 
+  /// Creates a CoreML delegate with optional [options].
   factory CoreMlDelegate({CoreMlDelegateOptions? options}) {
     final delegateOptions = options ?? CoreMlDelegateOptions();
 
@@ -58,6 +59,7 @@ class CoreMlDelegate implements Delegate {
     );
   }
 
+  /// Releases native CoreML delegate resources.
   @override
   void delete() {
     checkState(!_deleted, message: 'CoreMlDelegate already deleted.');
@@ -80,10 +82,12 @@ class CoreMlDelegateOptions {
   Pointer<TfLiteCoreMlDelegateOptions> _options;
   bool _deleted = false;
 
+  /// Pointer to the underlying native options struct.
   Pointer<TfLiteCoreMlDelegateOptions> get base => _options;
 
   CoreMlDelegateOptions._(this._options);
 
+  /// Creates CoreML delegate options.
   factory CoreMlDelegateOptions({
     int enabledDevices = TfLiteCoreMlDelegateEnabledDevices
         .TfLiteCoreMlDelegateDevicesWithNeuralEngine,
@@ -102,6 +106,7 @@ class CoreMlDelegateOptions {
     return CoreMlDelegateOptions._(options);
   }
 
+  /// Releases native resources for these options.
   void delete() {
     checkState(!_deleted, message: 'CoreMlDelegate already deleted.');
     calloc.free(_options);

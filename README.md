@@ -38,10 +38,23 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.0.7
+  flutter_litert: ^2.0.9
 ```
 
 That's it for native platforms. For web, call `initializeWeb()` before creating an interpreter (see [Web support](#web-support)).
+
+## Demos
+
+Packages built on flutter_litert:
+
+| Package | Description |
+|---------|-------------|
+| [face_detection_tflite](https://pub.dev/packages/face_detection_tflite) | Face detection, 468-point mesh, iris tracking, segmentation |
+| [hand_detection](https://pub.dev/packages/hand_detection) | Hand detection, landmarks, gesture recognition |
+| [pose_detection](https://pub.dev/packages/pose_detection) | Body pose estimation with 33 keypoints |
+| [animal_detection](https://pub.dev/packages/animal_detection) | Animal detection with species classification and pose |
+| [cat_detection](https://pub.dev/packages/cat_detection) | Cat face detection, landmarks, breed identification |
+| [dog_detection](https://pub.dev/packages/dog_detection) | Dog face detection, landmarks, breed identification |
 
 ## Usage
 
@@ -337,7 +350,7 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.0.7
+  flutter_litert: ^2.0.9
   flutter_litert_flex: ^0.0.5
 ```
 
@@ -404,7 +417,7 @@ By default, `initializeWeb()` loads the TFLite.js / TensorFlow.js scripts from a
 
 - **Same API as tflite_flutter.** Drop-in replacement with no code changes needed.
 - **Auto-bundled native libraries.** Works out of the box on Android, iOS, macOS, Windows, and Linux (plus web support via `initializeWeb()`).
-- **GPU acceleration.** Metal delegate on iOS and macOS, GPU delegate on Android, XNNPACK on all native platforms — [See delegates](#delegates).
+- **Hardware acceleration.** XNNPACK on all native platforms, Metal GPU on iOS/macOS, GPU delegate on Android (opt-in) — [See delegates](#delegates).
 - **CoreML delegate.** Available on iOS for Neural Engine acceleration — [See delegates](#delegates).
 - **Custom ops.** MediaPipe's `Convolution2DTransposeBias` op is built and included on all platforms.
 - **Isolate support.** Run inference on a background thread with `IsolateInterpreter` on native platforms (web provides a compatibility wrapper).
@@ -735,6 +748,18 @@ final config = PerformanceConfig.coreml();
 final config = PerformanceConfig.xnnpack(numThreads: 2);
 final config = PerformanceConfig.disabled; // no delegate
 ```
+
+#### Auto mode platform selection
+
+`PerformanceConfig.auto()` selects the optimal delegate per platform:
+
+| Platform | Delegate | Notes |
+|----------|----------|-------|
+| **iOS** | Metal GPU | Best performance on Apple devices |
+| **Android** | XNNPACK | Reliable across all devices, no init overhead |
+| **macOS** | XNNPACK | SIMD vectorization (NEON on ARM, AVX on x86) |
+| **Windows** | XNNPACK | SIMD vectorization (AVX on x86) |
+| **Linux** | XNNPACK | SIMD vectorization |
 
 ### InterpreterFactory
 

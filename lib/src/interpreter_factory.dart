@@ -64,20 +64,22 @@ class InterpreterFactory {
     InterpreterOptions options,
     int threadCount,
   ) {
-    if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
-      return _createXnnpack(options, threadCount);
-    }
     if (Platform.isIOS) {
       return _createGpu(options);
     }
-    return (options, null);
+    // Android, macOS, Linux, Windows — all use XNNPACK.
+    return _createXnnpack(options, threadCount);
   }
 
   static (InterpreterOptions, Delegate?) _createXnnpack(
     InterpreterOptions options,
     int threadCount,
   ) {
-    if (!Platform.isMacOS && !Platform.isLinux && !Platform.isWindows) {
+    if (!Platform.isAndroid &&
+        !Platform.isIOS &&
+        !Platform.isMacOS &&
+        !Platform.isLinux &&
+        !Platform.isWindows) {
       return (options, null);
     }
     try {

@@ -1,3 +1,13 @@
+## 2.0.10
+
+* Update documentation
+
+## 2.0.9
+
+* Enable XNNPACK delegate on Android (ARM NEON SIMD acceleration in auto mode)
+* Allow explicit `PerformanceConfig.xnnpack()` on iOS
+* Initialize XNNPackDelegateOptions from native defaults (preserves QS8/QU8 quantization flags)
+
 ## 2.0.8
 
 * Add Windows XNNPack delegate support (2-5x CPU inference speedup via SIMD)

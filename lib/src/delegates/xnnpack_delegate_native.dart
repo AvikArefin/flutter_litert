@@ -71,8 +71,10 @@ class XNNPackDelegateOptions {
     String? weightCacheFilePath,
   }) {
     final options = calloc<TfLiteXNNPackDelegateOptions>();
+    // Start from native defaults (includes QS8/QU8 quantization flags).
+    options.ref = tfliteBinding.TfLiteXNNPackDelegateOptionsDefault();
     options.ref.num_threads = numThreads;
-    options.ref.flags = flags;
+    if (flags != 0) options.ref.flags = flags;
 
     Pointer<Utf8>? nativePath;
     if (weightCacheFilePath != null) {

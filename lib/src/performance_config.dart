@@ -3,7 +3,7 @@ enum PerformanceMode {
   /// No hardware acceleration.
   disabled,
 
-  /// XNNPACK delegate (CPU-optimized, macOS/Linux/Windows).
+  /// XNNPACK delegate (CPU-optimized, all native platforms).
   xnnpack,
 
   /// GPU delegate (iOS Metal / Android OpenGL).

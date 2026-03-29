@@ -64,7 +64,7 @@ class InterpreterFactory {
     InterpreterOptions options,
     int threadCount,
   ) {
-    if (Platform.isMacOS || Platform.isLinux) {
+    if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
       return _createXnnpack(options, threadCount);
     }
     if (Platform.isIOS) {
@@ -77,7 +77,7 @@ class InterpreterFactory {
     InterpreterOptions options,
     int threadCount,
   ) {
-    if (!Platform.isMacOS && !Platform.isLinux) {
+    if (!Platform.isMacOS && !Platform.isLinux && !Platform.isWindows) {
       return (options, null);
     }
     try {

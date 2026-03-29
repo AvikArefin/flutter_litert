@@ -1,3 +1,8 @@
+## 2.0.8
+
+* Add Windows XNNPack delegate support (2-5x CPU inference speedup via SIMD)
+* Add CI workflow to build Windows TFLite C DLL from source with XNNPack symbols
+
 ## 2.0.7
 
 * Fix Android custom ops library alignment for 16 KB page-size devices

@@ -1,0 +1,150 @@
+name: Build TFLite C DLL (Windows x64)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      TF_VERSION: v2.20.0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install numpy
+
+      - name: Clone TensorFlow
+        run: |
+          git clone --depth 1 --branch $env:TF_VERSION `
+            https://github.com/tensorflow/tensorflow.git tf-src
+
+      - name: Patch TF sources for MSVC/Windows compatibility
+        shell: python
+        run: |
+          import pathlib
+
+          # 1. MSVC bug: friend class Tensor declaration in Buffer doesn't
+          #    grant access to private members. Make them accessible.
+          p = pathlib.Path('tf-src/tensorflow/lite/core/model_building.h')
+          src = p.read_text()
+          src = src.replace(
+              'friend class Tensor;\n\n  InterpreterInfo* builder_;\n  BufferIdx buffer_idx_;',
+              'friend class Tensor;\n\n public:\n  InterpreterInfo* builder_;\n  BufferIdx buffer_idx_;'
+          )
+          p.write_text(src)
+
+          # 2. Remove TFL_STATIC_LIBRARY_BUILD so TFL_CAPI_EXPORT resolves to
+          #    __declspec(dllexport) instead of nothing.
+          p2 = pathlib.Path('tf-src/tensorflow/lite/CMakeLists.txt')
+          src2 = p2.read_text()
+          src2 = src2.replace(
+              '  list(APPEND TFLITE_TARGET_PUBLIC_OPTIONS "-DTFL_STATIC_LIBRARY_BUILD")',
+              '  # Removed for shared DLL build: TFL_STATIC_LIBRARY_BUILD'
+          )
+          p2.write_text(src2)
+
+          # 3. Create a stub that references XNNPack functions, forcing the
+          #    linker to pull them from the static library into the DLL.
+          stub = pathlib.Path('tf-src/tensorflow/lite/c/force_xnnpack_link.cc')
+          stub.write_text(
+              '#include "tensorflow/lite/delegates/xnnpack/xnnpack_delegate.h"\n'
+              'namespace { volatile const void* _refs[] = {\n'
+              '    (const void*)&TfLiteXNNPackDelegateCreate,\n'
+              '    (const void*)&TfLiteXNNPackDelegateDelete,\n'
+              '    (const void*)&TfLiteXNNPackDelegateOptionsDefault,\n'
+              '}; }\n'
+          )
+
+          # 4. Add the stub to tensorflowlite_c AND set TFL_COMPILE_LIBRARY
+          #    on xnnpack-delegate so its symbols get __declspec(dllexport).
+          p3 = pathlib.Path('tf-src/tensorflow/lite/c/CMakeLists.txt')
+          src3 = p3.read_text()
+          src3 += '\nif(TFLITE_ENABLE_XNNPACK)\n'
+          src3 += '  target_sources(tensorflowlite_c PRIVATE\n'
+          src3 += '    ${TFLITE_SOURCE_DIR}/c/force_xnnpack_link.cc)\n'
+          src3 += '  if(WIN32 AND TARGET xnnpack-delegate)\n'
+          src3 += '    target_compile_definitions(xnnpack-delegate PRIVATE TFL_COMPILE_LIBRARY)\n'
+          src3 += '  endif()\n'
+          src3 += 'endif()\n'
+          p3.write_text(src3)
+
+      - name: Configure CMake
+        run: |
+          cmake -S tf-src/tensorflow/lite/c -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DTFLITE_ENABLE_XNNPACK=ON `
+            "-DCMAKE_CXX_FLAGS=-DTF_MAJOR_VERSION=2 -DTF_MINOR_VERSION=20 -DTF_PATCH_VERSION=0 -DTF_VERSION_SUFFIX=" `
+            "-DCMAKE_C_FLAGS=-DTF_MAJOR_VERSION=2 -DTF_MINOR_VERSION=20 -DTF_PATCH_VERSION=0 -DTF_VERSION_SUFFIX=" `
+            -G Ninja
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Find and rename DLL
+        shell: pwsh
+        run: |
+          $dlls = Get-ChildItem -Path build -Filter "*.dll" -Recurse
+          Write-Host "DLLs found in build:"
+          $dlls | ForEach-Object {
+            Write-Host "  $($_.FullName) ($([math]::Round($_.Length / 1MB, 1)) MB)"
+          }
+          $dll = $dlls | Where-Object { $_.Name -match "tensorflowlite" } |
+            Select-Object -First 1
+          if (-not $dll) { $dll = $dlls | Select-Object -First 1 }
+          if (-not $dll) {
+            Write-Error "No DLL found in build output"
+            exit 1
+          }
+          Write-Host "Using: $($dll.FullName)"
+          Copy-Item $dll.FullName -Destination libtensorflowlite_c-win.dll
+
+      - name: Verify XNNPack symbols
+        shell: cmd
+        run: |
+          echo === Exported XNNPack symbols ===
+          dumpbin /exports libtensorflowlite_c-win.dll | findstr /i "XNNPack"
+          if %ERRORLEVEL% neq 0 (
+            echo.
+            echo ERROR: XNNPack symbols not found in DLL
+            echo.
+            echo === All TfLite exports ===
+            dumpbin /exports libtensorflowlite_c-win.dll | findstr /i "TfLite"
+            exit /b 1
+          )
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libtensorflowlite_c-win
+          path: libtensorflowlite_c-win.dll
+          retention-days: 30
+
+      - name: Upload to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "tflite-c-${TF_VERSION}" \
+            --title "TFLite C Library ${TF_VERSION} (Windows x64)" \
+            --notes "TensorFlow Lite C shared library for Windows x64 with XNNPack support. Built from TF ${TF_VERSION} source via CMake + Ninja + MSVC." \
+            --repo "${{ github.repository }}" || true
+          gh release upload "tflite-c-${TF_VERSION}" \
+            libtensorflowlite_c-win.dll \
+            --repo "${{ github.repository }}" \
+            --clobber

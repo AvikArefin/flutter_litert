@@ -28,9 +28,9 @@ Main improvements over `tflite_flutter`:
 
 - Native libraries bundled automatically
   - Prebuilt binaries for macOS/Windows/Linux are served automatically. Manual steps no longer necessary.
-- Native libraries are kept up to date across all platforms — [See library info](#platform-support)
+- Native libraries are kept up to date across all platforms, [see library info](#platform-support)
 - [On-device training with weight persistence](#on-device-training)
-- [Variable tensor inspection](#inspecting-variable-tensors) — access trainable weights at runtime
+- [Variable tensor inspection](#inspecting-variable-tensors), access trainable weights at runtime
 - [Custom ops support](#custom-ops)
 - [Web support](#web-support)
 
@@ -38,7 +38,7 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.0.9
+  flutter_litert: ^2.0.11
 ```
 
 That's it for native platforms. For web, call `initializeWeb()` before creating an interpreter (see [Web support](#web-support)).
@@ -87,12 +87,12 @@ print('TFLite version: ${Interpreter.version}'); // e.g. "2.20.0"
 
 ## On-device training
 
-`flutter_litert` supports [on-device training](https://ai.google.dev/edge/litert/examples/on_device_training/overview) via `SignatureRunner`, which lets you call named entry points (signatures) in a TFLite model. On-device training adjusts an existing model's weights using new data — the `.tflite` model architecture is fixed at export time and is never modified on-device.
+`flutter_litert` supports [on-device training](https://ai.google.dev/edge/litert/examples/on_device_training/overview) via `SignatureRunner`, which lets you call named entry points (signatures) in a TFLite model. On-device training adjusts an existing model's weights using new data. The `.tflite` model architecture is fixed at export time and is never modified on-device.
 
 Two persistence approaches are supported:
 
-1. **Lightweight (`get_weights`/`set_weights`)** — Weights are extracted via builtin ops and serialized in Dart. Works with the standard bundled library on all platforms — no Flex delegate or extra downloads required.
-2. **Checkpoint-based (`save`/`restore`)** — Google's standard approach using `tf.raw_ops.Save`/`Restore` with `SELECT_TF_OPS`. Writes TF V1 checkpoint files directly from the model. Requires the [Flex delegate](#flexdelegate-for-complex-model-training).
+1. **Lightweight (`get_weights`/`set_weights`)**: Weights are extracted via builtin ops and serialized in Dart. Works with the standard bundled library on all platforms, no Flex delegate or extra downloads required.
+2. **Checkpoint-based (`save`/`restore`)**: Google's standard approach using `tf.raw_ops.Save`/`Restore` with `SELECT_TF_OPS`. Writes TF V1 checkpoint files directly from the model. Requires the [Flex delegate](#flexdelegate-for-complex-model-training).
 
 ### Lightweight persistence (get_weights/set_weights)
 
@@ -139,7 +139,7 @@ class MyModel(tf.Module):
         return {'w': self.w.read_value(), 'b': self.b.read_value()}
 ```
 
-Convert with `TFLITE_BUILTINS` only — no Flex delegate or `SELECT_TF_OPS` needed:
+Convert with `TFLITE_BUILTINS` only, no Flex delegate or `SELECT_TF_OPS` needed:
 
 ```python
 converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
@@ -176,10 +176,10 @@ inferRunner.close();
 
 #### Persisting trained weights across app sessions
 
-The `.tflite` model file is read-only — trained weights live in memory and are lost when the interpreter is closed. Use `get_weights` and `set_weights` to persist them:
+The `.tflite` model file is read-only, so trained weights live in memory and are lost when the interpreter is closed. Use `get_weights` and `set_weights` to persist them:
 
 ```dart
-// After training — save weights to disk
+// After training, save weights to disk
 final getRunner = interpreter.getSignatureRunner('get_weights');
 final w = [[0.0]];
 final b = [0.0];
@@ -191,7 +191,7 @@ await file.writeAsString(jsonEncode({'w': w, 'b': b}));
 ```
 
 ```dart
-// On next app launch — restore weights
+// On next app launch, restore weights
 final saved = jsonDecode(await File('${appDocDir.path}/weights.json').readAsString());
 final setRunner = interpreter.getSignatureRunner('set_weights');
 setRunner.run({'w': saved['w'], 'b': saved['b']}, {});
@@ -200,11 +200,11 @@ setRunner.close();
 // Model is now in the same trained state as before
 ```
 
-This uses only TFLite builtin ops (`ReadVariable`, `AssignVariable`) — no Flex delegate, no extra native libraries, works with the standard bundled library on all platforms.
+This uses only TFLite builtin ops (`ReadVariable`, `AssignVariable`), no Flex delegate, no extra native libraries. Works with the standard bundled library on all platforms.
 
 ### Inspecting variable tensors
 
-You can inspect a model's trainable (variable) tensors at runtime — useful for debugging training or verifying weight restoration:
+You can inspect a model's trainable (variable) tensors at runtime, useful for debugging training or verifying weight restoration:
 
 ```dart
 final interpreter = await Interpreter.fromAsset('training_model.tflite');
@@ -320,7 +320,7 @@ save.close();
 ```
 
 ```dart
-// On next app launch — restore from checkpoint
+// On next app launch, restore from checkpoint
 final options = InterpreterOptions();
 options.addDelegate(FlexDelegate());
 final interpreter = Interpreter.fromFile(model, options: options);
@@ -329,7 +329,7 @@ final restore = interpreter.getSignatureRunner('restore');
 restore.run({'checkpoint_path': ['${appDocDir.path}/model.ckpt']}, {'status': status});
 restore.close();
 
-// Model weights are now restored — ready for inference or continued training
+// Model weights are now restored, ready for inference or continued training
 ```
 
 #### Choosing a persistence approach
@@ -344,13 +344,13 @@ restore.close();
 
 ### FlexDelegate for complex model training
 
-The weight persistence approach above works with any model using only TFLite builtins. However, training models with layers like `Conv2D` or `BatchNormalization` generates gradient ops (e.g., `Conv2DBackpropFilter`) that require `SELECT_TF_OPS`. For these models, you need the **Flex delegate** — a separate native library (~123-492 MB per platform).
+The weight persistence approach above works with any model using only TFLite builtins. However, training models with layers like `Conv2D` or `BatchNormalization` generates gradient ops (e.g., `Conv2DBackpropFilter`) that require `SELECT_TF_OPS`. For these models, you need the **Flex delegate**, a separate native library (~123-492 MB per platform).
 
 Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.0.9
+  flutter_litert: ^2.0.11
   flutter_litert_flex: ^0.0.5
 ```
 
@@ -362,7 +362,7 @@ options.addDelegate(FlexDelegate());
 final interpreter = Interpreter.fromFile(model, options: options);
 ```
 
-> **Note:** Dense-only models (linear regression, MLP classifiers) do not need the Flex delegate — their gradient ops decompose into TFLite builtins. The Flex delegate is only needed when training convolutional or batch-normalized layers.
+> **Note:** Dense-only models (linear regression, MLP classifiers) do not need the Flex delegate, their gradient ops decompose into TFLite builtins. The Flex delegate is only needed when training convolutional or batch-normalized layers.
 
 ## Platform support
 
@@ -417,8 +417,8 @@ By default, `initializeWeb()` loads the TFLite.js / TensorFlow.js scripts from a
 
 - **Same API as tflite_flutter.** Drop-in replacement with no code changes needed.
 - **Auto-bundled native libraries.** Works out of the box on Android, iOS, macOS, Windows, and Linux (plus web support via `initializeWeb()`).
-- **Hardware acceleration.** XNNPACK on all native platforms, Metal GPU on iOS/macOS, GPU delegate on Android (opt-in) — [See delegates](#delegates).
-- **CoreML delegate.** Available on iOS for Neural Engine acceleration — [See delegates](#delegates).
+- **Hardware acceleration.** XNNPACK on all native platforms, Metal GPU on iOS/macOS, GPU delegate on Android (opt-in), [see delegates](#delegates).
+- **CoreML delegate.** Available on iOS for Neural Engine acceleration, [see delegates](#delegates).
 - **Custom ops.** MediaPipe's `Convolution2DTransposeBias` op is built and included on all platforms.
 - **Isolate support.** Run inference on a background thread with `IsolateInterpreter` on native platforms (web provides a compatibility wrapper).
 
@@ -568,7 +568,7 @@ CoreML delegate options:
 
 | Platform | Recommended delegate | Notes |
 |----------|---------------------|-------|
-| Android | `XNNPackDelegate` | Safe default. `GpuDelegateV2` is faster for large models but has slow first-run init — use serialization caching to mitigate. |
+| Android | `XNNPackDelegate` | Safe default. `GpuDelegateV2` is faster for large models but has slow first-run init, use serialization caching to mitigate. |
 | iOS | `GpuDelegate` (Metal) | Best general performance. Add `CoreMlDelegate` for Neural Engine models. |
 | macOS | `GpuDelegate` (Metal) | ~3.4x faster than XNNPACK on Apple Silicon. Falls back to `XNNPackDelegate` on Intel Macs. |
 | Windows | `XNNPackDelegate` | XNNPACK symbols are bundled in the DLL. |
@@ -609,7 +609,7 @@ static void MyOpFree(TfLiteContext* context, void* buffer) {
 
 static TfLiteStatus MyOpPrepare(TfLiteContext* context, TfLiteNode* node) {
     // Validate input/output tensor shapes, types, and dimensions.
-    // Do NOT call context->ResizeTensor for custom ops — validate
+    // Do NOT call context->ResizeTensor for custom ops, validate
     // against the shapes the model graph already defines.
     return kTfLiteOk;
 }
@@ -642,7 +642,7 @@ TfLiteRegistration* MyPlugin_RegisterMyCustomOp(void) {
 
 Each platform needs to compile your C code and make the resulting library available at runtime.
 
-**Android** — Add a CMakeLists.txt that compiles your `.c` into a shared library, and point to it from your plugin's `android/build.gradle`:
+**Android**: Add a CMakeLists.txt that compiles your `.c` into a shared library, and point to it from your plugin's `android/build.gradle`:
 
 ```gradle
 android {
@@ -652,14 +652,14 @@ android {
 }
 ```
 
-**Linux / Windows** — In your plugin's `linux/CMakeLists.txt` or `windows/CMakeLists.txt`, add your source directory as a subdirectory and include the resulting library in `bundled_libraries`:
+**Linux / Windows**: In your plugin's `linux/CMakeLists.txt` or `windows/CMakeLists.txt`, add your source directory as a subdirectory and include the resulting library in `bundled_libraries`:
 
 ```cmake
 add_subdirectory("../src" "${CMAKE_CURRENT_BINARY_DIR}/my_custom_ops")
 set(my_plugin_bundled_libraries $<TARGET_FILE:my_custom_ops> PARENT_SCOPE)
 ```
 
-**macOS** — Either pre-build a universal `.dylib` and ship it as a CocoaPods resource in your `.podspec`:
+**macOS**: Either pre-build a universal `.dylib` and ship it as a CocoaPods resource in your `.podspec`:
 
 ```ruby
 s.resources = ['my_custom_ops.dylib']
@@ -667,7 +667,7 @@ s.resources = ['my_custom_ops.dylib']
 
 Or compile from source using a script phase.
 
-**iOS** — Static linking is required. Create a forwarder `.c` file in `ios/Classes/` that `#include`s your implementation:
+**iOS**: Static linking is required. Create a forwarder `.c` file in `ios/Classes/` that `#include`s your implementation:
 
 ```c
 // ios/Classes/my_custom_ops.c
@@ -705,7 +705,7 @@ final registerFn = customOpsLib.lookupFunction<
 
 final registration = registerFn();
 
-// Keep this alive for the lifetime of the interpreter — TFLite stores
+// Keep this alive for the lifetime of the interpreter, TFLite stores
 // the pointer, not a copy
 final opName = 'MyCustomOpName'.toNativeUtf8().cast<Char>();
 
@@ -763,7 +763,7 @@ final config = PerformanceConfig.disabled; // no delegate
 
 ### InterpreterFactory
 
-Creates an interpreter with the right delegate for the current platform — no more per-platform `if (Platform.isIOS)` chains:
+Creates an interpreter with the right delegate for the current platform, no more per-platform `if (Platform.isIOS)` chains:
 
 ```dart
 import 'package:flutter_litert/flutter_litert.dart';

@@ -1,3 +1,7 @@
+## 2.0.11
+
+* Fix edge case in output buffer allocation
+
 ## 2.0.10
 
 * Update documentation

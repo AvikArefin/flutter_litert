@@ -88,7 +88,7 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
   if flex_detected
     dedup_marker = File.join(framework_dir, 'TensorFlowLiteC.xcframework', '.flex_deduped')
     unless File.exist?(dedup_marker)
-      puts '[flutter_litert] FlexDelegate detected — hiding overlapping symbols in TensorFlowLiteC...'
+      puts '[flutter_litert] FlexDelegate detected, hiding overlapping symbols in TensorFlowLiteC...'
       syms_file = File.join(framework_dir, '_overlap_syms.txt')
       File.write(syms_file, <<~SYMS)
         _TfLiteXNNPackDelegateCanUseInMemoryWeightCacheProvider

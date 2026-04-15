@@ -1,7 +1,7 @@
 // Implementation for save/restore checkpoint integration tests.
 //
 // This file is run as a subprocess by flex_save_restore_test.dart.
-// It may crash on exit (SIGBUS from TF atexit handlers) — that is expected
+// It may crash on exit (SIGBUS from TF atexit handlers), that is expected
 // and handled by the parent wrapper.
 import 'dart:io';
 import 'dart:typed_data';

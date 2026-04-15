@@ -7,6 +7,6 @@ import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 /// with Flutter's web plugin system.
 class FlutterLitertWeb {
   static void registerWith(Registrar registrar) {
-    // No-op — flutter_litert uses conditional imports, not platform channels.
+    // No-op, flutter_litert uses conditional imports, not platform channels.
   }
 }

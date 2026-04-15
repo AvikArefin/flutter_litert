@@ -130,7 +130,7 @@ void main() {
     testWidgets('multiple concurrent delegates work independently', (
       tester,
     ) async {
-      // Create two delegates simultaneously — exercises the std::map storage
+      // Create two delegates simultaneously, exercises the std::map storage
       // on iOS where each delegate is a separate entry.
       final flex1 = await FlexDelegate.create();
       final flex2 = await FlexDelegate.create();
@@ -189,7 +189,7 @@ void main() {
       infer1.close();
       expect(out1[0][0], greaterThan(1.0));
 
-      // Clean up both — delete in reverse order to test map erase works
+      // Clean up both, delete in reverse order to test map erase works
       interp2.close();
       flex2.delete();
       opts2.delete();
@@ -240,7 +240,7 @@ void main() {
         {'output': output},
       );
       infer.close();
-      // Fresh interpreter with reused delegate — weights reset, expect ~0
+      // Fresh interpreter with reused delegate, weights reset, expect ~0
       expect(output[0][0], closeTo(0.0, 1e-5));
 
       interp2.close();

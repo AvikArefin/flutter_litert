@@ -104,7 +104,7 @@ abstract class IsolateWorkerBase {
   /// Disposes the worker: fails pending requests, sends [workerDisposeOp] to
   /// the isolate (if non-null), kills the isolate, and closes ports.
   ///
-  /// Safe to call without awaiting — the isolate is killed synchronously.
+  /// Safe to call without awaiting, the isolate is killed synchronously.
   Future<void> dispose() async {
     rpc.failAllAndDispose(disposeOp: workerDisposeOp);
     _initialized = false;

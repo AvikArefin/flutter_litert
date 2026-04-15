@@ -219,7 +219,7 @@ class Interpreter {
     }, growable: false);
   }
 
-  /// Not supported on web — TFLite.js does not expose a tensor resize API.
+  /// Not supported on web, TFLite.js does not expose a tensor resize API.
   void resizeInputTensor(int tensorIndex, List<int> shape) =>
       throw UnsupportedError(
         'Interpreter.resizeInputTensor is not supported on web. '

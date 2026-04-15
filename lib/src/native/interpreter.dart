@@ -429,7 +429,7 @@ class Interpreter {
   ///
   /// Throws [ArgumentError] if [signatureKey] is not found in the model.
   ///
-  /// Example — run a training step:
+  /// Example, run a training step:
   /// ```dart
   /// final trainRunner = interpreter.getSignatureRunner('train');
   /// final lossBuffer = Float32List(1);

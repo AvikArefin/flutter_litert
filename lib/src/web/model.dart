@@ -13,7 +13,7 @@ class Model {
   /// Returns the underlying TFLiteModel.
   TFLiteModel get base => _model;
 
-  /// Not supported on web — use fromBuffer or fromAsset on Interpreter.
+  /// Not supported on web, use fromBuffer or fromAsset on Interpreter.
   factory Model.fromFile(String path) => throw UnsupportedError(
     'Model.fromFile is not supported on web. Use Interpreter.fromAsset instead.',
   );

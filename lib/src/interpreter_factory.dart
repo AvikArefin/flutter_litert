@@ -67,7 +67,7 @@ class InterpreterFactory {
     if (Platform.isIOS) {
       return _createGpu(options);
     }
-    // Android, macOS, Linux, Windows — all use XNNPACK.
+    // Android, macOS, Linux, Windows, all use XNNPACK.
     return _createXnnpack(options, threadCount);
   }
 

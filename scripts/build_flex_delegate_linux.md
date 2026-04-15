@@ -14,7 +14,7 @@ These match the [TFLite external delegate plugin interface](https://github.com/t
 
 Install these before starting:
 
-1. **Bazelisk** — manages Bazel versions automatically; reads `.bazelversion` from TF source
+1. **Bazelisk**, manages Bazel versions automatically; reads `.bazelversion` from TF source
    (TF v2.20.0 requires **Bazel 7.4.1**; Bazelisk fetches it automatically):
    ```bash
    mkdir -p ~/.local/bin
@@ -25,7 +25,7 @@ Install these before starting:
    ```
    Add the export to `~/.bashrc` or `~/.profile` for persistence.
 
-2. **Python 3** with **numpy** — required by `configure.py`:
+2. **Python 3** with **numpy**, required by `configure.py`:
    ```bash
    # Ubuntu/Debian (with pip available):
    pip3 install numpy
@@ -33,7 +33,7 @@ Install these before starting:
    sudo apt-get install python3-numpy
    ```
 
-3. **Clang** (recommended) or **GCC 9+** — the build system auto-detects whichever is
+3. **Clang** (recommended) or **GCC 9+**, the build system auto-detects whichever is
    available. Clang 17/18 is the officially preferred compiler:
    ```bash
    sudo apt-get install clang   # usually sufficient; any recent version works
@@ -97,7 +97,7 @@ Create `tensorflow/lite/delegates/flex/flex_delegate_plugin.cc`:
 //
 // FlexDelegate::Create() returns TfLiteDelegateUniquePtr, which carries a
 // custom deleter (TfLiteDelegateFactory::DeleteSimpleDelegate). We must use
-// that deleter — never plain `delete` — when destroying the delegate.
+// that deleter, never plain `delete`, when destroying the delegate.
 
 #include "tensorflow/lite/delegates/external/external_delegate_interface.h"
 #include "tensorflow/lite/delegates/flex/delegate.h"
@@ -130,7 +130,7 @@ TFL_EXTERNAL_DELEGATE_EXPORT void tflite_plugin_destroy_delegate(
 ```
 
 > **Why not `delete reinterpret_cast<tflite::FlexDelegate*>(delegate)`?**
-> `FlexDelegate::Create()` returns `TfLiteDelegateUniquePtr` — a
+> `FlexDelegate::Create()` returns `TfLiteDelegateUniquePtr`, a
 > `std::unique_ptr<TfLiteDelegate, void(*)(TfLiteDelegate*)>` with the custom
 > deleter `TfLiteDelegateFactory::DeleteSimpleDelegate`. Using plain `delete`
 > would skip this custom deleter and corrupt memory.
@@ -180,11 +180,11 @@ bazel build \
 ```
 
 **Flag explanations:**
-- `-c opt` — optimized build (essential for production size and performance)
-- `--config=monolithic` — statically links all TF/TFLite deps; makes the `.so` fully
+- `-c opt`, optimized build (essential for production size and performance)
+- `--config=monolithic`, statically links all TF/TFLite deps; makes the `.so` fully
   self-contained with no external runtime dependencies
-- `--define=tflite_convert_with_select_tf_ops=true` — enables SELECT_TF_OPS registration
-- `--define=with_select_tf_ops=true` — links the full set of TF ops into the library
+- `--define=tflite_convert_with_select_tf_ops=true`, enables SELECT_TF_OPS registration
+- `--define=with_select_tf_ops=true`, links the full set of TF ops into the library
 
 **If RAM is tight** (< 8 GiB free), add:
 ```bash
@@ -223,7 +223,7 @@ ldd bazel-bin/tensorflow/lite/delegates/flex/libtensorflowlite_flex-linux.so
 
 Should only list standard system libraries: `libstdc++.so`, `libm.so`, `libc.so`,
 `libdl.so`, `libpthread.so`. Must **not** list `libtensorflowlite.so` or any other
-TF-specific library — those are statically linked inside.
+TF-specific library, those are statically linked inside.
 
 ### 6c. Check the file size:
 ```bash
@@ -247,7 +247,7 @@ flutter test test/native/flex_save_restore_test.dart
 ```
 
 All `flex_delegate_test.dart` tests should pass. The `flex_save_restore_test.dart` subprocess
-exits with SIGBUS (TF atexit handler crash) — this is expected and handled by the test wrapper;
+exits with SIGBUS (TF atexit handler crash), this is expected and handled by the test wrapper;
 the test passes as long as no `Expected:` assertion failure lines appear in the output.
 
 ## Step 8: Upload to GitHub Releases

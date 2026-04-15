@@ -99,7 +99,7 @@ class InterpreterPool {
 
   /// Runs [fn] with exclusive access to one interpreter, selected round-robin.
   ///
-  /// Callers are serialized per slot — different slots can run concurrently.
+  /// Callers are serialized per slot, different slots can run concurrently.
   Future<T> withInterpreter<T>(
     Future<T> Function(Interpreter, IsolateInterpreter?) fn,
   ) async {

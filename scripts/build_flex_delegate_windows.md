@@ -15,7 +15,7 @@ Install these before starting:
    - Download from https://github.com/bazelbuild/bazel/releases/tag/6.5.0
    - Get `bazel-6.5.0-windows-x86_64.exe`, rename to `bazel.exe`, put on PATH
 3. **Python 3.9–3.12** (with `numpy` installed: `pip install numpy`)
-4. **MSYS2** — install to `C:\msys64`, needed for Bazel's shell tools on Windows
+4. **MSYS2**, install to `C:\msys64`, needed for Bazel's shell tools on Windows
 5. **Git for Windows**
 
 Verify:
@@ -35,7 +35,7 @@ cd tf-2.20.0
 
 ## Step 2: Configure the build
 
-Run the configure script. Answer the prompts — defaults are fine for most, just make sure Python path is correct:
+Run the configure script. Answer the prompts, defaults are fine for most, just make sure Python path is correct:
 
 ```powershell
 python configure.py
@@ -76,7 +76,7 @@ EXPORT TfLiteDelegate* tflite_plugin_create_delegate(
   // Create a default FlexDelegate. The options_keys/values are unused
   // for the flex delegate but the signature matches the plugin interface.
   auto delegate = tflite::FlexDelegate::Create();
-  // Release ownership — caller is responsible for destroying via
+  // Release ownership, caller is responsible for destroying via
   // tflite_plugin_destroy_delegate.
   return delegate.release();
 }

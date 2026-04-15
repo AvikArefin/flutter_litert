@@ -1,3 +1,11 @@
+## 2.0.13
+
+* Fix Android JVM target mismatch: bump Java compile target to 17 to match Kotlin target set by Flutter toolchain
+
+## 2.0.12
+
+* Fix Android Flutter beta builds by aligning Kotlin and Java JVM targets to 11
+
 ## 2.0.11
 
 * Fix edge case in output buffer allocation
@@ -68,7 +76,7 @@
 * Fix tensor cache bug, add shared Point class, dedup internals
 
 ## 1.3.1
-* Add NaN handling to `clamp01()` — returns 0.0 for NaN inputs
+* Add NaN handling to `clamp01()`, returns 0.0 for NaN inputs
 
 ## 1.3.0
 * Add `IsolateRpcClient` and `setupIsolateHandshake` for reusable isolate request/response communication
@@ -110,8 +118,8 @@
 * First stable release: 
   * All platforms are on updated 2.20.0 library files, official final stable release of TFLite
   * Pre-bundling works on all platforms: users no longer need to do bundle libs as was required with `tflite_flutter`
-  * Custom ops supported - see [face_detection_tflite v5.0.2](https://pub.dev/packages/face_detection_tflite/versions/5.0.2) `example` directory for a working example (the binary segmentation model selfie_segmenter.tflite uses custom ops)
-  * Web support (experimental) functional - see [pose_detection v1.0.1](https://pub.dev/packages/pose_detection/versions/1.0.1) `web_example` directory for a working example
+  * Custom ops supported, see [face_detection_tflite v5.0.2](https://pub.dev/packages/face_detection_tflite/versions/5.0.2) `example` directory for a working example (the binary segmentation model selfie_segmenter.tflite uses custom ops)
+  * Web support (experimental) functional, see [pose_detection v1.0.1](https://pub.dev/packages/pose_detection/versions/1.0.1) `web_example` directory for a working example
 
 ## 0.2.2
 * Update dependencies

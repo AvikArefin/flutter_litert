@@ -136,7 +136,7 @@ class FlexDelegate implements Delegate {
 
   /// Whether the Flex delegate library is available.
   ///
-  /// Returns `true` if the library can be loaded — i.e., `flutter_litert_flex`
+  /// Returns `true` if the library can be loaded, i.e., `flutter_litert_flex`
   /// is in the project's dependencies.
   static bool get isAvailable {
     if (_flexLib != null) return true;

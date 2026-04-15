@@ -27,7 +27,7 @@ import 'byte_conversion_utils_shared.dart';
 /// Saves and restores model weights to disk using the `get_weights` and
 /// `set_weights` signatures that training models expose. This works on **all
 /// platforms** (including iOS and web-adjacent targets) without any native
-/// library beyond the base TFLite runtime — no FlexDelegate required.
+/// library beyond the base TFLite runtime, no FlexDelegate required.
 ///
 /// ## Binary checkpoint format (`.flwt`)
 ///
@@ -68,7 +68,7 @@ class ModelCheckpoint {
   /// The [interpreter] must have a `get_weights` signature. Weights are read
   /// from the model and serialized in the `.flwt` binary format.
   ///
-  /// The write is atomic — a temporary file is written first, then renamed.
+  /// The write is atomic, a temporary file is written first, then renamed.
   static Future<void> save(Interpreter interpreter, File file) async {
     if (!interpreter.signatureKeys.contains('get_weights')) {
       throw ArgumentError('Model does not have a "get_weights" signature.');

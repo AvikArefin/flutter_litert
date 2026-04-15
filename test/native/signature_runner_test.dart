@@ -191,9 +191,9 @@ void main() {
     });
   });
 
-  // ─── Group 5: run — infer ────────────────────────────────────────────────
+  // ─── Group 5: run, infer ─────────────────────────────────────────────────
 
-  group('run — infer signature', () {
+  group('run, infer signature', () {
     late SignatureRunner inferRunner;
 
     setUp(() => inferRunner = interpreter.getSignatureRunner('infer'));
@@ -201,7 +201,7 @@ void main() {
       if (!inferRunner.isClosed) inferRunner.close();
     });
 
-    // infer output tensor has shape [1,1] — use a nested list to match.
+    // infer output tensor has shape [1,1], use a nested list to match.
     List<List<double>> inferOutput() => [
       [0.0],
     ];
@@ -284,9 +284,9 @@ void main() {
     });
   });
 
-  // ─── Group 6: run — train ────────────────────────────────────────────────
+  // ─── Group 6: run, train ─────────────────────────────────────────────────
 
-  group('run — train signature', () {
+  group('run, train signature', () {
     late SignatureRunner trainRunner;
 
     setUp(() => trainRunner = interpreter.getSignatureRunner('train'));
@@ -318,7 +318,7 @@ void main() {
       expect(loss[0].isFinite, isTrue);
     });
 
-    test('first loss for (x=1, y=2) is 4.0  — pred=0, MSE=(0-2)^2=4', () {
+    test('first loss for (x=1, y=2) is 4.0, pred=0, MSE=(0-2)^2=4', () {
       final loss = Float32List(1);
       trainRunner.run(
         {
@@ -359,7 +359,7 @@ void main() {
     test(
       'weight updates are visible via infer runner on the same interpreter',
       () {
-        // Train and infer runners share underlying interpreter memory —
+        // Train and infer runners share underlying interpreter memory,
         // weight updates made through train are immediately visible to infer.
         final loss = Float32List(1);
         for (int i = 0; i < 50; i++) {
@@ -416,9 +416,9 @@ void main() {
     });
   });
 
-  // ─── Group 7: run — get_weights ──────────────────────────────────────────
+  // ─── Group 7: run, get_weights ───────────────────────────────────────────
 
-  group('run — get_weights signature', () {
+  group('run, get_weights signature', () {
     late SignatureRunner getWeightsRunner;
 
     setUp(
@@ -485,9 +485,9 @@ void main() {
     });
   });
 
-  // ─── Group 8: run — set_weights ──────────────────────────────────────────
+  // ─── Group 8: run, set_weights ───────────────────────────────────────────
 
-  group('run — set_weights signature', () {
+  group('run, set_weights signature', () {
     late SignatureRunner setWeightsRunner;
 
     setUp(
@@ -615,7 +615,7 @@ void main() {
         setRunner.run({'w': w, 'b': b}, {});
         setRunner.close();
 
-        // 7. Infer again — should match the trained prediction
+        // 7. Infer again, should match the trained prediction
         final inferB = interpreter.getSignatureRunner('infer');
         final predB = [
           [0.0],

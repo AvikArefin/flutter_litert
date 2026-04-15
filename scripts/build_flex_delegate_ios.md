@@ -114,14 +114,14 @@ USE_BAZEL_VERSION=7.4.1 bazelisk build -c opt --config=ios_arm64 \
   //tensorflow/lite/ios:TensorFlowLiteFlex_framework
 ```
 
-### 4b: iOS simulator (arm64 — Apple Silicon)
+### 4b: iOS simulator (arm64, Apple Silicon)
 
 ```bash
 USE_BAZEL_VERSION=7.4.1 bazelisk build -c opt --config=ios_sim_arm64 \
   //tensorflow/lite/ios:TensorFlowLiteFlex_framework
 ```
 
-### 4c: iOS simulator (x86_64 — Intel)
+### 4c: iOS simulator (x86_64, Intel)
 
 ```bash
 USE_BAZEL_VERSION=7.4.1 bazelisk build -c opt --config=ios \
@@ -209,7 +209,7 @@ gh release upload flex-v1.0.0 \
 
 **`configure.py` fails**: Use Python 3.9-3.12 (not 3.13+). Install `numpy`: `pip3 install numpy`.
 
-**Bitcode warnings**: Ignore — Apple deprecated bitcode in Xcode 14.
+**Bitcode warnings**: Ignore, Apple deprecated bitcode in Xcode 14.
 
 ## What this enables
 
@@ -218,4 +218,4 @@ Once uploaded, the `flutter_litert_flex` package's iOS podspec downloads the xcf
 https://github.com/hugocornellier/flutter_litert/releases/download/flex-v1.0.0/TensorFlowLiteFlex-ios.xcframework.zip
 ```
 
-At pod install time, the xcframework is vendored into the app. At runtime, the flex delegate symbols are in the app binary — Dart finds them via `DynamicLibrary.process()`.
+At pod install time, the xcframework is vendored into the app. At runtime, the flex delegate symbols are in the app binary, Dart finds them via `DynamicLibrary.process()`.

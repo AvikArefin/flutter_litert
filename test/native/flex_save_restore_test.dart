@@ -1,4 +1,4 @@
-// Save/Restore checkpoint integration tests — subprocess wrapper.
+// Save/Restore checkpoint integration tests, subprocess wrapper.
 //
 // tf.raw_ops.Save (via the Flex delegate) registers TensorFlow C atexit
 // handlers that crash (SIGBUS) when the Flutter tester subprocess exits.
@@ -22,7 +22,7 @@ void main() {
 
     // The impl subprocess always crashes on exit (SIGBUS from TF atexit
     // handlers), so the test is reported as "did not complete". However,
-    // the test body runs to completion — all assertions pass before the
+    // the test body runs to completion, all assertions pass before the
     // crash. We verify correctness by checking:
     // 1. The test started running (test name appears in output)
     // 2. No assertion failures occurred (no "Expected:" mismatch text)
@@ -33,7 +33,7 @@ void main() {
       reason: 'Test should have started.\n\nSubprocess output:\n$output',
     );
 
-    // No assertion failures — if any expect() failed, the output would
+    // No assertion failures, if any expect() failed, the output would
     // contain "Expected:" from the matcher mismatch description.
     expect(
       output,

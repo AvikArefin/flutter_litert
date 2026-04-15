@@ -35,7 +35,7 @@ class Model {
 
   /// Detaches the native buffer pointer from this model, transferring
   /// ownership to the caller. After this call, [delete] will NOT free the
-  /// buffer — the caller is responsible for freeing it.
+  /// buffer, the caller is responsible for freeing it.
   Pointer<Uint8>? detachBuffer() {
     final ptr = _bufferPtr;
     _bufferPtr = null;

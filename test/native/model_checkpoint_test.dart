@@ -74,7 +74,7 @@ void main() {
         await ModelCheckpoint.save(interpreter, ckptFile);
         interpreter.close();
 
-        // Fresh interpreter — should predict 0
+        // Fresh interpreter, should predict 0
         final fresh = Interpreter.fromFile(_modelFile);
         final inferFresh = fresh.getSignatureRunner('infer');
         final predFresh = [
@@ -251,7 +251,7 @@ void main() {
 
   group('error handling', () {
     test('save throws ArgumentError when model lacks get_weights', () async {
-      // Use a model without get_weights — we'll use the same model but
+      // Use a model without get_weights, we'll use the same model but
       // just verify the error message by checking signature presence.
       // Since our test model does have get_weights, we test with a mock
       // scenario indirectly. For now, just verify the happy path works

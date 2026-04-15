@@ -227,7 +227,7 @@ class SignatureRunner {
   /// Attempts to cancel the currently executing [invoke] call.
   ///
   /// Returns `true` if cancellation was successfully requested. Has no effect
-  /// if no invocation is in progress. Cancellation is not guaranteed — the
+  /// if no invocation is in progress. Cancellation is not guaranteed, the
   /// model may complete before the request is processed.
   bool cancel() {
     checkState(!_closed, message: 'SignatureRunner is already closed.');
@@ -278,13 +278,13 @@ class SignatureRunner {
   /// Automatically resizes input tensors if shapes differ, allocates tensors
   /// if needed, and copies output data into the provided objects.
   ///
-  /// [inputs]  — map from input tensor name to data (List, Uint8List, etc.)
-  /// [outputs] — map from output tensor name to a pre-allocated object that
+  /// [inputs], map from input tensor name to data (List, Uint8List, etc.)
+  /// [outputs], map from output tensor name to a pre-allocated object that
   ///             will receive the output data (List, Float32List, etc.).
   ///             Pass an empty map if the signature produces no outputs you
   ///             need to read (e.g. the `set_weights` signature).
   ///
-  /// Example — training step:
+  /// Example, training step:
   /// ```dart
   /// final lossBuffer = Float32List(1);
   /// trainRunner.run(
@@ -293,7 +293,7 @@ class SignatureRunner {
   /// );
   /// ```
   ///
-  /// Example — restore weights:
+  /// Example, restore weights:
   /// ```dart
   /// setWeightsRunner.run({'w': w, 'b': b}, {});
   /// ```

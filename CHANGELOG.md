@@ -1,3 +1,9 @@
+## 2.1.0
+
+* Minor performance/accuracy optimizations: 
+  * Remove unnecessary rounding in `fillNHWC4D`  
+  * Add direct `Float32List` fast paths for common tensor flattening shapes
+
 ## 2.0.13
 
 * Fix Android JVM target mismatch: bump Java compile target to 17 to match Kotlin target set by Flutter toolchain

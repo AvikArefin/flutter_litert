@@ -16,6 +16,7 @@ export 'src/util/tensor_utils.dart';
 export 'src/util/image_tensor_utils.dart';
 export 'src/util/letterbox_params.dart';
 export 'src/util/model_output_utils.dart';
+export 'src/util/yuv_conversion.dart';
 export 'src/performance_config.dart';
 export 'src/ssd_anchors.dart';
 export 'src/round_robin_pool.dart';

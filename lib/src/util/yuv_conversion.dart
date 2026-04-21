@@ -1,0 +1,213 @@
+import 'dart:typed_data';
+
+/// A single YUV plane exposed by a camera plugin, decoupled from any specific
+/// Flutter plugin's type (e.g. `CameraImage.Plane`).
+///
+/// - [bytes]: the plane's raw pixel buffer.
+/// - [rowStride]: bytes between the start of consecutive rows (may exceed
+///   the logical row width when the buffer is padded).
+/// - [pixelStride]: bytes between consecutive pixel samples within a row.
+///   1 for planar (I420 U/V). 2 for semi-planar (NV12/NV21 U/V). Always 1
+///   for the Y plane.
+typedef YuvPlane = ({Uint8List bytes, int rowStride, int pixelStride});
+
+/// Memory layout of a packed YUV buffer produced by [packYuv420].
+///
+/// This enum is intentionally opencv-free: callers wrap [PackedYuv.bytes] in
+/// whatever their image library expects. For opencv_dart, map the layout to
+/// the matching `COLOR_YUV2BGR_*` / `COLOR_YUV2RGB_*` conversion code.
+enum YuvLayout {
+  /// Y plane followed by interleaved U,V,U,V,... (iOS camera default).
+  nv12,
+
+  /// Y plane followed by interleaved V,U,V,U,... (most Android devices).
+  nv21,
+
+  /// Y plane, then full U plane, then full V plane (planar Android).
+  i420,
+}
+
+/// A contiguous YUV buffer produced by [packYuv420], ready to hand to a
+/// native colour-conversion routine.
+///
+/// The [bytes] buffer has length `width * height * 3 ~/ 2` and is laid out as
+/// described by [layout]. [width] and [height] refer to the luma (Y) plane.
+class PackedYuv {
+  /// Packed YUV bytes (Y plane first, chroma layout per [layout]).
+  final Uint8List bytes;
+
+  /// Memory layout of [bytes].
+  final YuvLayout layout;
+
+  /// Luma plane width, in pixels.
+  final int width;
+
+  /// Luma plane height, in pixels.
+  final int height;
+
+  const PackedYuv({
+    required this.bytes,
+    required this.layout,
+    required this.width,
+    required this.height,
+  });
+}
+
+/// Packs a YUV420 camera frame into a single contiguous buffer suitable for
+/// native colour conversion (e.g. opencv's `cvtColor` with a
+/// `COLOR_YUV2BGR_NV21` / `COLOR_YUV2BGR_NV12` / `COLOR_YUV2BGR_I420` code).
+///
+/// Auto-detects the source layout based on the plane count and the U plane's
+/// [YuvPlane.pixelStride]:
+///
+/// - **2 planes → NV12.** iOS `AVFoundation` default.
+/// - **3 planes, U pixelStride 2 → NV21.** Most Android devices (semi-planar);
+///   the V plane's buffer is used as the VU-interleaved region start.
+/// - **3 planes, U pixelStride 1 → I420.** Planar Android.
+///
+/// Row-stride padding is stripped so the returned buffer is tightly packed.
+///
+/// Typical usage with opencv_dart:
+/// ```dart
+/// final packed = packYuv420(
+///   width: image.width,
+///   height: image.height,
+///   y: (bytes: image.planes[0].bytes,
+///       rowStride: image.planes[0].bytesPerRow,
+///       pixelStride: image.planes[0].bytesPerPixel ?? 1),
+///   u: (bytes: image.planes[1].bytes,
+///       rowStride: image.planes[1].bytesPerRow,
+///       pixelStride: image.planes[1].bytesPerPixel ?? 1),
+///   v: image.planes.length > 2
+///     ? (bytes: image.planes[2].bytes,
+///        rowStride: image.planes[2].bytesPerRow,
+///        pixelStride: image.planes[2].bytesPerPixel ?? 1)
+///     : null,
+/// );
+///
+/// final code = switch (packed.layout) {
+///   YuvLayout.nv12 => cv.COLOR_YUV2BGR_NV12,
+///   YuvLayout.nv21 => cv.COLOR_YUV2BGR_NV21,
+///   YuvLayout.i420 => cv.COLOR_YUV2BGR_I420,
+/// };
+/// final yuvMat = cv.Mat.fromList(
+///     packed.height + packed.height ~/ 2,
+///     packed.width,
+///     cv.MatType.CV_8UC1,
+///     packed.bytes);
+/// final bgr = cv.cvtColor(yuvMat, code);
+/// yuvMat.dispose();
+/// ```
+///
+/// Returns null for unsupported shapes (odd [width] or [height], no U plane).
+PackedYuv? packYuv420({
+  required int width,
+  required int height,
+  required YuvPlane y,
+  required YuvPlane u,
+  YuvPlane? v,
+}) {
+  if (width <= 0 || height <= 0 || (width & 1) != 0 || (height & 1) != 0) {
+    return null;
+  }
+
+  final int ySize = width * height;
+  final int uvSize = width * (height ~/ 2);
+  final Uint8List out = Uint8List(ySize + uvSize);
+
+  _copyPlaneRows(
+    src: y.bytes,
+    srcStride: y.rowStride,
+    rowBytes: width,
+    rows: height,
+    dst: out,
+    dstOffset: 0,
+  );
+
+  if (v == null) {
+    // 2-plane NV12: planes[1] is the UV-interleaved chroma region.
+    _copyPlaneRows(
+      src: u.bytes,
+      srcStride: u.rowStride,
+      rowBytes: width,
+      rows: height ~/ 2,
+      dst: out,
+      dstOffset: ySize,
+    );
+    return PackedYuv(
+      bytes: out,
+      layout: YuvLayout.nv12,
+      width: width,
+      height: height,
+    );
+  }
+
+  if (u.pixelStride == 2) {
+    // Android semi-planar (NV21). plane[2] points to the V byte, which is
+    // the first byte of the VU-interleaved region when the device uses NV21.
+    _copyPlaneRows(
+      src: v.bytes,
+      srcStride: v.rowStride,
+      rowBytes: width,
+      rows: height ~/ 2,
+      dst: out,
+      dstOffset: ySize,
+    );
+    return PackedYuv(
+      bytes: out,
+      layout: YuvLayout.nv21,
+      width: width,
+      height: height,
+    );
+  }
+
+  // Planar I420.
+  final int uvWidth = width ~/ 2;
+  final int uvHeight = height ~/ 2;
+  _copyPlaneRows(
+    src: u.bytes,
+    srcStride: u.rowStride,
+    rowBytes: uvWidth,
+    rows: uvHeight,
+    dst: out,
+    dstOffset: ySize,
+  );
+  _copyPlaneRows(
+    src: v.bytes,
+    srcStride: v.rowStride,
+    rowBytes: uvWidth,
+    rows: uvHeight,
+    dst: out,
+    dstOffset: ySize + uvWidth * uvHeight,
+  );
+  return PackedYuv(
+    bytes: out,
+    layout: YuvLayout.i420,
+    width: width,
+    height: height,
+  );
+}
+
+void _copyPlaneRows({
+  required Uint8List src,
+  required int srcStride,
+  required int rowBytes,
+  required int rows,
+  required Uint8List dst,
+  required int dstOffset,
+}) {
+  if (srcStride == rowBytes) {
+    final int total = rowBytes * rows;
+    final int copy = total <= src.length ? total : src.length;
+    dst.setRange(dstOffset, dstOffset + copy, src);
+    return;
+  }
+  for (int r = 0; r < rows; r++) {
+    final int sStart = r * srcStride;
+    if (sStart >= src.length) break;
+    final int available = src.length - sStart;
+    final int copy = available < rowBytes ? available : rowBytes;
+    final int dStart = dstOffset + r * rowBytes;
+    dst.setRange(dStart, dStart + copy, src, sStart);
+  }
+}

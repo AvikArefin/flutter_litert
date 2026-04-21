@@ -1,3 +1,7 @@
+## 2.2.0
+
+* Add `packYuv420` helper for packing NV12 / NV21 / I420 camera frames into a contiguous buffer
+
 ## 2.1.0
 
 * Minor performance/accuracy optimizations: 

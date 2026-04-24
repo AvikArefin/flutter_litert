@@ -11,6 +11,14 @@ import 'dart:typed_data';
 ///   for the Y plane.
 typedef YuvPlane = ({Uint8List bytes, int rowStride, int pixelStride});
 
+/// A single camera frame plane exposed by a camera plugin.
+///
+/// Structurally identical to [YuvPlane] — Dart records are compared by shape,
+/// so the two names are interchangeable at call sites. Use [CameraPlane] when
+/// the plane may be YUV *or* packed BGRA/RGBA (e.g. passing to
+/// `cameraFrameToBgrMat`); use [YuvPlane] for the YUV-specific `packYuv420`.
+typedef CameraPlane = ({Uint8List bytes, int rowStride, int pixelStride});
+
 /// Memory layout of a packed YUV buffer produced by [packYuv420].
 ///
 /// This enum is intentionally opencv-free: callers wrap [PackedYuv.bytes] in

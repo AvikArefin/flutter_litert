@@ -1,3 +1,17 @@
+## 2.3.0
+
+* Add camera-overlay helpers used across detector example apps: `rotationForFrame`, `detectionSize`, `coverFitScaleOffset`, `barQuarterTurns`, and `FpsCounter`. All pure Dart + Flutter SDK, no new dependencies. Lets example apps drop ~200 lines of duplicated orientation / sizing / FPS boilerplate.
+
+## 2.2.2
+
+* Add `prepareCameraFrameFromImage`, a duck-typed wrapper around `prepareCameraFrame` that accepts a `CameraImage`-shaped object directly (any object exposing `width`, `height`, `planes` with `bytes`/`bytesPerRow`/`bytesPerPixel`). Lets detector packages expose one-line camera-stream APIs without adding `package:camera` as a dependency here. Pure Dart, no new dependencies.
+
+## 2.2.1
+
+* Add `prepareCameraFrame` helper plus `CameraFrame`, `CameraFrameConversion`, and `CameraFrameRotation` types. Describes a camera frame (YUV420 or packed BGRA/RGBA) in a pure-Dart descriptor that detector packages can hand to their existing detection isolate, moving the `cvtColor` / `rotate` work off the UI thread without adding `opencv_dart` as a dependency here.
+* Add `CameraPlane` typedef (structurally identical to `YuvPlane`; use whichever name reads better at the call site).
+* Add `TensorFloat32Views` (native only) — captures `Float32List` views of an `Interpreter`'s input/output tensors once after `allocateTensors`, letting detector packages reuse the same view wrappers on every inference instead of recreating them per-call. Pure Dart, no new dependencies.
+
 ## 2.2.0
 
 * Add `packYuv420` helper for packing NV12 / NV21 / I420 camera frames into a contiguous buffer

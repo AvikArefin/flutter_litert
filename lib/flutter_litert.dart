@@ -19,6 +19,7 @@ export 'src/util/model_output_utils.dart';
 export 'src/util/yuv_conversion.dart';
 export 'src/util/camera_frame.dart';
 export 'src/util/camera_overlay.dart';
+export 'src/util/painter_primitives.dart';
 export 'src/performance_config.dart';
 export 'src/ssd_anchors.dart';
 export 'src/round_robin_pool.dart';

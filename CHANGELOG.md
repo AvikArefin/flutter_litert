@@ -1,3 +1,7 @@
+## 2.4.0
+
+* Add painter primitives `drawLandmarkMarker`, `drawSkeletonConnections`, and `drawBoundingBoxOutline` for reuse by detector example apps and overlay widgets. Pure Dart + `dart:ui`, no new dependencies.
+
 ## 2.3.0
 
 * Add camera-overlay helpers used across detector example apps: `rotationForFrame`, `detectionSize`, `coverFitScaleOffset`, `barQuarterTurns`, and `FpsCounter`. All pure Dart + Flutter SDK, no new dependencies. Lets example apps drop ~200 lines of duplicated orientation / sizing / FPS boilerplate.

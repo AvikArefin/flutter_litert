@@ -1,3 +1,7 @@
+## 2.4.1
+
+* Make `camera_overlay.dart` WASM-compatible on Flutter Web
+
 ## 2.4.0
 
 * Add painter primitives `drawLandmarkMarker`, `drawSkeletonConnections`, and `drawBoundingBoxOutline` for reuse by detector example apps and overlay widgets. Pure Dart + `dart:ui`, no new dependencies.

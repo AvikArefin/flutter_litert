@@ -1,6 +1,7 @@
-import 'dart:io' show Platform;
 import 'dart:ui' show Size;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/services.dart' show DeviceOrientation;
 
 import 'camera_frame.dart' show CameraFrameRotation;
@@ -31,7 +32,7 @@ CameraFrameRotation? rotationForFrame({
   required bool isFrontCamera,
   required DeviceOrientation deviceOrientation,
 }) {
-  if (Platform.isIOS) {
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
     final bool isPortrait =
         deviceOrientation == DeviceOrientation.portraitUp ||
         deviceOrientation == DeviceOrientation.portraitDown;
@@ -42,7 +43,7 @@ CameraFrameRotation? rotationForFrame({
     return null;
   }
 
-  if (Platform.isAndroid) {
+  if (defaultTargetPlatform == TargetPlatform.android) {
     final int deviceRotation = switch (deviceOrientation) {
       DeviceOrientation.portraitUp => 0,
       DeviceOrientation.landscapeLeft => 90,

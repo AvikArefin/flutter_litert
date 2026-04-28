@@ -319,17 +319,27 @@ class Interpreter {
   }
 
   Tensor _tensorFromJSTensor(JSTensor jsTensor, ModelTensorInfo? info) {
-    final data = jsTensor.dataSync<List<double>>();
     final name = info?.name ?? '';
     final shape = info?.shape ?? [];
     final type = info != null ? _tensorTypeFromInfo(info) : TensorType.float32;
-
     final tensor = Tensor.fromMetadata(name: name, type: type, shape: shape);
 
-    // Convert the JS output data to bytes
+    // Single-copy readback for float32 outputs: read the JS Float32Array via
+    // `.toDart`, then copy into an owned Float32List (the JS-side buffer is
+    // freed by the caller's JSTensor.dispose()). This avoids the previous
+    // `dataSync().dartify()` path which materialized a List<double> first.
+    if (type == TensorType.float32) {
+      final Float32List jsBacked = jsTensor.dataSyncFloat32();
+      final Float32List owned = Float32List(jsBacked.length)
+        ..setAll(0, jsBacked);
+      tensor.data = owned.buffer.asUint8List();
+      return tensor;
+    }
+
+    // Non-float32 fallback: legacy path via dartify().
+    final data = jsTensor.dataSync<List<double>>();
     final float32Data = Float32List.fromList(data.cast<double>());
     tensor.data = float32Data.buffer.asUint8List();
-
     return tensor;
   }
 

@@ -374,14 +374,20 @@ final interpreter = Interpreter.fromFile(model, options: options);
 | Windows | TensorFlow Lite (C API) | 2.20.0    | DLL bundled via CMake |
 | Linux | TensorFlow Lite (C API) | 2.20.0    | Shared library bundled via CMake |
 | Web | TFLite.js (WASM via TensorFlow.js) | `tflite-js@v0.0.1-alpha.10` (default CDN) | JS runtime loaded at startup via `initializeWeb()` |
+| Web (GPU) | LiteRT.js (Google official) | `@litertjs/core@2.4.0` (default CDN) | Loaded by host page; opt in via `LiteRtInterpreter` (WebGPU/WASM) |
 
 iOS and macOS will be migrated to LiteRT as official CocoaPods artifacts become available.
 
 ## Web support
 
-`flutter_litert` supports Flutter Web, but there are a few differences from native platforms.
+`flutter_litert` supports Flutter Web with two interchangeable runtimes:
 
-### Quick start (web)
+1. **`Interpreter`** (default). Bound to the third-party `tflite-js` runtime via `tf-tflite.min.js`. Pure CPU/WASM execution. Existing API, no setup beyond `initializeWeb()`.
+2. **`LiteRtInterpreter`** (since 2.5.0). Google's official **LiteRT.js** runtime with a **WebGPU** delegate (and a SIMD WASM fallback). Same .tflite models, dramatically faster on browsers that support WebGPU. Async: `runForMultipleInputs(...)` returns a `Future`.
+
+For a working end-to-end example of the LiteRT.js + WebGPU path (loader script, runtime selection, multi-stage detector pipeline), see [`pose_detection`](https://pub.dev/packages/pose_detection). Its web build switched to `LiteRtInterpreter` and its detector benchmark dropped from 446 ms to 25 ms / call (~18× faster).
+
+### Quick start (default tflite-js runtime)
 
 Call `initializeWeb()` before creating any interpreter in a browser. It is a no-op on native, so you can call it unconditionally.
 
@@ -398,13 +404,56 @@ interpreter.run(input, output);
 
 By default, `initializeWeb()` loads the TFLite.js / TensorFlow.js scripts from a CDN. You can pass custom script URLs to self-host the files (for offline use or stricter CSP).
 
+### LiteRT.js (WebGPU) runtime
+
+Use `LiteRtInterpreter` when you want GPU acceleration on web. **Zero `index.html` setup**: the runtime is auto-loaded from a CDN on first use.
+
+```dart
+import 'package:flutter_litert/flutter_litert.dart';
+
+final lrt = await LiteRtInterpreter.fromBytes(
+  modelBytes,
+  accelerator: 'webgpu', // or 'wasm'; webgpu falls back to wasm if unsupported
+);
+
+await lrt.runForMultipleInputs(
+  <Object>[inputFloat32List],
+  <int, Object>{0: outputFloat32List}, // also accepts ByteBuffer or nested lists
+);
+```
+
+The first `LiteRtInterpreter.fromBytes(...)` call injects a `<script type="module">` that imports `@litertjs/core` from jsDelivr, calls `loadLiteRt(...)`, and exposes the runtime on `window.LiteRt`. Subsequent calls reuse the loaded module.
+
+To self-host or pin a specific build, call `configureLiteRtLoader(...)` once before the first interpreter:
+
+```dart
+configureLiteRtLoader(
+  moduleUrl: '/assets/litertjs/index.js',          // your bundled path
+  wasmUrl  : '/assets/litertjs/litert_wasm_internal.js',
+);
+```
+
+Or disable the auto-loader entirely if you want to load it from your own `<script>` tag:
+
+```dart
+configureLiteRtLoader(autoLoad: false);
+```
+
+Notes:
+
+- `runForMultipleInputs` is **async** on this runtime; await it.
+- Output buffers may be `Float32List` (preferred, single bulk copy), `ByteBuffer`, or the legacy `List<List<List<double>>>` shape used by tflite-js callers.
+- `webgpu` automatically falls back to `wasm` if the model contains an op the GPU delegate doesn't support.
+- The WebGPU path requires Chrome / Edge ≥ 113 (or Firefox / Safari with the flag enabled). On unsupported browsers, pass `accelerator: 'wasm'` directly.
+- The default loader points at the non-threaded WASM build because the threaded variant requires `SharedArrayBuffer` (which needs COOP/COEP headers Flutter's dev server doesn't set). The SIMD non-threaded variant is still substantially faster than the tflite-js path.
+
 ### Web-specific API differences
 
-- Call `initializeWeb()` before `Interpreter.fromAsset(...)` or `Interpreter.fromBytes(...)`.
+- Call `initializeWeb()` before `Interpreter.fromAsset(...)` or `Interpreter.fromBytes(...)` (only required for the tflite-js runtime; `LiteRtInterpreter` does not need it).
 - `Interpreter.fromAsset(...)` and `Interpreter.fromBytes(...)` are the supported model-loading APIs on web.
 - `Interpreter.fromFile(...)`, `Interpreter.fromBuffer(...)`, and `Interpreter.fromAddress(...)` are not supported on web.
 - `IsolateInterpreter.create(address: ...)` is not supported on web. Use the regular `Interpreter` directly (or `IsolateInterpreter.createFromInterpreter(...)`).
-- Delegate and interpreter tuning options (GPU/XNNPACK/CoreML/threads) are accepted for API compatibility but are effectively no-ops on web.
+- Delegate and interpreter tuning options (GPU/XNNPACK/CoreML/threads) are accepted for API compatibility but are effectively no-ops on the tflite-js `Interpreter`. For GPU on web, use `LiteRtInterpreter` instead.
 
 ### Using this from a web app or plugin
 
@@ -412,6 +461,7 @@ By default, `initializeWeb()` loads the TFLite.js / TensorFlow.js scripts from a
 - Load files/images/models as bytes (`Uint8List`) using Flutter assets, HTTP, file picker, or drag-and-drop.
 - Run your app with `flutter run -d chrome` and build with `flutter build web`.
 - If you are writing a plugin on top of `flutter_litert`, add a web code path that works with bytes instead of file paths / native handles.
+- For the GPU-accelerated path, ship the LiteRT.js loader snippet in your plugin's example `web/index.html` (or document the snippet for consumers). [`pose_detection`](https://pub.dev/packages/pose_detection) is the reference for how to wire this end-to-end.
 
 ## Features
 

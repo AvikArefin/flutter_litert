@@ -35,6 +35,17 @@ extension JSTensorExtensions on JSTensor {
   /// Synchronously reads tensor data back to Dart.
   T dataSync<T>() => _dataSync().dartify() as T;
 
+  /// Synchronously reads tensor data as a [Float32List] without going through
+  /// the slow `dartify()` path. Zero-copy on dart2js for typed-array tensors.
+  Float32List dataSyncFloat32() {
+    final JSAny raw = _dataSync();
+    if (raw.isA<JSFloat32Array>()) {
+      return (raw as JSFloat32Array).toDart;
+    }
+    // Fallback: legacy path via dartify.
+    return Float32List.fromList((raw.dartify() as List).cast<double>());
+  }
+
   String get dtype => _dtype.toDart;
 
   int get id => _id.toDartInt;

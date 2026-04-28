@@ -1,3 +1,13 @@
+## 2.5.0
+
+* Add `LiteRtInterpreter`, an alternative web inference path backed by Google's official LiteRT.js runtime (`@litertjs/core`). Selectable at construction time via `LiteRtInterpreter.fromBytes(bytes, accelerator: 'webgpu' | 'wasm')`, with automatic fallback from `webgpu` to `wasm` when ops aren't supported by the GPU delegate.
+  * Surface chosen to match the `Interpreter` hot path used by detector packages: `fromBytes`, `getInputTensor` / `getOutputTensors`, `runForMultipleInputs(inputs, outputs)`. `runForMultipleInputs` is async (LiteRT.js `run` returns a `Promise`).
+  * Output buffers can be supplied as `Float32List`, `ByteBuffer`, or the legacy nested `List<List<List<double>>>` shape used by tflite-js callers; the float-typed buffer paths take a single bulk copy.
+  * Read paths use `JSFloat32Array.toDart` directly, skipping the `dataSync().dartify()` round-trip.
+  * Faster output readback in the existing tflite-js `Interpreter._tensorFromJSTensor`: replaces `dataSync().dartify() as List<double>` + `Float32List.fromList(...)` with a single bulk copy via `JSTensorExtensions.dataSyncFloat32`. ~25 ms / call savings on a 705k-element YOLOv8n output.
+  * Auto-loader: by default the first `LiteRtInterpreter.fromBytes(...)` call programmatically appends a `<script type="module">` to `<head>` that imports `@litertjs/core` from jsDelivr and calls `loadLiteRt(...)` — consumers don't have to touch their `web/index.html`. Override URLs (for self-hosting / strict CSP) or disable auto-loading via `configureLiteRtLoader(moduleUrl: ..., wasmUrl: ..., autoLoad: ...)`. Existing host-page loaders that assign `window.LiteRt` and dispatch a `litert-ready` event still work.
+  * Pure additive: native and unsupported targets are unchanged; the existing tflite-js `Interpreter` remains the default web runtime.
+
 ## 2.4.1
 
 * Make `camera_overlay.dart` WASM-compatible on Flutter Web

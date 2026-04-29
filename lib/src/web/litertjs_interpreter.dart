@@ -19,11 +19,44 @@ import 'dart:typed_data';
 import 'tensor.dart';
 import 'js_interop/litertjs_bindings.dart' as lrt;
 
+/// Thrown by [LiteRtInterpreter.runForMultipleInputs] when the underlying
+/// LiteRT.js call fails at inference time (as opposed to at compile time).
+///
+/// Wraps the original JS-side error in [cause] and reports the
+/// [accelerator] that was active when the failure occurred. Consumers
+/// running on `'webgpu'` typically respond by disposing all related
+/// interpreters and re-initializing them with `accelerator: 'wasm'`,
+/// which is robust to GPU OOM, device loss, and other GPU-specific
+/// failure modes that can fire mid-stream.
+class LiteRtRuntimeError extends Error {
+  /// The accelerator that was active when the error fired
+  /// (`'webgpu'` or `'wasm'`).
+  final String accelerator;
+
+  /// The original JS-side error, exposed as a Dart `Object` so callers
+  /// can `toString()` it for logging without needing JS interop.
+  final Object cause;
+
+  /// Human-readable message synthesized from [cause].
+  final String message;
+
+  LiteRtRuntimeError({
+    required this.accelerator,
+    required this.cause,
+    String? message,
+  }) : message = message ?? cause.toString();
+
+  @override
+  String toString() =>
+      'LiteRtRuntimeError(accelerator: $accelerator, cause: $message)';
+}
+
 /// LiteRT.js-backed interpreter. Construct via [fromBytes].
 class LiteRtInterpreter {
   final lrt.CompiledModelJS _model;
   final List<_TensorMeta> _inputs;
   final List<Tensor> _outTensors;
+  final String _activeAccelerator;
   bool _disposed = false;
 
   /// Microseconds spent inside the most recent `run()` call (LiteRT.js side).
@@ -33,7 +66,9 @@ class LiteRtInterpreter {
     this._model, {
     required List<_TensorMeta> inputs,
     required List<_TensorMeta> outputs,
+    required String activeAccelerator,
   }) : _inputs = inputs,
+       _activeAccelerator = activeAccelerator,
        _outTensors = List<Tensor>.unmodifiable(
          outputs.map(
            (m) =>
@@ -41,10 +76,20 @@ class LiteRtInterpreter {
          ),
        );
 
+  /// The accelerator that was actually used to compile this interpreter.
+  ///
+  /// This is `'webgpu'` or `'wasm'`. May differ from the [accelerator]
+  /// argument passed to [fromBytes] if the requested backend's compile step
+  /// failed and we fell back. Consumers should display this in UI / logs so
+  /// users know which path their inference is taking.
+  String get activeAccelerator => _activeAccelerator;
+
   /// Compiles a .tflite model from raw bytes via LiteRT.js.
   ///
   /// [accelerator] is `'webgpu'` (preferred) or `'wasm'`.
-  /// Falls back from webgpu to wasm if webgpu compile fails.
+  /// Falls back from webgpu to wasm if webgpu compile fails. Inspect
+  /// [activeAccelerator] on the returned interpreter to see which one
+  /// was actually used.
   static Future<LiteRtInterpreter> fromBytes(
     Uint8List bytes, {
     String accelerator = 'wasm',
@@ -52,6 +97,7 @@ class LiteRtInterpreter {
     await lrt.waitForLiteRt();
 
     lrt.CompiledModelJS compiled;
+    String resolved = accelerator;
     try {
       compiled = await lrt.loadAndCompile(bytes, accelerator: accelerator);
     } catch (e) {
@@ -59,6 +105,7 @@ class LiteRtInterpreter {
         // Fall back: not all ops are supported on webgpu. WASM should
         // accept everything that tflite-js accepts.
         compiled = await lrt.loadAndCompile(bytes, accelerator: 'wasm');
+        resolved = 'wasm';
       } else {
         rethrow;
       }
@@ -75,7 +122,12 @@ class LiteRtInterpreter {
         .map(_TensorMeta.fromDetails)
         .toList(growable: false);
 
-    return LiteRtInterpreter._(compiled, inputs: inputs, outputs: outputs);
+    return LiteRtInterpreter._(
+      compiled,
+      inputs: inputs,
+      outputs: outputs,
+      activeAccelerator: resolved,
+    );
   }
 
   bool get isClosed => _disposed;
@@ -127,12 +179,21 @@ class LiteRtInterpreter {
     }
 
     final start = DateTime.now().microsecondsSinceEpoch;
-    final JSArray<lrt.LiteRtTensorJS> resultJs;
+    JSArray<lrt.LiteRtTensorJS>? resultJs;
     try {
-      final JSAny callArg = tensorsJs.length == 1
-          ? tensorsJs[0] as JSAny
-          : tensorsJs.cast<JSAny>().toJS;
-      resultJs = await _model.run(callArg).toDart;
+      try {
+        final JSAny callArg = tensorsJs.length == 1
+            ? tensorsJs[0] as JSAny
+            : tensorsJs.cast<JSAny>().toJS;
+        resultJs = await _model.run(callArg).toDart;
+      } catch (e) {
+        // Inference-time failure (vs. compile-time, which is handled in
+        // [fromBytes]). Most commonly fires on the WebGPU path with errors
+        // like `GPUOutOfMemoryError`, `GPUValidationError`, or device-lost.
+        // Surface a typed exception so consumers can decide whether to
+        // dispose and re-init on the WASM path.
+        throw LiteRtRuntimeError(accelerator: _activeAccelerator, cause: e);
+      }
     } finally {
       for (final t in tensorsJs) {
         t.delete();
@@ -145,7 +206,14 @@ class LiteRtInterpreter {
     try {
       for (int i = 0; i < resultDart.length; i++) {
         if (!outputs.containsKey(i)) continue;
-        final Float32List flat = await _readFloat32(resultDart[i]);
+        final Float32List flat;
+        try {
+          flat = await _readFloat32(resultDart[i]);
+        } catch (e) {
+          // Readback-time failure — also classify as runtime so consumers
+          // can swap backends on it.
+          throw LiteRtRuntimeError(accelerator: _activeAccelerator, cause: e);
+        }
         _writeOutput(flat, outputs[i]!);
       }
     } finally {

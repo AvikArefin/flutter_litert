@@ -38,7 +38,7 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.0.12
+  flutter_litert: ^2.5.1
 ```
 
 That's it for native platforms. For web, call `initializeWeb()` before creating an interpreter (see [Web support](#web-support)).
@@ -350,7 +350,7 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.0.12
+  flutter_litert: ^2.5.1
   flutter_litert_flex: ^0.0.5
 ```
 

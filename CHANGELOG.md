@@ -1,3 +1,9 @@
+## 2.5.1
+
+* Add `decodeBitmap(Uint8List bytes)` free function: decodes encoded image bytes (JPEG, PNG, etc.) to a `web.ImageBitmap` via `createImageBitmap`, off the main thread.
+* Add `WebGpuFallback` mixin: transparent WebGPU → WASM runtime fallback for web detector classes. Provides `withFallback<T>()` which catches GPU errors, swaps all runners to WASM via `swapToWasm()`, and retries once. Apply with `with WebGpuFallback`; implement `activeAccelerator` and `swapToWasm()`.
+* Both exported from `package:flutter_litert/flutter_litert.dart` on web.
+
 ## 2.5.0
 
 * Add `LiteRtInterpreter`, an alternative web inference path backed by Google's official LiteRT.js runtime (`@litertjs/core`). Selectable at construction time via `LiteRtInterpreter.fromBytes(bytes, accelerator: 'webgpu' | 'wasm')`, with automatic fallback from `webgpu` to `wasm` when ops aren't supported by the GPU delegate.

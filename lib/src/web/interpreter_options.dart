@@ -2,8 +2,9 @@ import 'delegate.dart';
 
 /// Web implementation of InterpreterOptions.
 ///
-/// On web, most options are no-ops. Delegates are accepted but ignored
-/// since GPU acceleration is handled by TF.js backend selection.
+/// On web, most options are no-ops. Delegates are accepted for API
+/// compatibility but ignored by the tflite-js `Interpreter`. Use
+/// `LiteRtInterpreter` for LiteRT.js WebGPU execution.
 class InterpreterOptions {
   dynamic get base => null;
 

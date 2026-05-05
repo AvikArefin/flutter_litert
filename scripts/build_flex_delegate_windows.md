@@ -1,6 +1,6 @@
 # Building the FlexDelegate DLL for Windows
 
-This guide builds `libtensorflowlite_flex-win.dll` from TensorFlow v2.20.0 source. The DLL provides `SELECT_TF_OPS` support for on-device training models that use gradient ops like `Conv2DBackpropFilter`, `Save`, `Restore`, etc.
+This guide builds `libtensorflowlite_flex-win.dll` from TensorFlow v2.20.0 source. The DLL provides `SELECT_TF_OPS` support for on-device training models that use gradient ops like `Conv2DBackpropFilter` and checkpoint ops like `SaveV2`/`RestoreV2`.
 
 The resulting DLL exports two symbols:
 - `tflite_plugin_create_delegate`
@@ -11,16 +11,17 @@ The resulting DLL exports two symbols:
 Install these before starting:
 
 1. **Visual Studio 2022 Build Tools** (or full VS 2022) with "Desktop development with C++" workload
-2. **Bazel 6.5.0** (TF 2.20.0 requires Bazel 6.x, NOT 7.x)
-   - Download from https://github.com/bazelbuild/bazel/releases/tag/6.5.0
-   - Get `bazel-6.5.0-windows-x86_64.exe`, rename to `bazel.exe`, put on PATH
+2. **Bazelisk** (recommended) or **Bazel 7.4.1** (TF 2.20.0's `.bazelversion`)
+   - Install Bazelisk with Chocolatey: `choco install bazelisk`
+   - Or download Bazel 7.4.1 from https://github.com/bazelbuild/bazel/releases/tag/7.4.1
+     and put `bazel.exe` on PATH
 3. **Python 3.9–3.12** (with `numpy` installed: `pip install numpy`)
 4. **MSYS2**, install to `C:\msys64`, needed for Bazel's shell tools on Windows
 5. **Git for Windows**
 
 Verify:
 ```powershell
-bazel --version   # should show 6.5.0
+bazel --version   # should show 7.4.1
 python --version  # 3.9-3.12
 cl                # from VS Developer Command Prompt
 ```
@@ -173,7 +174,7 @@ All 8 tests should pass, including download, delegate creation, inference, and t
 
 ## Troubleshooting
 
-**Bazel version mismatch**: TF 2.20.0 requires Bazel 6.x. If you have Bazel 7.x installed, use Bazelisk (`choco install bazelisk`) and set `USE_BAZEL_VERSION=6.5.0`.
+**Bazel version mismatch**: TF 2.20.0 requires Bazel 7.4.1. Use Bazelisk (`choco install bazelisk`) or set `USE_BAZEL_VERSION=7.4.1`.
 
 **Missing MSYS2**: Bazel needs MSYS2 for shell utilities. Set `BAZEL_SH=C:\msys64\usr\bin\bash.exe`.
 

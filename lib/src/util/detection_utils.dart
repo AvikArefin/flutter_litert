@@ -3,12 +3,12 @@
 /// Reverses the letterbox transformation by removing padding and unscaling coordinates.
 ///
 /// Parameters:
-/// - [xyxy]: Bounding box in letterbox space as [x1, y1, x2, y2]
+/// - [xyxy]: Bounding box in letterbox space as `[x1, y1, x2, y2]`
 /// - [ratio]: Scale ratio from letterbox preprocessing
 /// - [dw]: Horizontal padding from letterbox preprocessing
 /// - [dh]: Vertical padding from letterbox preprocessing
 ///
-/// Returns the bounding box in original image space as [x1, y1, x2, y2].
+/// Returns the bounding box in original image space as `[x1, y1, x2, y2]`.
 List<double> scaleFromLetterbox(
   List<double> xyxy,
   double ratio,

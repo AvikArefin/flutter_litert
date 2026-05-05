@@ -86,7 +86,8 @@ class LiteRtInterpreter {
 
   /// Compiles a .tflite model from raw bytes via LiteRT.js.
   ///
-  /// [accelerator] is `'webgpu'` (preferred) or `'wasm'`.
+  /// [accelerator] is `'webgpu'` or `'wasm'`; it defaults to `'wasm'`.
+  /// Pass `'webgpu'` when you want GPU acceleration.
   /// Falls back from webgpu to wasm if webgpu compile fails. Inspect
   /// [activeAccelerator] on the returned interpreter to see which one
   /// was actually used.
@@ -157,7 +158,7 @@ class LiteRtInterpreter {
   /// underlying bytes are interpreted as float32.
   ///
   /// [outputs] is a map from output index to a destination buffer. Currently
-  /// supports `Float32List` (preferred — fast bulk copy) and the legacy nested
+  /// supports `Float32List` (preferred, fast bulk copy) and the legacy nested
   /// `List<List<List<double>>>` shape used by tflite-js callers.
   Future<void> runForMultipleInputs(
     List<Object> inputs,
@@ -210,7 +211,7 @@ class LiteRtInterpreter {
         try {
           flat = await _readFloat32(resultDart[i]);
         } catch (e) {
-          // Readback-time failure — also classify as runtime so consumers
+          // Readback-time failure; also classify as runtime so consumers
           // can swap backends on it.
           throw LiteRtRuntimeError(accelerator: _activeAccelerator, cause: e);
         }

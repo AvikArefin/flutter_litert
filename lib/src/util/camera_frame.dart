@@ -84,38 +84,6 @@ class CameraFrame {
   });
 }
 
-/// Prepare a [CameraFrame] descriptor from raw camera planes, for use with a
-/// detector package's `detectFromCameraFrame(...)` method.
-///
-/// Auto-detects the layout based on plane count and pixel stride:
-/// - **1 plane, `pixelStride >= 4`** → packed BGRA (or RGBA if [isBgra] is
-///   false). The [planes] buffer is referenced directly; no copy.
-/// - **2 planes** → NV12. Repacked tightly via `packYuv420`.
-/// - **3 planes** → NV21 or I420 (auto-detected from U pixel stride). Repacked
-///   tightly via `packYuv420`.
-///
-/// Returns null for unsupported shapes (empty planes, missing U plane for
-/// YUV, odd width/height for YUV420).
-///
-/// Typical usage:
-/// ```dart
-/// camera.startImageStream((CameraImage image) async {
-///   final frame = prepareCameraFrame(
-///     width: image.width,
-///     height: image.height,
-///     planes: [
-///       for (final p in image.planes)
-///         (bytes: p.bytes, rowStride: p.bytesPerRow,
-///          pixelStride: p.bytesPerPixel ?? 1),
-///     ],
-///   );
-///   if (frame == null) return;
-///   final faces = await detector.detectFacesFromCameraFrame(frame);
-/// });
-/// ```
-///
-/// [isBgra] selects BGRA (macOS, default) vs. RGBA (Linux) for the desktop
-/// single-plane path; it is ignored for YUV input.
 /// Convenience wrapper around [prepareCameraFrame] that accepts any object
 /// duck-typed to `package:camera`'s `CameraImage` (i.e. exposing `width`,
 /// `height`, and a `planes` iterable of objects with `bytes`, `bytesPerRow`,
@@ -164,6 +132,38 @@ CameraFrame? prepareCameraFrameFromImage(
   );
 }
 
+/// Prepare a [CameraFrame] descriptor from raw camera planes, for use with a
+/// detector package's `detectFromCameraFrame(...)` method.
+///
+/// Auto-detects the layout based on plane count and pixel stride:
+/// - **1 plane, `pixelStride >= 4`** -> packed BGRA (or RGBA if [isBgra] is
+///   false). The `planes` buffer is referenced directly; no copy.
+/// - **2 planes** -> NV12. Repacked tightly via `packYuv420`.
+/// - **3 planes** -> NV21 or I420 (auto-detected from U pixel stride). Repacked
+///   tightly via `packYuv420`.
+///
+/// Returns null for unsupported shapes (empty planes, missing U plane for
+/// YUV, odd width/height for YUV420).
+///
+/// [isBgra] selects BGRA (macOS, default) vs. RGBA (Linux) for the desktop
+/// single-plane path; it is ignored for YUV input.
+///
+/// Typical usage:
+/// ```dart
+/// camera.startImageStream((CameraImage image) async {
+///   final frame = prepareCameraFrame(
+///     width: image.width,
+///     height: image.height,
+///     planes: [
+///       for (final p in image.planes)
+///         (bytes: p.bytes, rowStride: p.bytesPerRow,
+///          pixelStride: p.bytesPerPixel ?? 1),
+///     ],
+///   );
+///   if (frame == null) return;
+///   final faces = await detector.detectFacesFromCameraFrame(frame);
+/// });
+/// ```
 CameraFrame? prepareCameraFrame({
   required int width,
   required int height,

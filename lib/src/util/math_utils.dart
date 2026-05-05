@@ -7,11 +7,11 @@ double sigmoid(double x) => 1.0 / (1.0 + math.exp(-x));
 double sigmoidClipped(double x, {double limit = 80.0}) =>
     sigmoid(clip(x, -limit, limit));
 
-/// Clamps [v] to the range [0.0, 1.0]. Returns 0.0 for NaN inputs.
+/// Clamps [v] to the range `0.0..1.0`. Returns 0.0 for NaN inputs.
 double clamp01(double v) =>
     v.isNaN ? 0.0 : (v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v));
 
-/// Clamps [v] to the range [lo, hi].
+/// Clamps [v] to the range `lo..hi`.
 double clip(double v, double lo, double hi) => v < lo ? lo : (v > hi ? hi : v);
 
 /// Returns indices that sort [a] in descending order.
@@ -32,7 +32,7 @@ double median(List<double> a) {
   return 0.5 * (b[n ~/ 2 - 1] + b[n ~/ 2]);
 }
 
-/// Normalizes an angle in radians to the range [-pi, pi].
+/// Normalizes an angle in radians to the range `-pi..pi`.
 double normalizeRadians(double angle) {
   return angle - 2 * math.pi * ((angle + math.pi) / (2 * math.pi)).floor();
 }

@@ -2,7 +2,7 @@
 
 This guide builds `libtensorflowlite_flex-linux.so` from TensorFlow v2.20.0 source. The library
 provides `SELECT_TF_OPS` support for on-device training models that use gradient ops like
-`Conv2DBackpropFilter`, `Save`, `Restore`, etc.
+`Conv2DBackpropFilter` and checkpoint ops like `SaveV2`/`RestoreV2`.
 
 The resulting shared library exports two symbols:
 - `tflite_plugin_create_delegate`

@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
-name: flutter-tflite
+name: flutter_litert
 
-repository: https://github.com/tensorflow/flutter-tflite
+repository: https://github.com/hugocornellier/flutter_litert
 
 packages:
   - .

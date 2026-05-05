@@ -29,7 +29,7 @@ class TransposeConvBiasOp {
   static Pointer<TfLiteRegistration>? _registration;
   static bool _isRegistered = false;
 
-  /// Persistent native string for the op name -- must outlive all interpreters
+  /// Persistent native string for the op name: must outlive all interpreters
   /// because TfLiteInterpreterOptionsAddCustomOp stores the pointer, not a copy.
   static Pointer<Char>? _opName;
 

@@ -20,7 +20,7 @@ import '../native/interpreter.dart';
 ///   subsequent `allocateTensors`. Recapture in that case.
 /// - Only meaningful for tensors whose element type is float32. For
 ///   quantized tensors, interpreting bytes as Float32 will produce
-///   garbage — use the raw `Tensor.data` bytes instead.
+///   garbage; use the raw `Tensor.data` bytes instead.
 ///
 /// Example:
 /// ```dart

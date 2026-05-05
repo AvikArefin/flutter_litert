@@ -9,7 +9,7 @@ import 'math_utils.dart';
 /// exceeds [iouThres] are suppressed.
 ///
 /// Parameters:
-/// - [boxes]: List of bounding boxes in [x1, y1, x2, y2] format.
+/// - [boxes]: List of bounding boxes in `[x1, y1, x2, y2]` format.
 /// - [scores]: Confidence score for each box.
 /// - [iouThres]: IoU threshold above which a box is suppressed (default 0.45).
 /// - [maxDet]: Maximum number of detections to return (default 100).
@@ -64,7 +64,7 @@ List<int> nms(
 /// - `score`: Score of the highest-scoring detection.
 ///
 /// Parameters:
-/// - [boxes]: List of bounding boxes in [x1, y1, x2, y2] format.
+/// - [boxes]: List of bounding boxes in `[x1, y1, x2, y2]` format.
 /// - [scores]: Confidence score for each box.
 /// - [iouThres]: IoU threshold above which boxes are merged (default 0.45).
 /// - [maxDet]: Maximum number of detections to return (default 100).

@@ -40,7 +40,7 @@ void drawLandmarkMarker(
 /// [scaledPoints] should already have the detector→viewport transform
 /// applied (`x * scaleX + offsetX`, `y * scaleY + offsetY`) so this helper
 /// can skip the inner-loop math. [connections] is a list of index pairs
-/// `(fromIdx, toIdx)` into that list — typically a constant bone topology
+/// `(fromIdx, toIdx)` into that list, typically a constant bone topology
 /// like a hand or pose skeleton.
 ///
 /// Out-of-range indices are silently skipped so callers can share one

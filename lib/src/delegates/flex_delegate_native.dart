@@ -30,19 +30,22 @@ import 'delegate_library_loader.dart';
 /// cannot be expressed as builtins (e.g., Conv2D, BatchNormalization).
 ///
 /// Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex)
-/// to your `pubspec.yaml` to bundle the native library on all platforms:
+/// to your `pubspec.yaml` to bundle the native library on supported native
+/// platforms:
 ///
 /// ```yaml
 /// dependencies:
-///   flutter_litert: ^2.0.7
-///   flutter_litert_flex: ^0.0.1
+///   flutter_litert: ^2.5.2
+///   flutter_litert_flex: ^0.0.5
 /// ```
 ///
-/// Then use the delegate:
+/// Then use the async constructor, which is required on Android and also works
+/// on the other supported native platforms:
 ///
 /// ```dart
+/// final flex = await FlexDelegate.create();
 /// final options = InterpreterOptions();
-/// options.addDelegate(FlexDelegate());
+/// options.addDelegate(flex);
 /// final interpreter = Interpreter.fromFile(model, options: options);
 /// ```
 class FlexDelegate implements Delegate {
@@ -75,9 +78,8 @@ class FlexDelegate implements Delegate {
   ///
   /// Requires `flutter_litert_flex` in your `pubspec.yaml`.
   ///
-  /// On Android this is an async operation internally (method channel),
-  /// so use [FlexDelegate.create] for explicit async construction.
-  /// This synchronous constructor uses a cached delegate on Android.
+  /// On Android this constructor throws because delegate creation uses a
+  /// method channel. Use [FlexDelegate.create] for cross-platform code.
   ///
   /// Throws [UnsupportedError] if the library cannot be loaded.
   factory FlexDelegate() {

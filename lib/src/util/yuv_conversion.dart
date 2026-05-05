@@ -3,17 +3,17 @@ import 'dart:typed_data';
 /// A single YUV plane exposed by a camera plugin, decoupled from any specific
 /// Flutter plugin's type (e.g. `CameraImage.Plane`).
 ///
-/// - [bytes]: the plane's raw pixel buffer.
-/// - [rowStride]: bytes between the start of consecutive rows (may exceed
+/// - `bytes`: the plane's raw pixel buffer.
+/// - `rowStride`: bytes between the start of consecutive rows (may exceed
 ///   the logical row width when the buffer is padded).
-/// - [pixelStride]: bytes between consecutive pixel samples within a row.
+/// - `pixelStride`: bytes between consecutive pixel samples within a row.
 ///   1 for planar (I420 U/V). 2 for semi-planar (NV12/NV21 U/V). Always 1
 ///   for the Y plane.
 typedef YuvPlane = ({Uint8List bytes, int rowStride, int pixelStride});
 
 /// A single camera frame plane exposed by a camera plugin.
 ///
-/// Structurally identical to [YuvPlane] — Dart records are compared by shape,
+/// Structurally identical to [YuvPlane]. Dart records are compared by shape,
 /// so the two names are interchangeable at call sites. Use [CameraPlane] when
 /// the plane may be YUV *or* packed BGRA/RGBA (e.g. passing to
 /// `cameraFrameToBgrMat`); use [YuvPlane] for the YUV-specific `packYuv420`.
@@ -66,7 +66,7 @@ class PackedYuv {
 /// `COLOR_YUV2BGR_NV21` / `COLOR_YUV2BGR_NV12` / `COLOR_YUV2BGR_I420` code).
 ///
 /// Auto-detects the source layout based on the plane count and the U plane's
-/// [YuvPlane.pixelStride]:
+/// `YuvPlane.pixelStride`:
 ///
 /// - **2 planes → NV12.** iOS `AVFoundation` default.
 /// - **3 planes, U pixelStride 2 → NV21.** Most Android devices (semi-planar);

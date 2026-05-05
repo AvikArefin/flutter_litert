@@ -12,7 +12,7 @@ enum PerformanceMode {
   /// CoreML delegate (iOS/macOS only).
   coreml,
 
-  /// Automatically select the best delegate for the current platform.
+  /// Use the platform mapping implemented by `InterpreterFactory`.
   auto,
 }
 
@@ -38,7 +38,7 @@ class PerformanceConfig {
   const PerformanceConfig.coreml({this.numThreads})
     : mode = PerformanceMode.coreml;
 
-  /// Creates a config that auto-selects the best delegate.
+  /// Creates a config that uses `InterpreterFactory`'s auto-mode mapping.
   const PerformanceConfig.auto({this.numThreads}) : mode = PerformanceMode.auto;
 
   /// A config with no hardware acceleration.

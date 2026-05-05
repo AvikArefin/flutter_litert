@@ -392,8 +392,6 @@ class Interpreter {
   /// Whether this interpreter has been closed.
   bool get isDeleted => _deleted;
 
-  //TODO: (JAVA) void modifyGraphWithDelegate(Delegate delegate)
-
   // ---------------------------------------------------------------------------
   // Signature / SignatureRunner APIs
   // ---------------------------------------------------------------------------

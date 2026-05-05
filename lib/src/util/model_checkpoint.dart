@@ -25,9 +25,9 @@ import 'byte_conversion_utils_shared.dart';
 /// Dart-side weight persistence for on-device training models.
 ///
 /// Saves and restores model weights to disk using the `get_weights` and
-/// `set_weights` signatures that training models expose. This works on **all
-/// platforms** (including iOS and web-adjacent targets) without any native
-/// library beyond the base TFLite runtime, no FlexDelegate required.
+/// `set_weights` signatures that training models expose. This is exported on
+/// native platforms only and does not require the Flex delegate or any native
+/// library beyond the base TFLite runtime.
 ///
 /// ## Binary checkpoint format (`.flwt`)
 ///

@@ -1,3 +1,7 @@
+## 2.5.2
+
+* Update documentation
+
 ## 2.5.1
 
 * Add `decodeBitmap(Uint8List bytes)` free function: decodes encoded image bytes (JPEG, PNG, etc.) to a `web.ImageBitmap` via `createImageBitmap`, off the main thread.
@@ -11,7 +15,7 @@
   * Output buffers can be supplied as `Float32List`, `ByteBuffer`, or the legacy nested `List<List<List<double>>>` shape used by tflite-js callers; the float-typed buffer paths take a single bulk copy.
   * Read paths use `JSFloat32Array.toDart` directly, skipping the `dataSync().dartify()` round-trip.
   * Faster output readback in the existing tflite-js `Interpreter._tensorFromJSTensor`: replaces `dataSync().dartify() as List<double>` + `Float32List.fromList(...)` with a single bulk copy via `JSTensorExtensions.dataSyncFloat32`. ~25 ms / call savings on a 705k-element YOLOv8n output.
-  * Auto-loader: by default the first `LiteRtInterpreter.fromBytes(...)` call programmatically appends a `<script type="module">` to `<head>` that imports `@litertjs/core` from jsDelivr and calls `loadLiteRt(...)` — consumers don't have to touch their `web/index.html`. Override URLs (for self-hosting / strict CSP) or disable auto-loading via `configureLiteRtLoader(moduleUrl: ..., wasmUrl: ..., autoLoad: ...)`. Existing host-page loaders that assign `window.LiteRt` and dispatch a `litert-ready` event still work.
+  * Auto-loader: by default the first `LiteRtInterpreter.fromBytes(...)` call programmatically appends a `<script type="module">` to `<head>` that imports `@litertjs/core` from jsDelivr and calls `loadLiteRt(...)`; consumers don't have to touch their `web/index.html`. Override URLs (for self-hosting / strict CSP) or disable auto-loading via `configureLiteRtLoader(moduleUrl: ..., wasmUrl: ..., autoLoad: ...)`. Existing host-page loaders that assign `window.LiteRt` and dispatch a `litert-ready` event still work.
   * Pure additive: native and unsupported targets are unchanged; the existing tflite-js `Interpreter` remains the default web runtime.
 
 ## 2.4.1
@@ -34,7 +38,7 @@
 
 * Add `prepareCameraFrame` helper plus `CameraFrame`, `CameraFrameConversion`, and `CameraFrameRotation` types. Describes a camera frame (YUV420 or packed BGRA/RGBA) in a pure-Dart descriptor that detector packages can hand to their existing detection isolate, moving the `cvtColor` / `rotate` work off the UI thread without adding `opencv_dart` as a dependency here.
 * Add `CameraPlane` typedef (structurally identical to `YuvPlane`; use whichever name reads better at the call site).
-* Add `TensorFloat32Views` (native only) — captures `Float32List` views of an `Interpreter`'s input/output tensors once after `allocateTensors`, letting detector packages reuse the same view wrappers on every inference instead of recreating them per-call. Pure Dart, no new dependencies.
+* Add `TensorFloat32Views` (native only): captures `Float32List` views of an `Interpreter`'s input/output tensors once after `allocateTensors`, letting detector packages reuse the same view wrappers on every inference instead of recreating them per-call. Pure Dart, no new dependencies.
 
 ## 2.2.0
 
@@ -165,7 +169,7 @@
 * Upgrade Linux TFLite native library from 2.9.3 to 2.20.0 (built from source via CMake + Ninja + GCC x86_64)
 * First stable release: 
   * All platforms are on updated 2.20.0 library files, official final stable release of TFLite
-  * Pre-bundling works on all platforms: users no longer need to do bundle libs as was required with `tflite_flutter`
+  * Pre-bundling works on supported native platforms: users no longer need to bundle native libraries manually as was required with `tflite_flutter`
   * Custom ops supported, see [face_detection_tflite v5.0.2](https://pub.dev/packages/face_detection_tflite/versions/5.0.2) `example` directory for a working example (the binary segmentation model selfie_segmenter.tflite uses custom ops)
   * Web support (experimental) functional, see [pose_detection v1.0.1](https://pub.dev/packages/pose_detection/versions/1.0.1) `web_example` directory for a working example
 

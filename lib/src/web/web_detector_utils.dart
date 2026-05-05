@@ -20,8 +20,8 @@ Future<web.ImageBitmap?> decodeBitmap(Uint8List bytes) async {
 /// detector class.
 ///
 /// Apply with `with WebGpuFallback`. The applying class must provide:
-/// - `String? get activeAccelerator` — the current backend
-/// - `Future<void> swapToWasm()` — dispose and re-init all runners on WASM
+/// - `String? get activeAccelerator`: the current backend
+/// - `Future<void> swapToWasm()`: dispose and re-init all runners on WASM
 ///
 /// Then wrap each public inference call with [withFallback]:
 /// ```dart

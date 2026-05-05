@@ -40,7 +40,7 @@ class LetterboxParams {
 /// within [targetWidth]x[targetHeight] while preserving aspect ratio.
 ///
 /// The scale factor is `min(targetWidth/srcWidth, targetHeight/srcHeight)`.
-/// The image is resized to [newWidth]x[newHeight] and then padded symmetrically
+/// The image is resized to `newWidth` x `newHeight` and then padded symmetrically
 /// to exactly [targetWidth]x[targetHeight]. Any remainder pixel goes to the
 /// right/bottom pad.
 ///

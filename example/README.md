@@ -1,17 +1,18 @@
 # flutter_litert_example
 
-A new Flutter project.
+Example app and integration-test host for the `flutter_litert` plugin.
 
-## Getting Started
+The app itself is intentionally small; the useful examples live in:
 
-This project is a starting point for a Flutter application.
+- `example/example.dart`: minimal native file-based inference snippet.
+- `example/integration_test/`: delegate smoke tests for XNNPACK, Metal,
+  CoreML, and Flex.
+- `example/assets/`: small `.tflite` models used by tests.
 
-A few resources to get you started if this is your first Flutter project:
+Run from the repository root:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+cd example
+flutter test
+flutter test integration_test
+```

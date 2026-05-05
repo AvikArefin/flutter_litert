@@ -1,6 +1,6 @@
 # Building the FlexDelegate xcframework for iOS
 
-This guide builds `TensorFlowLiteFlex.xcframework` from TensorFlow v2.20.0 source. The xcframework provides `SELECT_TF_OPS` support for on-device training models that use gradient ops like `Conv2DBackpropFilter`, `Save`, `Restore`, etc.
+This guide builds `TensorFlowLiteFlex.xcframework` from TensorFlow v2.20.0 source. The xcframework provides `SELECT_TF_OPS` support for on-device training models that use gradient ops like `Conv2DBackpropFilter` and checkpoint ops like `SaveV2`/`RestoreV2`.
 
 The resulting xcframework exports two symbols:
 - `tflite_plugin_create_delegate`
@@ -20,7 +20,7 @@ Install these before starting:
 
 Verify:
 ```bash
-USE_BAZEL_VERSION=7.4.1 bazelisk version  # should show 6.5.0
+USE_BAZEL_VERSION=7.4.1 bazelisk version  # should show 7.4.1
 python3 --version                          # 3.9-3.12
 xcodebuild -version                        # 15.x or later
 xcrun --show-sdk-path --sdk iphoneos       # should return a valid path
@@ -199,7 +199,7 @@ gh release upload flex-v1.0.0 \
 
 ## Troubleshooting
 
-**Bazel version mismatch**: TF 2.20.0 requires Bazel 6.x. Use `USE_BAZEL_VERSION=7.4.1 bazelisk` instead of `bazel`.
+**Bazel version mismatch**: TF 2.20.0 requires Bazel 7.4.1. Use `USE_BAZEL_VERSION=7.4.1 bazelisk` instead of a globally installed `bazel`.
 
 **Xcode SDK not found**: Run `sudo xcode-select -s /Applications/Xcode.app`.
 

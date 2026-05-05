@@ -1,122 +1,332 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:object_detection/object_detection.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const _App());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _App extends StatelessWidget {
+  const _App();
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'flutter_litert · Object Detection',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const _DetectionDemo(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class _DetectionDemo extends StatefulWidget {
+  const _DetectionDemo();
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<_DetectionDemo> createState() => _DetectionDemoState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _DetectionDemoState extends State<_DetectionDemo> {
+  ObjectDetector? _detector;
+  ObjectDetectionModel _model = ObjectDetectionModel.efficientDetLite0;
+  double _threshold = 0.63;
+  int _maxResults = 10;
 
-  void _incrementCounter() {
+  Uint8List? _imageBytes;
+  Size? _imageSize;
+  List<DetectedObject> _detections = const [];
+  int _inferenceMs = 0;
+  bool _busy = false;
+  String? _error;
+
+  static const _samples = <(String, String)>[
+    ('Street', 'assets/samples/street.jpg'),
+    ('Cat', 'assets/samples/cat.jpg'),
+    ('Dog', 'assets/samples/dog.jpg'),
+    ('People', 'assets/samples/people.jpg'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initDetector();
+  }
+
+  Future<void> _initDetector() async {
+    setState(() => _busy = true);
+    try {
+      final d = await ObjectDetector.create(model: _model);
+      if (!mounted) return;
+      setState(() {
+        _detector = d;
+        _busy = false;
+      });
+      await _loadSample(_samples.first.$2);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Init failed: $e';
+        _busy = false;
+      });
+    }
+  }
+
+  Future<void> _switchModel(ObjectDetectionModel m) async {
+    final old = _detector;
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _detector = null;
+      _busy = true;
+      _model = m;
     });
+    await old?.dispose();
+    try {
+      final d = await ObjectDetector.create(model: m);
+      if (!mounted) return;
+      setState(() {
+        _detector = d;
+        _busy = false;
+      });
+      if (_imageBytes != null) await _runDetection(_imageBytes!);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Switch failed: $e';
+        _busy = false;
+      });
+    }
+  }
+
+  Future<void> _loadSample(String assetPath) async {
+    final data = await rootBundle.load(assetPath);
+    final bytes = data.buffer.asUint8List();
+    final ui = await decodeImageFromList(bytes);
+    setState(() {
+      _imageBytes = bytes;
+      _imageSize = Size(ui.width.toDouble(), ui.height.toDouble());
+      _detections = const [];
+      _error = null;
+    });
+    await _runDetection(bytes);
+  }
+
+  Future<void> _runDetection(Uint8List bytes) async {
+    final det = _detector;
+    if (det == null) return;
+    setState(() => _busy = true);
+    final sw = Stopwatch()..start();
+    try {
+      final results = await det.detect(
+        bytes,
+        options: ObjectDetectorOptions(
+          scoreThreshold: _threshold,
+          maxResults: _maxResults,
+        ),
+      );
+      sw.stop();
+      if (!mounted) return;
+      setState(() {
+        _detections = results;
+        _inferenceMs = sw.elapsedMilliseconds;
+        _busy = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Detection failed: $e';
+        _busy = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _detector?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+        title: const Text('flutter_litert · Object Detection'),
+        actions: [
+          if (_inferenceMs > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(
+                child: TimingBadge(
+                  totalMs: _inferenceMs,
+                  detectionMs: _inferenceMs,
+                ),
+              ),
             ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildControls(),
+          const Divider(height: 1),
+          Expanded(child: _buildPreview()),
+          if (_detections.isNotEmpty)
+            SizedBox(height: 90, child: _buildResultList()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControls() {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              for (final m in ObjectDetectionModel.values)
+                ChoiceChip(
+                  label: Text(
+                    m == ObjectDetectionModel.efficientDetLite0
+                        ? 'Lite0'
+                        : 'Lite2',
+                  ),
+                  selected: _model == m,
+                  onSelected: _busy ? null : (s) => s ? _switchModel(m) : null,
+                ),
+              const SizedBox(width: 8),
+              for (final s in _samples)
+                ActionChip(
+                  label: Text(s.$1),
+                  onPressed: _busy ? null : () => _loadSample(s.$2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          CompactSlider(
+            label: 'Score',
+            value: _threshold,
+            min: 0,
+            max: 1,
+            onChanged: (v) {
+              setState(() => _threshold = v);
+              if (_imageBytes != null) _runDetection(_imageBytes!);
+            },
+          ),
+          CompactSlider(
+            label: 'Max',
+            value: _maxResults.toDouble(),
+            min: 1,
+            max: 30,
+            onChanged: (v) {
+              setState(() => _maxResults = v.round());
+              if (_imageBytes != null) _runDetection(_imageBytes!);
+            },
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreview() {
+    final bytes = _imageBytes;
+    final sz = _imageSize;
+    if (bytes == null || sz == null) {
+      return Center(
+        child: _busy
+            ? const CircularProgressIndicator()
+            : const Text('Select a sample above.'),
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fit = applyBoxFit(
+          BoxFit.contain,
+          sz,
+          Size(constraints.maxWidth, constraints.maxHeight),
+        );
+        final imgRect = Alignment.center.inscribe(
+          fit.destination,
+          Offset.zero & Size(constraints.maxWidth, constraints.maxHeight),
+        );
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Image.memory(
+              bytes,
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+            ),
+            Positioned.fill(
+              child: CustomPaint(
+                painter: DetectionsPainter(
+                  detections: _detections,
+                  imageRectOnCanvas: imgRect,
+                  originalImageSize: sz,
+                ),
+              ),
+            ),
+            if (_busy)
+              const Positioned(
+                bottom: 16,
+                right: 16,
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
           ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+        );
+      },
+    );
+  }
+
+  Widget _buildResultList() {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      itemCount: _detections.length,
+      separatorBuilder: (context, i) => const SizedBox(width: 8),
+      itemBuilder: (context, i) {
+        final d = _detections[i];
+        final color = colorForClass(d.category.index);
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withAlpha(40),
+            border: Border.all(color: color, width: 1.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                d.categoryName,
+                style: TextStyle(fontWeight: FontWeight.bold, color: color),
+              ),
+              Text(
+                '${(d.score * 100).toStringAsFixed(1)}%',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

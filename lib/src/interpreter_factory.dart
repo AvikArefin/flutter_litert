@@ -11,7 +11,8 @@ import 'delegates/gpu_delegate_native.dart';
 import 'delegates/coreml_delegate_native.dart';
 import 'performance_config.dart';
 
-/// Factory for creating interpreter options with platform-optimal delegates.
+/// Factory for creating interpreter options with the package's platform
+/// delegate mapping.
 class InterpreterFactory {
   /// Creates [InterpreterOptions] and an optional [Delegate] based on [config].
   static (InterpreterOptions, Delegate?) create(

@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_litert_flex
+  object_detection
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

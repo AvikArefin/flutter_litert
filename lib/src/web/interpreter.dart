@@ -283,7 +283,7 @@ class Interpreter {
   /// Whether the interpreter has been deleted.
   bool get isDeleted => _deleted;
 
-  // -- Helpers --
+  // Helpers
 
   TensorType _tensorTypeFromInfo(ModelTensorInfo info) {
     switch (info.dataType) {

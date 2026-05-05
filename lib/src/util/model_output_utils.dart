@@ -12,7 +12,7 @@ class Detection {
   /// Confidence score for the detection (0.0 to 1.0).
   final double score;
 
-  /// Bounding box in XYXY format [x1, y1, x2, y2] in pixel coordinates.
+  /// Bounding box in XYXY format `[x1, y1, x2, y2]` in pixel coordinates.
   final List<double> bboxXYXY;
 
   Detection({required this.cls, required this.score, required this.bboxXYXY});
@@ -264,7 +264,8 @@ List<double> xywhToXyxy(List<double> xywh) {
 }
 
 /// Decodes raw detection model outputs into a standardized 2D matrix.
-/// Handles both [1, numBoxes, 5+classes] and [1, 5+classes, numBoxes] formats.
+/// Handles both `[1, numBoxes, 5 + classes]` and
+/// `[1, 5 + classes, numBoxes]` formats.
 List<List<double>> decodeDetectionOutputs(List<dynamic> outputs) {
   final List<List<List<double>>> parts = <List<List<double>>>[];
   for (final raw in outputs) {

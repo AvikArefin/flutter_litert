@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-/// Converts BGR bytes to a flat Float32List with [0.0, 1.0] normalization.
+/// Converts BGR bytes to a flat Float32List with `0.0..1.0` normalization.
 ///
 /// Performs a BGR→RGB channel swap and divides each value by 255.
 ///
@@ -9,7 +9,7 @@ import 'dart:typed_data';
 /// - [totalPixels]: Total number of pixels (width * height)
 /// - [buffer]: Optional pre-allocated Float32List of length totalPixels * 3 to reuse
 ///
-/// Returns a flat Float32List with normalized RGB pixel values in [0.0, 1.0].
+/// Returns a flat Float32List with normalized RGB pixel values in `0.0..1.0`.
 Float32List bgrBytesToRgbFloat32({
   required Uint8List bytes,
   required int totalPixels,
@@ -22,7 +22,7 @@ Float32List bgrBytesToRgbFloat32({
   buffer: buffer,
 );
 
-/// Converts BGR bytes to a flat Float32List with [-1.0, 1.0] normalization.
+/// Converts BGR bytes to a flat Float32List with `-1.0..1.0` normalization.
 ///
 /// Performs a BGR→RGB channel swap and normalizes via (value / 127.5) - 1.0,
 /// as used by models expecting signed normalized input.
@@ -32,7 +32,7 @@ Float32List bgrBytesToRgbFloat32({
 /// - [totalPixels]: Total number of pixels (width * height)
 /// - [buffer]: Optional pre-allocated Float32List of length totalPixels * 3 to reuse
 ///
-/// Returns a flat Float32List with normalized RGB pixel values in [-1.0, 1.0].
+/// Returns a flat Float32List with normalized RGB pixel values in `-1.0..1.0`.
 Float32List bgrBytesToSignedFloat32({
   required Uint8List bytes,
   required int totalPixels,
@@ -65,14 +65,14 @@ Float32List _bgrToRgbFloat32({
 
 /// Fills a 4D NHWC tensor in-place from raw BGR bytes with a BGR→RGB channel swap.
 ///
-/// The [tensor] must already be allocated as [1][height][width][3].
+/// The [tensor] must already be allocated as `[1][height][width][3]`.
 /// Use [scale] and [offset] to control normalization:
-/// - For [0.0, 1.0]: scale=1/255, offset=0.0 (default)
-/// - For [-1.0, 1.0]: scale=1/127.5, offset=-1.0
+/// - For `0.0..1.0`: scale=1/255, offset=0.0 (default)
+/// - For `-1.0..1.0`: scale=1/127.5, offset=-1.0
 ///
 /// Parameters:
 /// - [bytes]: Raw BGR image bytes (length must be width * height * 3)
-/// - [tensor]: Pre-allocated 4D tensor [1][height][width][3] to fill
+/// - [tensor]: Pre-allocated 4D tensor `[1][height][width][3]` to fill
 /// - [width]: Image width in pixels
 /// - [height]: Image height in pixels
 /// - [scale]: Multiplier applied to each byte value before adding offset

@@ -87,7 +87,7 @@ example/object_detection_ssd_mobilenet/assets/models/ssd_mobilenet.tflite
 # FlexDelegate library (auto-bundled from user cache, ~123 MB)
 **/libtensorflowlite_flex*
 
-# flutter_litert_flex (not ready yet — will be a separate repo)
+# flutter_litert_flex (not ready yet, will be a separate repo)
 flutter_litert_flex/
 litert_flex/
 

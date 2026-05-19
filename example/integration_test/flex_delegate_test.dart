@@ -55,7 +55,7 @@ void main() {
         },
         {'output': output},
       );
-      // Untrained model, w=0 b=0 → output should be ~0
+      // Untrained model, w=0 b=0; output should be ~0
       expect(output[0][0], closeTo(0.0, 1e-5));
       infer.close();
 
@@ -255,7 +255,7 @@ void main() {
       final opts = InterpreterOptions()..addDelegate(flex);
       final interpreter = Interpreter.fromFile(modelFile, options: opts);
 
-      // 1. Infer on untrained model → ~0
+      // 1. Infer on untrained model: ~0
       final infer1 = interpreter.getSignatureRunner('infer');
       final pred1 = [
         [0.0],
@@ -289,7 +289,7 @@ void main() {
       }
       train.close();
 
-      // 3. Infer again → should reflect training
+      // 3. Infer again; should reflect training
       final infer2 = interpreter.getSignatureRunner('infer');
       final pred2 = [
         [0.0],
@@ -305,7 +305,7 @@ void main() {
       infer2.close();
       expect(pred2[0][0], greaterThan(1.0));
 
-      // 4. Get weights → should be non-zero
+      // 4. Get weights; should be non-zero
       final getW = interpreter.getSignatureRunner('get_weights');
       final w = [
         [0.0],

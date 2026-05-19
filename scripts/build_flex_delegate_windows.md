@@ -15,7 +15,7 @@ Install these before starting:
    - Install Bazelisk with Chocolatey: `choco install bazelisk`
    - Or download Bazel 7.4.1 from https://github.com/bazelbuild/bazel/releases/tag/7.4.1
      and put `bazel.exe` on PATH
-3. **Python 3.9–3.12** (with `numpy` installed: `pip install numpy`)
+3. **Python 3.9-3.12** (with `numpy` installed: `pip install numpy`)
 4. **MSYS2**, install to `C:\msys64`, needed for Bazel's shell tools on Windows
 5. **Git for Windows**
 
@@ -127,7 +127,7 @@ bazel build -c opt --config=monolithic ^
 Notes:
 - `--config=monolithic` links everything into a single DLL (no separate TF runtime DLLs needed)
 - `-c opt` enables optimizations
-- Build takes 30–90 minutes depending on hardware
+- Build takes 30-90 minutes depending on hardware
 - If you get memory errors, add `--local_ram_resources=HOST_RAM*0.5` to limit parallelism
 
 The output DLL will be at:

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'yuv_conversion.dart';
@@ -6,19 +7,19 @@ import 'yuv_conversion.dart';
 /// 3-channel BGR image. Detector packages map this to an opencv `COLOR_*` code
 /// at the point of decode, inside their existing detection isolate.
 enum CameraFrameConversion {
-  /// 4-channel packed BGRA → 3-channel BGR (macOS camera_desktop).
+  /// 4-channel packed BGRA to 3-channel BGR (macOS camera_desktop).
   bgra2bgr,
 
-  /// 4-channel packed RGBA → 3-channel BGR (Linux camera_desktop).
+  /// 4-channel packed RGBA to 3-channel BGR (Linux camera_desktop).
   rgba2bgr,
 
-  /// YUV420 semi-planar NV12 → BGR (iOS camera plugin default).
+  /// YUV420 semi-planar NV12 to BGR (iOS camera plugin default).
   yuv2bgrNv12,
 
-  /// YUV420 semi-planar NV21 → BGR (common Android layout).
+  /// YUV420 semi-planar NV21 to BGR (common Android layout).
   yuv2bgrNv21,
 
-  /// YUV420 planar I420 → BGR (some Android devices).
+  /// YUV420 planar I420 to BGR (some Android devices).
   yuv2bgrI420,
 }
 
@@ -108,7 +109,7 @@ class CameraFrame {
 CameraFrame? prepareCameraFrameFromImage(
   Object cameraImage, {
   CameraFrameRotation? rotation,
-  bool isBgra = true,
+  bool? isBgra,
 }) {
   // ignore: avoid_dynamic_calls
   final dynamic dyn = cameraImage;
@@ -128,7 +129,7 @@ CameraFrame? prepareCameraFrameFromImage(
     height: height,
     planes: planes,
     rotation: rotation,
-    isBgra: isBgra,
+    isBgra: isBgra ?? Platform.isMacOS,
   );
 }
 

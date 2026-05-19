@@ -1,3 +1,7 @@
+## 2.5.3
+
+* prepareCameraFrameFromImage and prepareCameraFrame now auto-detect isBgra based on platform. macOS uses BGRA, Windows and Linux use RGBA. The isBgra parameter is now nullable and no longer needs to be passed manually.
+
 ## 2.5.2
 
 * Update documentation
@@ -5,7 +9,7 @@
 ## 2.5.1
 
 * Add `decodeBitmap(Uint8List bytes)` free function: decodes encoded image bytes (JPEG, PNG, etc.) to a `web.ImageBitmap` via `createImageBitmap`, off the main thread.
-* Add `WebGpuFallback` mixin: transparent WebGPU → WASM runtime fallback for web detector classes. Provides `withFallback<T>()` which catches GPU errors, swaps all runners to WASM via `swapToWasm()`, and retries once. Apply with `with WebGpuFallback`; implement `activeAccelerator` and `swapToWasm()`.
+* Add `WebGpuFallback` mixin: transparent WebGPU-to-WASM runtime fallback for web detector classes. Provides `withFallback<T>()` which catches GPU errors, swaps all runners to WASM via `swapToWasm()`, and retries once. Apply with `with WebGpuFallback`; implement `activeAccelerator` and `swapToWasm()`.
 * Both exported from `package:flutter_litert/flutter_litert.dart` on web.
 
 ## 2.5.0

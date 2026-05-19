@@ -50,7 +50,7 @@ class Interpreter {
   }) {
     throw UnsupportedError(
       'Interpreter.fromBuffer is synchronous but web loading is async. '
-      'Use Interpreter.fromAsset instead.',
+      'Use Interpreter.fromAsset or Interpreter.fromBytes instead.',
     );
   }
 

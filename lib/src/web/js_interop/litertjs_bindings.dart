@@ -78,9 +78,9 @@ String? liteRtLoadError() {
 /// script if no host-page loader has been wired and auto-loading is enabled.
 ///
 /// Three resolved states are possible:
-///  - window.LiteRtReady === true → resolves immediately
-///  - window.LiteRtReady === false → the loader ran and failed; throws now
-///  - window.LiteRtReady undefined → no loader yet; auto-inject (if
+///  - window.LiteRtReady === true: resolves immediately
+///  - window.LiteRtReady === false: the loader ran and failed; throws now
+///  - window.LiteRtReady undefined: no loader yet; auto-inject (if
 ///    enabled), then wait for the event
 Future<void> waitForLiteRt({Duration timeout = const Duration(seconds: 30)}) {
   final ready = _liteRtReady;

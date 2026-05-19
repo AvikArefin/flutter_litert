@@ -37,7 +37,7 @@ void drawLandmarkMarker(
 
 /// Draw straight-line connections between pre-scaled landmark points.
 ///
-/// [scaledPoints] should already have the detector→viewport transform
+/// [scaledPoints] should already have the detector-to-viewport transform
 /// applied (`x * scaleX + offsetX`, `y * scaleY + offsetY`) so this helper
 /// can skip the inner-loop math. [connections] is a list of index pairs
 /// `(fromIdx, toIdx)` into that list, typically a constant bone topology

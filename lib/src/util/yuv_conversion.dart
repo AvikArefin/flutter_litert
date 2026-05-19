@@ -68,10 +68,10 @@ class PackedYuv {
 /// Auto-detects the source layout based on the plane count and the U plane's
 /// `YuvPlane.pixelStride`:
 ///
-/// - **2 planes → NV12.** iOS `AVFoundation` default.
-/// - **3 planes, U pixelStride 2 → NV21.** Most Android devices (semi-planar);
+/// - **2 planes: NV12.** iOS `AVFoundation` default.
+/// - **3 planes, U pixelStride 2: NV21.** Most Android devices (semi-planar);
 ///   the V plane's buffer is used as the VU-interleaved region start.
-/// - **3 planes, U pixelStride 1 → I420.** Planar Android.
+/// - **3 planes, U pixelStride 1: I420.** Planar Android.
 ///
 /// Row-stride padding is stripped so the returned buffer is tightly packed.
 ///

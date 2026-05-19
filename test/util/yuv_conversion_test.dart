@@ -5,7 +5,7 @@ import 'package:flutter_litert/flutter_litert.dart';
 
 void main() {
   group('packYuv420', () {
-    test('NV12 (2 planes, no padding) → contiguous Y + UV', () {
+    test('NV12 (2 planes, no padding): contiguous Y + UV', () {
       const w = 4, h = 4;
       final yBytes = Uint8List.fromList(List<int>.generate(w * h, (i) => i));
       final uvBytes = Uint8List.fromList(

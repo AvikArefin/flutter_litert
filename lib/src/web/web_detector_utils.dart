@@ -16,7 +16,7 @@ Future<web.ImageBitmap?> decodeBitmap(Uint8List bytes) async {
   }
 }
 
-/// Mixin that adds transparent WebGPU → WASM runtime fallback to a web
+/// Mixin that adds transparent WebGPU-to-WASM runtime fallback to a web
 /// detector class.
 ///
 /// Apply with `with WebGpuFallback`. The applying class must provide:

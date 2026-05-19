@@ -117,7 +117,7 @@ String? _resolvePackagePath(String packageName) {
       }
     }
   } catch (_) {
-    // Silently fail - this is a best-effort fallback
+    // Silently fail; best-effort fallback
   }
   return null;
 }

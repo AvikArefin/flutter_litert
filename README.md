@@ -20,7 +20,7 @@ This project started as a fork of [`tflite_flutter`](https://pub.dev/packages/tf
 
 ## Why this package?
 
-The biggest pain point with `tflite_flutter` was native library setup. You had to manually build `.so`, `.dll`, or `.dylib` files and place them in the right directories for each platform. This was tedious, error-prone, and easy to get wrong.
+The biggest pain point with `tflite_flutter` was native library setup. You had to manually build `.so`, `.dll`, or `.dylib` files and place them in the right directories for each platform.
 
 Instead, `flutter_litert` automatically bundles the native runtime for each supported native platform. Simply add the dependency, and you're ready to use LiteRT.
 
@@ -48,7 +48,7 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.5.2
+  flutter_litert: ^2.5.3
 ```
 
 That's it for native platforms. For web using `Interpreter`, call `initializeWeb()` first (see [Web support](#web-support)). If you're using `LiteRtInterpreter` (the LiteRT.js/WebGPU path), no setup call is needed.
@@ -618,7 +618,7 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.5.2
+  flutter_litert: ^2.5.3
   flutter_litert_flex: ^0.0.5
 ```
 
@@ -906,7 +906,7 @@ tfliteBinding.TfLiteInterpreterOptionsAddCustomOp(
 final interpreter = await Interpreter.fromAsset('model.tflite', options: options);
 ```
 
-### Gotchas
+### Custom Ops Tips
 
 - **The op name string must outlive the interpreter.** `TfLiteInterpreterOptionsAddCustomOp` stores the pointer, not a copy. Allocate it once with `toNativeUtf8()` and keep it alive statically (e.g. as a `static Pointer<Char>?` field).
 - **iOS linker stripping.** Even if the C symbol is compiled in, the linker will strip it if nothing references it. You need a force-load function called from your plugin's Swift/ObjC registration code.

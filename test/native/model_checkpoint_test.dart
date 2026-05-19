@@ -31,87 +31,84 @@ void main() {
   // ─── Group 1: save/restore round-trip ───────────────────────────────────
 
   group('save/restore round-trip', () {
-    test(
-      'trained weights survive save → fresh interpreter → restore',
-      () async {
-        final interpreter = Interpreter.fromFile(_modelFile);
+    test('trained weights survive: save, fresh interpreter, restore', () async {
+      final interpreter = Interpreter.fromFile(_modelFile);
 
-        // Train
-        final trainRunner = interpreter.getSignatureRunner('train');
-        final loss = Float32List(1);
-        for (int i = 0; i < 50; i++) {
-          trainRunner.run(
-            {
-              'x': [
-                [1.0],
-              ],
-              'y': [
-                [2.0],
-              ],
-            },
-            {'loss': loss},
-          );
-        }
-        trainRunner.close();
-
-        // Record trained prediction
-        final inferA = interpreter.getSignatureRunner('infer');
-        final predA = [
-          [0.0],
-        ];
-        inferA.run(
+      // Train
+      final trainRunner = interpreter.getSignatureRunner('train');
+      final loss = Float32List(1);
+      for (int i = 0; i < 50; i++) {
+        trainRunner.run(
           {
             'x': [
               [1.0],
             ],
-          },
-          {'output': predA},
-        );
-        inferA.close();
-
-        // Save checkpoint
-        final ckptFile = File('${tmpDir.path}/model.flwt');
-        await ModelCheckpoint.save(interpreter, ckptFile);
-        interpreter.close();
-
-        // Fresh interpreter, should predict 0
-        final fresh = Interpreter.fromFile(_modelFile);
-        final inferFresh = fresh.getSignatureRunner('infer');
-        final predFresh = [
-          [0.0],
-        ];
-        inferFresh.run(
-          {
-            'x': [
-              [1.0],
+            'y': [
+              [2.0],
             ],
           },
-          {'output': predFresh},
+          {'loss': loss},
         );
-        inferFresh.close();
-        expect(predFresh[0][0], closeTo(0.0, 1e-5));
+      }
+      trainRunner.close();
 
-        // Restore and verify
-        await ModelCheckpoint.restore(fresh, ckptFile);
-        final inferB = fresh.getSignatureRunner('infer');
-        final predB = [
-          [0.0],
-        ];
-        inferB.run(
-          {
-            'x': [
-              [1.0],
-            ],
-          },
-          {'output': predB},
-        );
-        inferB.close();
-        fresh.close();
+      // Record trained prediction
+      final inferA = interpreter.getSignatureRunner('infer');
+      final predA = [
+        [0.0],
+      ];
+      inferA.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': predA},
+      );
+      inferA.close();
 
-        expect(predB[0][0], closeTo(predA[0][0], 1e-5));
-        expect(predB[0][0], greaterThan(0.5));
-      },
-    );
+      // Save checkpoint
+      final ckptFile = File('${tmpDir.path}/model.flwt');
+      await ModelCheckpoint.save(interpreter, ckptFile);
+      interpreter.close();
+
+      // Fresh interpreter, should predict 0
+      final fresh = Interpreter.fromFile(_modelFile);
+      final inferFresh = fresh.getSignatureRunner('infer');
+      final predFresh = [
+        [0.0],
+      ];
+      inferFresh.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': predFresh},
+      );
+      inferFresh.close();
+      expect(predFresh[0][0], closeTo(0.0, 1e-5));
+
+      // Restore and verify
+      await ModelCheckpoint.restore(fresh, ckptFile);
+      final inferB = fresh.getSignatureRunner('infer');
+      final predB = [
+        [0.0],
+      ];
+      inferB.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': predB},
+      );
+      inferB.close();
+      fresh.close();
+
+      expect(predB[0][0], closeTo(predA[0][0], 1e-5));
+      expect(predB[0][0], greaterThan(0.5));
+    });
   });
 
   // ─── Group 2: multiple checkpoints ──────────────────────────────────────
@@ -122,7 +119,7 @@ void main() {
       final trainRunner = interpreter.getSignatureRunner('train');
       final loss = Float32List(1);
 
-      // Train 10 steps → save A
+      // Train 10 steps, save A
       for (int i = 0; i < 10; i++) {
         trainRunner.run(
           {
@@ -153,7 +150,7 @@ void main() {
       );
       inferA.close();
 
-      // Train 40 more steps → save B
+      // Train 40 more steps, save B
       for (int i = 0; i < 40; i++) {
         trainRunner.run(
           {

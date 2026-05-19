@@ -3,7 +3,7 @@
 Generates test/assets/training_model.tflite
 
 A minimal linear regression model (y = wx + b) with train, infer, get_weights,
-and set_weights signatures. Uses only TFLITE_BUILTINS — no SELECT_TF_OPS required.
+and set_weights signatures. Uses only TFLITE_BUILTINS, no SELECT_TF_OPS required.
 
 Requirements:
     pip install tensorflow>=2.13

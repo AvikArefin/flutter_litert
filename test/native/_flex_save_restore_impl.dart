@@ -118,7 +118,7 @@ void main() {
     );
     inferB.close();
 
-    // More training → prediction closer to target.
+    // More training; prediction closer to target.
     expect(predB[0][0], greaterThan(predA[0][0]));
 
     final ckptB = '${tmpDir.path}/b.ckpt';
@@ -133,7 +133,7 @@ void main() {
     );
     saveB.close();
 
-    // --- Fresh interpreter → restore checkpoint A ---
+    // --- Fresh interpreter; restore checkpoint A ---
     interp.close();
     flex.delete();
     opts.delete();
@@ -186,7 +186,7 @@ void main() {
     inferAfterA.close();
     expect(predAfterA[0][0], closeTo(predA[0][0], 1e-5));
 
-    // --- Restore checkpoint B → prediction should match B ---
+    // --- Restore checkpoint B; prediction should match B ---
     final restoreB = interp.getSignatureRunner('restore');
     restoreB.run(
       {

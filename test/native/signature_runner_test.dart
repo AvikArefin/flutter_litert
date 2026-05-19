@@ -502,7 +502,7 @@ void main() {
     });
 
     test('set_weights then infer produces expected prediction', () {
-      // Set weights to known values: w=3.0, b=1.0 → infer(x=2) = 3*2+1 = 7
+      // Set weights to known values: w=3.0, b=1.0; infer(x=2) = 3*2+1 = 7
       setWeightsRunner.run({
         'w': [
           [3.0],
@@ -545,7 +545,7 @@ void main() {
   // ─── Group 8b: full persistence round-trip ──────────────────────────────
 
   group(
-    'full persistence round-trip (train → get → new interpreter → set → infer)',
+    'full persistence round-trip (train, get, new interpreter, set, infer)',
     () {
       test('trained weights survive interpreter recreation via get/set', () {
         // 1. Train on original interpreter

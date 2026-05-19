@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 /// Converts BGR bytes to a flat Float32List with `0.0..1.0` normalization.
 ///
-/// Performs a BGR→RGB channel swap and divides each value by 255.
+/// Performs a BGR-to-RGB channel swap and divides each value by 255.
 ///
 /// Parameters:
 /// - [bytes]: Raw BGR image bytes (length must be totalPixels * 3)
@@ -24,7 +24,7 @@ Float32List bgrBytesToRgbFloat32({
 
 /// Converts BGR bytes to a flat Float32List with `-1.0..1.0` normalization.
 ///
-/// Performs a BGR→RGB channel swap and normalizes via (value / 127.5) - 1.0,
+/// Performs a BGR-to-RGB channel swap and normalizes via (value / 127.5) - 1.0,
 /// as used by models expecting signed normalized input.
 ///
 /// Parameters:
@@ -63,7 +63,7 @@ Float32List _bgrToRgbFloat32({
   return tensor;
 }
 
-/// Fills a 4D NHWC tensor in-place from raw BGR bytes with a BGR→RGB channel swap.
+/// Fills a 4D NHWC tensor in-place from raw BGR bytes with a BGR-to-RGB channel swap.
 ///
 /// The [tensor] must already be allocated as `[1][height][width][3]`.
 /// Use [scale] and [offset] to control normalization:

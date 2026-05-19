@@ -16,7 +16,7 @@ Install these before starting:
 2. **Bazelisk** (manages Bazel versions automatically)
    - Install: `brew install bazelisk`
    - TF 2.20.0 requires Bazel 7.4.1. Bazelisk handles this via `USE_BAZEL_VERSION=7.4.1`
-3. **Python 3.9–3.12** (with `numpy` installed: `pip install numpy`)
+3. **Python 3.9-3.12** (with `numpy` installed: `pip install numpy`)
 
 Verify:
 ```bash

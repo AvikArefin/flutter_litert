@@ -45,7 +45,7 @@ Install these before starting:
 Verify:
 ```bash
 bazel --version   # Should output: "Bazel 7.4.1" (fetched automatically)
-python3 --version # 3.9–3.13
+python3 --version # 3.9-3.13
 python3 -c "import numpy; print(numpy.__version__)"
 gcc --version     # or clang --version
 ```
@@ -59,7 +59,7 @@ git clone --depth 1 --branch v2.20.0 \
 cd tf-2.20.0
 ```
 
-Estimated download: ~2–3 GiB with `--depth 1`.
+Estimated download: ~2-3 GiB with `--depth 1`.
 
 ## Step 2: Configure the Build
 
@@ -191,8 +191,8 @@ bazel build \
 --local_ram_resources=6144 --jobs=4
 ```
 
-**Estimated build time:** 45–90 minutes on a modern machine (12 cores).
-**Estimated Bazel cache size:** 20–40 GiB.
+**Estimated build time:** 45-90 minutes on a modern machine (12 cores).
+**Estimated Bazel cache size:** 20-40 GiB.
 
 The output will be at:
 ```
@@ -230,7 +230,7 @@ TF-specific library, those are statically linked inside.
 ls -lh bazel-bin/tensorflow/lite/delegates/flex/libtensorflowlite_flex-linux.so
 ```
 
-Expected: ~100–160 MB (comparable to macOS `libtensorflowlite_flex-mac.dylib` at ~123 MB).
+Expected: ~100-160 MB (comparable to macOS `libtensorflowlite_flex-mac.dylib` at ~123 MB).
 
 ## Step 7: Test Locally
 

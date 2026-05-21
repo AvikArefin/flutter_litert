@@ -1,5 +1,7 @@
-import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 
 import 'yuv_conversion.dart';
 
@@ -129,7 +131,7 @@ CameraFrame? prepareCameraFrameFromImage(
     height: height,
     planes: planes,
     rotation: rotation,
-    isBgra: isBgra ?? Platform.isMacOS,
+    isBgra: isBgra ?? (defaultTargetPlatform == TargetPlatform.macOS),
   );
 }
 

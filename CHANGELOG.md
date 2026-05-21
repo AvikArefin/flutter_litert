@@ -1,3 +1,7 @@
+## 2.5.4
+
+* Fix WASM compatibility: replace dart:io import in camera_frame.dart with flutter/foundation.dart to allow package to compile under the WASM runtime.
+
 ## 2.5.3
 
 * prepareCameraFrameFromImage and prepareCameraFrame now auto-detect isBgra based on platform. macOS uses BGRA, Windows and Linux use RGBA. The isBgra parameter is now nullable and no longer needs to be passed manually.

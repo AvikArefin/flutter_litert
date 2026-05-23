@@ -48,7 +48,7 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.5.3
+  flutter_litert: ^2.5.5
 ```
 
 That's it for native platforms. For web using `Interpreter`, call `initializeWeb()` first (see [Web support](#web-support)). If you're using `LiteRtInterpreter` (the LiteRT.js/WebGPU path), no setup call is needed.
@@ -618,8 +618,8 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.5.3
-  flutter_litert_flex: ^0.0.5
+  flutter_litert: ^2.5.5
+  flutter_litert_flex: ^0.0.6
 ```
 
 That's it. The native library is downloaded or linked automatically on the first build for supported native platforms. Then use the async constructor, which is required on Android and works everywhere else:

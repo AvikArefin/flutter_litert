@@ -87,7 +87,13 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
 
   if flex_detected
     dedup_marker = File.join(framework_dir, 'TensorFlowLiteC.xcframework', '.flex_deduped')
-    unless File.exist?(dedup_marker)
+    tflc_arm64 = File.join(framework_dir, 'TensorFlowLiteC.xcframework', 'ios-arm64',
+                           'TensorFlowLiteC.framework', 'TensorFlowLiteC')
+    # The marker can survive an xcframework re-download (it isn't inside the zip),
+    # so verify the symbols are actually local before skipping nmedit.
+    symbols_still_global = File.exist?(tflc_arm64) &&
+                           `xcrun nm -gj '#{tflc_arm64}' 2>/dev/null`.include?('_TfLiteXNNPackDelegateOptionsDefault')
+    unless File.exist?(dedup_marker) && !symbols_still_global
       puts '[flutter_litert] FlexDelegate detected, hiding overlapping symbols in TensorFlowLiteC...'
       syms_file = File.join(framework_dir, '_overlap_syms.txt')
       File.write(syms_file, <<~SYMS)

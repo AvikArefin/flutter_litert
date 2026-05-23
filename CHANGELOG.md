@@ -1,3 +1,9 @@
+## 2.5.5
+
+* Add SPM support for iOS: TensorFlowLiteC, TensorFlowLiteCMetal and TensorFlowLiteCCoreML are now declared as binary targets in Package.swift so the plugin works with Flutter Swift Package Manager integration.
+* Fix duplicate XNNPack symbol linker errors when flutter litert flex is used alongside flutter litert by removing XNNPack definitions from TFLiteFlex and hiding overlapping symbols in TensorFlowLiteC via nmedit.
+* Fix stale flex dedup marker in podspec that caused nmedit to be skipped on re-downloaded xcframeworks.
+
 ## 2.5.4
 
 * Fix WASM compatibility: replace dart:io import in camera_frame.dart with flutter/foundation.dart to allow package to compile under the WASM runtime.

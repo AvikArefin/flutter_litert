@@ -33,7 +33,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_litert:
     path: ../
-  flutter_litert_flex: ^0.0.5
+  flutter_litert_flex: ^0.0.6
   object_detection: ^0.0.3
 
 dev_dependencies:

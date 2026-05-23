@@ -10,11 +10,15 @@ let package = Package(
     products: [
         .library(name: "flutter-litert", targets: ["flutter_litert"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(name: "FlutterFramework", path: "../FlutterFramework")
+    ],
     targets: [
         .target(
             name: "flutter_litert",
-            dependencies: [],
+            dependencies: [
+                .product(name: "FlutterFramework", package: "FlutterFramework")
+            ],
             resources: [
                 .copy("Resources/libtensorflowlite_c-mac.dylib"),
                 .copy("Resources/libtflite_custom_ops.dylib"),

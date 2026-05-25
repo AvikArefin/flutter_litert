@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_litert'
-  s.version          = '0.0.1'
+  s.version          = '2.5.8'
   s.summary          = 'LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.'
   s.description      = <<-DESC
 LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
@@ -31,7 +31,7 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
   s.frameworks = 'Metal', 'CoreML', 'Accelerate'
   s.weak_frameworks = 'CoreML'
 
-  s.platform = :ios, '12.0'
+  s.platform = :ios, '13.0'
   s.static_framework = true
 
   # Common xcconfig shared between local and published builds

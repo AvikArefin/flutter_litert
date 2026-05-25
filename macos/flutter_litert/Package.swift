@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "flutter_litert",
     platforms: [
-        .macOS("10.14")
+        .macOS("10.15")
     ],
     products: [
         .library(name: "flutter-litert", targets: ["flutter_litert"])

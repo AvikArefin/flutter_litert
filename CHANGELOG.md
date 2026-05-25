@@ -1,3 +1,12 @@
+## 2.5.8
+
+* Raise minimum deployment targets to iOS 13.0 / macOS 10.15 to satisfy Swift Package Manager's `FlutterFramework` requirement (fixes SPM build failures on macOS/iOS).
+* Update example and documentation to use `flutter_litert_flex: ^1.0.0`.
+
+## 2.5.7
+
+* Update example to use `flutter_litert_flex: ^0.0.8`.
+
 ## 2.5.6
 
 * Fix SPM: add missing `FlutterFramework` dependency to iOS and macOS `Package.swift`.

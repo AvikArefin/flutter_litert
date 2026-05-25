@@ -35,8 +35,8 @@ import 'delegate_library_loader.dart';
 ///
 /// ```yaml
 /// dependencies:
-///   flutter_litert: ^2.5.2
-///   flutter_litert_flex: ^0.0.5
+///   flutter_litert: ^2.5.8
+///   flutter_litert_flex: ^1.0.0
 /// ```
 ///
 /// Then use the async constructor, which is required on Android and also works

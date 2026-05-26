@@ -1,0 +1,29 @@
+name: flutter_litert_flex_test_host
+description: Integration test host for the flutter_litert_flex addon.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_litert: ^2.5.8
+  flutter_litert_flex: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  integration_test:
+    sdk: flutter
+
+dependency_overrides:
+  flutter_litert:
+    path: ../..
+
+flutter:
+  assets:
+    - assets/

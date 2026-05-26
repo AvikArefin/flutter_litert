@@ -16,7 +16,7 @@ A Flutter plugin for on-device ML inference using LiteRT (formerly TensorFlow Li
 
 This project started as a fork of [`tflite_flutter`](https://pub.dev/packages/tflite_flutter), the TensorFlow Lite plugin for Flutter. Google's on-device runtime documentation now uses the [LiteRT](https://ai.google.dev/edge/litert) name.
  
-`flutter_litert` keeps the core `tflite_flutter` interpreter API source-compatible on native platforms, adds newer utilities, and documents the web-specific API differences below.
+`flutter_litert` keeps the core `tflite_flutter` interpreter API source-compatible on native platforms, auto bundles dynamic libraries, adds newer utilities, adds and improves delegate support, and documents the web-specific API differences below.
 
 ## Why this package?
 
@@ -51,9 +51,11 @@ dependencies:
   flutter_litert: ^2.5.8
 ```
 
-That's it for native platforms. For web using `Interpreter`, call `initializeWeb()` first (see [Web support](#web-support)). If you're using `LiteRtInterpreter` (the LiteRT.js/WebGPU path), no setup call is needed.
+That's it for native platforms.
 
-## Usage
+For web using `Interpreter`, call `initializeWeb()` first (see [Web support](#web-support)). If you're using `LiteRtInterpreter` (the LiteRT.js/WebGPU path), no setup call is needed.
+
+## Usage (Quick Start)
 
 ```dart
 import 'package:flutter_litert/flutter_litert.dart';
@@ -82,6 +84,36 @@ To check which TFLite runtime version is loaded:
 print('TFLite version: ${Interpreter.version}'); // e.g. "2.20.0"
 ```
 
+## Demos and Examples
+
+### Examples
+
+A full native example app is available on pub.dev: [flutter_litert example](https://pub.dev/packages/flutter_litert/example). It depends on bundled assets from this repo's `example/` directory (`.tflite` model, label map, and sample images), so if you copy code from pub.dev, clone the repo and run it from `example/`:
+
+```sh
+git clone https://github.com/hugocornellier/flutter_litert
+cd flutter_litert/example
+flutter run
+```
+
+For web, see [Web support](#web-support).
+
+The optional `flutter_litert_flex` addon is tested separately in `example/flex_test_host` so the main example stays dependency-light.
+
+### Demos
+
+Packages built on flutter_litert:
+
+| Package | Description | Includes Web |
+|---------|-------------|--------------|
+| [face_detection_tflite](https://pub.dev/packages/face_detection_tflite) | Face detection, 468-point mesh, iris tracking, segmentation | ✓ |
+| [hand_detection](https://pub.dev/packages/hand_detection) | Hand detection, landmarks, gesture recognition | |
+| [pose_detection](https://pub.dev/packages/pose_detection) | Body pose estimation with 33 keypoints | ✓ |
+| [object_detection](https://pub.dev/packages/object_detection) | Object detection with bounding boxes and labels | |
+| [animal_detection](https://pub.dev/packages/animal_detection) | Animal detection with species classification and pose | |
+| [cat_detection](https://pub.dev/packages/cat_detection) | Cat face detection, landmarks, breed identification | |
+| [dog_detection](https://pub.dev/packages/dog_detection) | Dog face detection, landmarks, breed identification | |
+
 ## Platform support
 
 | Platform | Runtime | Version   | Bundling |
@@ -95,20 +127,6 @@ print('TFLite version: ${Interpreter.version}'); // e.g. "2.20.0"
 | Web | TFLite.js (WASM via TensorFlow.js) | `tflite-js@v0.0.1-alpha.10` (default CDN) | JS runtime loaded at startup via `initializeWeb()` |
 
 iOS and macOS will be migrated to LiteRT as official CocoaPods artifacts become available.
-
-## Demos
-
-Packages built on flutter_litert:
-
-| Package | Description | Includes Web |
-|---------|-------------|--------------|
-| [face_detection_tflite](https://pub.dev/packages/face_detection_tflite) | Face detection, 468-point mesh, iris tracking, segmentation | ✓ |
-| [hand_detection](https://pub.dev/packages/hand_detection) | Hand detection, landmarks, gesture recognition | |
-| [pose_detection](https://pub.dev/packages/pose_detection) | Body pose estimation with 33 keypoints | ✓ |
-| [object_detection](https://pub.dev/packages/object_detection) | Object detection with bounding boxes and labels | |
-| [animal_detection](https://pub.dev/packages/animal_detection) | Animal detection with species classification and pose | |
-| [cat_detection](https://pub.dev/packages/cat_detection) | Cat face detection, landmarks, breed identification | |
-| [dog_detection](https://pub.dev/packages/dog_detection) | Dog face detection, landmarks, breed identification | |
 
 ## Delegates
 
@@ -270,7 +288,7 @@ CoreML delegate options:
 1. **`Interpreter`** (standard cross-platform class). Bound to the third-party `tflite-js` runtime via `tf-tflite.min.js`. Pure CPU/WASM execution. Existing API, no setup beyond `initializeWeb()`.
 2. **`LiteRtInterpreter`** (opt-in LiteRT.js runtime, since 2.5.0). Google's official **LiteRT.js** runtime. Defaults to WASM; pass `accelerator: 'webgpu'` to use the **WebGPU** delegate with WASM fallback. Same .tflite models, dramatically faster on browsers that support WebGPU. Async: `runForMultipleInputs(...)` returns a `Future`.
 
-### Demo / Example
+### Web Demo / Example
 
 For a complete web demo (with WebGPU), see [pose_detection](https://github.com/hugocornellier/pose_detection) and its [web example](https://github.com/hugocornellier/pose_detection/tree/e93ffe99bdc05f4a397d3bf4b70f2a9454b3b0f5/example_web).
 

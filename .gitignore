@@ -10,6 +10,7 @@
 .pub/
 .dart_tool/
 pubspec.lock
+!example/flex_test_host/pubspec.lock
 pubspec_overrides.yaml
 flutter_export_environment.sh
 

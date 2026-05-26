@@ -15,6 +15,9 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -33,6 +36,14 @@ jobs:
       - name: Run tests
         run: flutter test
 
+      - name: Install Flex integration host dependencies
+        working-directory: example/flex_test_host
+        run: flutter pub get
+
+      - name: Run Flex addon integration tests
+        working-directory: example/flex_test_host
+        run: flutter test -d macos integration_test
+
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -41,6 +52,12 @@ jobs:
         with:
           channel: 'stable'
           cache: true
+
+      - name: Install Linux desktop dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xvfb
+
+      - name: Enable Linux desktop
+        run: flutter config --enable-linux-desktop
 
       - name: Install dependencies
         run: flutter pub get
@@ -59,3 +76,11 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+      - name: Install Flex integration host dependencies
+        working-directory: example/flex_test_host
+        run: flutter pub get
+
+      - name: Run Flex addon integration tests
+        working-directory: example/flex_test_host
+        run: xvfb-run -a flutter test -d linux integration_test

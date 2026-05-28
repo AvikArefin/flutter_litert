@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_litert: ^2.5.8
-  flutter_litert_flex: ^1.0.0
+  flutter_litert: ^2.6.0
+  flutter_litert_flex: ^1.1.0
 
 dev_dependencies:
   flutter_test:

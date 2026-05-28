@@ -1,3 +1,8 @@
+## 2.6.0
+
+* Fix iOS Swift Package Manager builds: repackage the bundled TensorFlowLite xcframeworks (correct simulator slice identifiers and framework structure) so they resolve under SPM, including on the iOS simulator.
+* Add a standalone example that depends only on `flutter_litert` and `opencv_dart`.
+
 ## 2.5.8
 
 * Raise minimum deployment targets to iOS 13.0 / macOS 10.15 to satisfy Swift Package Manager's `FlutterFramework` requirement (fixes SPM build failures on macOS/iOS).

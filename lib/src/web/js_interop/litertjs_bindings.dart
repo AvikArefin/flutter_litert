@@ -4,7 +4,7 @@
 // By default, [LiteRtInterpreter.fromBytes] auto-injects a loader script
 // the first time it is called, so consumers don't have to add anything to
 // their `web/index.html`. Override the URLs (e.g. for self-hosting / strict
-// CSP) via [configureLiteRtLoader].
+// CSP) via [configureLiteRtWebLoader].
 //
 // Only the surface needed by [LiteRtInterpreter] is bound here.
 
@@ -29,9 +29,30 @@ String _liteRtWasmUrl = _defaultLiteRtWasmUrl;
 bool _autoLoaderEnabled = true;
 Future<void>? _injectedLoadFuture;
 
-/// Configure the URLs / behavior of the auto-loader.
+/// Configure the URLs / behavior of the LiteRT.js web auto-loader.
 ///
-/// Call this **once**, before the first `LiteRtInterpreter.fromBytes(...)`.
+/// Deprecated in favor of [configureLiteRtWebLoader], the public web-specific
+/// spelling.
+@Deprecated(
+  'Use configureLiteRtWebLoader instead. '
+  'This alias will be removed in a future major release.',
+)
+void configureLiteRtLoader({
+  String? moduleUrl,
+  String? wasmUrl,
+  bool? autoLoad,
+}) {
+  configureLiteRtWebLoader(
+    moduleUrl: moduleUrl,
+    wasmUrl: wasmUrl,
+    autoLoad: autoLoad,
+  );
+}
+
+/// Configure the LiteRT.js web auto-loader.
+///
+/// Call it once before the first `LiteRtInterpreter.fromBytes(...)` when you
+/// need to self-host the LiteRT.js module/WASM files or disable auto-loading.
 ///
 /// - [moduleUrl]: ESM URL for the `@litertjs/core` bundle.
 /// - [wasmUrl]: URL passed to `LiteRt.loadLiteRt(...)`. Either a directory
@@ -40,7 +61,7 @@ Future<void>? _injectedLoadFuture;
 /// - [autoLoad]: when `false`, disables auto-injection. The host page is
 ///   then responsible for loading the runtime and assigning it to
 ///   `window.LiteRt`.
-void configureLiteRtLoader({
+void configureLiteRtWebLoader({
   String? moduleUrl,
   String? wasmUrl,
   bool? autoLoad,
@@ -116,7 +137,7 @@ Future<void> waitForLiteRt({Duration timeout = const Duration(seconds: 30)}) {
         onTimeout: () => throw StateError(
           'LiteRT.js did not finish loading within ${timeout.inSeconds}s. '
           'Check network access to cdn.jsdelivr.net (or call '
-          'configureLiteRtLoader to point at a self-hosted bundle).',
+          'configureLiteRtWebLoader to point at a self-hosted bundle).',
         ),
       )
       .then((_) {

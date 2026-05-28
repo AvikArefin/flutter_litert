@@ -16,9 +16,9 @@ let package = Package(
     targets: [
         // These xcframeworks must be produced with `xcodebuild -create-xcframework`,
         // which writes an Info.plist whose slice identifiers match the on-disk
-        // directories. A hand-assembled build previously shipped a mismatch — the
+        // directories. A hand-assembled build previously shipped a mismatch: the
         // Info.plist declared `ios-arm64_x86_64-simulator` while the actual dir and
-        // (arm64-only) binary were `ios-arm64-simulator` — so SPM looked for a slice
+        // (arm64-only) binary were `ios-arm64-simulator`, so SPM looked for a slice
         // that didn't exist ("There is no XCFramework found at ..."). Each per-slice
         // `.framework` bundle must also contain its own `Info.plist`, or SPM's embed
         // step fails ("framework did not contain an Info.plist"). Both were the

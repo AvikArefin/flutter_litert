@@ -66,6 +66,13 @@ class SignatureRunner {
   bool get isClosed =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 
+  int get lastInferenceDurationMicroseconds =>
+      throw UnsupportedError('SignatureRunner is not supported on web.');
+
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
   int get lastNativeInferenceDurationMicroSeconds =>
       throw UnsupportedError('SignatureRunner is not supported on web.');
 }

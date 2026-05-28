@@ -59,8 +59,30 @@ class LiteRtInterpreter {
   final String _activeAccelerator;
   bool _disposed = false;
 
+  int _lastInferenceDurationMicroseconds = 0;
+
   /// Microseconds spent inside the most recent `run()` call (LiteRT.js side).
-  int lastNativeInferenceDurationMicroSeconds = 0;
+  int get lastInferenceDurationMicroseconds =>
+      _lastInferenceDurationMicroseconds;
+
+  /// Microseconds spent inside the most recent `run()` call (LiteRT.js side).
+  ///
+  /// Deprecated in favor of [lastInferenceDurationMicroseconds], which uses a
+  /// platform-neutral name and consistent microseconds casing.
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
+  int get lastNativeInferenceDurationMicroSeconds =>
+      lastInferenceDurationMicroseconds;
+
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
+  set lastNativeInferenceDurationMicroSeconds(int value) {
+    _lastInferenceDurationMicroseconds = value;
+  }
 
   LiteRtInterpreter._(
     this._model, {
@@ -200,7 +222,7 @@ class LiteRtInterpreter {
         t.delete();
       }
     }
-    lastNativeInferenceDurationMicroSeconds =
+    _lastInferenceDurationMicroseconds =
         DateTime.now().microsecondsSinceEpoch - start;
 
     final List<lrt.LiteRtTensorJS> resultDart = resultJs.toDart;

@@ -1,3 +1,20 @@
+## 2.7.0
+
+* Add `InterpreterOptions.addCustomOp(...)`: high-level method for registering
+  custom TFLite ops; handles native string allocation and lifetime internally,
+  replacing the previous raw `tfliteBinding` call pattern.
+* Add `Interpreter.fromBytes(Uint8List)`: async cross-platform constructor,
+  matching the web API. Native platforms complete immediately; unsupported stub
+  throws `UnsupportedError`.
+* Rename `lastNativeInferenceDurationMicroSeconds` →
+  `lastInferenceDurationMicroseconds` on `Interpreter`, `SignatureRunner`, and
+  `LiteRtInterpreter` (all platform variants). Old name kept as a `@Deprecated`
+  alias.
+* Rename `configureLiteRtLoader` → `configureLiteRtWebLoader`. Old name kept as
+  a `@Deprecated` alias and re-exported from `all_web.dart`.
+* Fix `camera_frame.dart`: widen `.planes` cast from `List<dynamic>` to
+  `Iterable<dynamic>` for broader compatibility.
+
 ## 2.6.0
 
 * Fix iOS Swift Package Manager builds: repackage the bundled TensorFlowLite xcframeworks (correct simulator slice identifiers and framework structure) so they resolve under SPM, including on the iOS simulator.

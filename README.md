@@ -48,12 +48,14 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.6.0
+  flutter_litert: ^2.7.0
 ```
 
 That's it for native platforms.
 
-> **iOS + Swift Package Manager:** the bundled TensorFlowLite xcframeworks ship `arm64` device and `arm64` *simulator* slices, so iOS **simulator** builds require an **Apple Silicon Mac** (the standard setup today). The x86_64 (Intel Mac) simulator is not supported under SPM — use a real device or an Apple Silicon simulator. CocoaPods builds are unaffected.
+> Intel Macs Only: The iOS simulator is not supported under Swift Package Manager on 
+> x86_64. You have two options: test using a real iOS device or switch to CocoaPods 
+> to use the Simulator. This applies to Intel Macs only. 
 
 For web using `Interpreter`, call `initializeWeb()` first (see [Web support](#web-support)). If you're using `LiteRtInterpreter` (the LiteRT.js/WebGPU path), no setup call is needed.
 
@@ -331,10 +333,10 @@ await lrt.runForMultipleInputs(
 
 The first `LiteRtInterpreter.fromBytes(...)` call injects a `<script type="module">` that imports `@litertjs/core` from jsDelivr, calls `loadLiteRt(...)`, and exposes the runtime on `window.LiteRt`. Subsequent calls reuse the loaded module.
 
-To self-host or pin a specific build, call `configureLiteRtLoader(...)` once before the first interpreter:
+To self-host or pin a specific build, call `configureLiteRtWebLoader(...)` once before the first interpreter:
 
 ```dart
-configureLiteRtLoader(
+configureLiteRtWebLoader(
   moduleUrl: '/assets/litertjs/index.js',          // your bundled path
   wasmUrl  : '/assets/litertjs/litert_wasm_internal.js',
 );
@@ -343,7 +345,7 @@ configureLiteRtLoader(
 Or disable the auto-loader entirely if you want to load it from your own `<script>` tag:
 
 ```dart
-configureLiteRtLoader(autoLoad: false);
+configureLiteRtWebLoader(autoLoad: false);
 ```
 
 Notes:
@@ -638,7 +640,7 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.6.0
+  flutter_litert: ^2.7.0
   flutter_litert_flex: ^1.1.0
 ```
 
@@ -700,7 +702,10 @@ final interpreter = await Interpreter.fromAsset('model.tflite', options: options
 interpreter.allocateTensors();
 
 // For models with MediaPipe custom ops (e.g. selfie segmentation):
-final (options, delegate) = InterpreterFactory.create(config, addMediaPipeCustomOps: true);
+final (mediaPipeOptions, mediaPipeDelegate) =
+    InterpreterFactory.create(config, addMediaPipeCustomOps: true);
+final mediaPipeInterpreter = await Interpreter.fromAsset('model.tflite', options: mediaPipeOptions);
+mediaPipeInterpreter.allocateTensors();
 ```
 
 `InterpreterFactory.create()` returns both the configured `InterpreterOptions` and the `Delegate` (if one was created). The delegate is needed if you want to manage its lifecycle or decide whether to use an `IsolateInterpreter`:
@@ -730,8 +735,11 @@ await pool.initialize(
 
 // Each call gets exclusive access to one interpreter (round-robin)
 final result = await pool.withInterpreter((interpreter, isolate) async {
-  final runner = isolate ?? interpreter;
-  runner.run(input, output);
+  if (isolate != null) {
+    await isolate.run(input, output);
+  } else {
+    interpreter.run(input, output);
+  }
   return output;
 });
 
@@ -894,7 +902,6 @@ Load the native library and register the op with the interpreter options:
 ```dart
 import 'dart:ffi';
 import 'dart:io';
-import 'package:ffi/ffi.dart';
 import 'package:flutter_litert/flutter_litert.dart';
 
 // Load the native library (platform-specific)
@@ -904,31 +911,26 @@ final DynamicLibrary customOpsLib = Platform.isIOS
 
 // Look up the registration function
 final registerFn = customOpsLib.lookupFunction<
-    Pointer<TfLiteRegistration> Function(),
-    Pointer<TfLiteRegistration> Function()
+    Pointer<Void> Function(),
+    Pointer<Void> Function()
 >('MyPlugin_RegisterMyCustomOp');
 
 final registration = registerFn();
 
-// Keep this alive for the lifetime of the interpreter, TFLite stores
-// the pointer, not a copy
-final opName = 'MyCustomOpName'.toNativeUtf8().cast<Char>();
-
 // Register before creating the interpreter
 final options = InterpreterOptions();
-tfliteBinding.TfLiteInterpreterOptionsAddCustomOp(
-    options.base,  // the underlying native pointer
-    opName,
-    registration,
-    1,  // min_version
-    1,  // max_version
+options.addCustomOp(
+  name: 'MyCustomOpName',
+  registration: registration,
+  minVersion: 1,
+  maxVersion: 1,
 );
 final interpreter = await Interpreter.fromAsset('model.tflite', options: options);
 ```
 
 ### Custom Ops Tips
 
-- **The op name string must outlive the interpreter.** `TfLiteInterpreterOptionsAddCustomOp` stores the pointer, not a copy. Allocate it once with `toNativeUtf8()` and keep it alive statically (e.g. as a `static Pointer<Char>?` field).
+- **The registration must remain valid.** `InterpreterOptions.addCustomOp(...)` keeps the op-name string alive until `InterpreterOptions.delete()`, but the returned registration pointer should point to static/native storage that remains valid for every interpreter created from those options.
 - **iOS linker stripping.** Even if the C symbol is compiled in, the linker will strip it if nothing references it. You need a force-load function called from your plugin's Swift/ObjC registration code.
 - **Windows CRT heap mismatch.** If your custom op DLL calls `malloc` but TFLite frees with its own `free` (from a different DLL), you get heap corruption. Resolve `TfLiteIntArrayCreate` from the TFLite DLL at runtime so allocations use TFLite's heap. See `src/custom_ops/transpose_conv_bias.c` for a working example.
 - **Web is not supported.** The TFLite.js/WASM runtime does not have a custom op registration API.

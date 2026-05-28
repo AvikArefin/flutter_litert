@@ -81,6 +81,14 @@ class SignatureRunner {
     'SignatureRunner.isClosed is not supported on this platform',
   );
 
+  int get lastInferenceDurationMicroseconds => throw UnsupportedError(
+    'SignatureRunner.lastInferenceDurationMicroseconds is not supported on this platform',
+  );
+
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
   int get lastNativeInferenceDurationMicroSeconds => throw UnsupportedError(
     'SignatureRunner.lastNativeInferenceDurationMicroSeconds is not supported on this platform',
   );

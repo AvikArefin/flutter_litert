@@ -73,7 +73,7 @@ class _StartupData {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IsolateWorkerBase subclass — wires up the isolate RPC channel
+// IsolateWorkerBase subclass: wires up the isolate RPC channel
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DetectorWorker extends IsolateWorkerBase {
@@ -104,7 +104,7 @@ class _DetectorWorker extends IsolateWorkerBase {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Public detector — thin wrapper that delegates to the background isolate
+// Public detector: thin wrapper that delegates to the background isolate
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _Detector {
@@ -149,7 +149,7 @@ class _Detector {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Isolate entry — all TFLite work runs here, never on the UI thread
+  // Isolate entry: all TFLite work runs here, never on the UI thread
   // ───────────────────────────────────────────────────────────────────────────
 
   @pragma('vm:entry-point')
@@ -353,7 +353,7 @@ class _Detector {
   // Helpers (run inside the isolate)
   // ───────────────────────────────────────────────────────────────────────────
 
-  // EfficientDet anchor generator — FPN levels P3-P7, 9 anchors per location.
+  // EfficientDet anchor generator: FPN levels P3-P7, 9 anchors per location.
   static List<List<double>> _generateAnchors(int imageSize) {
     const int minLevel = 3, maxLevel = 7, numScales = 3;
     const List<double> aspectRatios = [1.0, 2.0, 0.5];

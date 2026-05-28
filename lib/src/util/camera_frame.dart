@@ -117,7 +117,7 @@ CameraFrame? prepareCameraFrameFromImage(
   final dynamic dyn = cameraImage;
   final int width = dyn.width as int;
   final int height = dyn.height as int;
-  final List<dynamic> rawPlanes = dyn.planes as List<dynamic>;
+  final Iterable<dynamic> rawPlanes = dyn.planes as Iterable<dynamic>;
   final planes = <CameraPlane>[
     for (final dynamic p in rawPlanes)
       (

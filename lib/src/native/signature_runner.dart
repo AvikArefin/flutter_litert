@@ -91,7 +91,7 @@ class SignatureRunner {
   final Pointer<TfLiteSignatureRunner> _runner;
   bool _closed = false;
   bool _allocated = false;
-  int _lastNativeInferenceDurationMicroSeconds = 0;
+  int _lastInferenceDurationMicroseconds = 0;
 
   /// Creates a [SignatureRunner] from a raw native pointer.
   ///
@@ -319,7 +319,7 @@ class SignatureRunner {
 
     final startMicros = DateTime.now().microsecondsSinceEpoch;
     invoke();
-    _lastNativeInferenceDurationMicroSeconds =
+    _lastInferenceDurationMicroseconds =
         DateTime.now().microsecondsSinceEpoch - startMicros;
 
     // Copy output data back to Dart objects.
@@ -345,11 +345,22 @@ class SignatureRunner {
   /// Whether [close] has been called on this runner.
   bool get isClosed => _closed;
 
-  /// Duration of the most recent native invocation in microseconds.
+  /// Duration of the most recent invocation in microseconds.
   ///
   /// Only meaningful after at least one call to [run] or [invoke].
+  int get lastInferenceDurationMicroseconds =>
+      _lastInferenceDurationMicroseconds;
+
+  /// Duration of the most recent native invocation in microseconds.
+  ///
+  /// Deprecated in favor of [lastInferenceDurationMicroseconds], which uses a
+  /// platform-neutral name and consistent microseconds casing.
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
   int get lastNativeInferenceDurationMicroSeconds =>
-      _lastNativeInferenceDurationMicroSeconds;
+      lastInferenceDurationMicroseconds;
 
   @override
   String toString() => _closed

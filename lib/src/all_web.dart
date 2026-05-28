@@ -8,6 +8,8 @@ export 'web/signature_runner.dart';
 export 'web/tensor.dart';
 export 'web/version.dart';
 export 'web/web_init.dart';
+export 'web/js_interop/litertjs_bindings.dart'
+    show configureLiteRtLoader, configureLiteRtWebLoader;
 export 'delegates/xnnpack_delegate_web.dart';
 export 'delegates/gpu_delegate_web.dart';
 export 'delegates/metal_delegate_web.dart';

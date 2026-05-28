@@ -36,7 +36,7 @@ class Interpreter {
   Pointer<Uint8>? _modelBuffer;
   bool _deleted = false;
   bool _allocated = false;
-  int _lastNativeInferenceDurationMicroSeconds = 0;
+  int _lastInferenceDurationMicroseconds = 0;
 
   /// Returns the LiteRT runtime version string.
   static String get version =>
@@ -48,9 +48,20 @@ class Interpreter {
   int? _inputTensorsCount;
   int? _outputTensorsCount;
 
+  /// Duration of the last inference call in microseconds.
+  int get lastInferenceDurationMicroseconds =>
+      _lastInferenceDurationMicroseconds;
+
   /// Duration of the last native inference call in microseconds.
+  ///
+  /// Deprecated in favor of [lastInferenceDurationMicroseconds], which uses a
+  /// platform-neutral name and consistent microseconds casing.
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
   int get lastNativeInferenceDurationMicroSeconds =>
-      _lastNativeInferenceDurationMicroSeconds;
+      lastInferenceDurationMicroseconds;
 
   Interpreter._(this._interpreter, {bool skipAllocate = false}) {
     if (!skipAllocate) {
@@ -105,7 +116,11 @@ class Interpreter {
     }
   }
 
-  /// Creates interpreter from a [buffer]
+  /// Creates interpreter from a [buffer].
+  ///
+  /// Prefer [fromBytes] for new cross-platform code. This synchronous
+  /// constructor remains for `tflite_flutter` compatibility on native
+  /// platforms.
   ///
   /// Throws [ArgumentError] if unsuccessful.
   ///
@@ -131,6 +146,17 @@ class Interpreter {
     } finally {
       model.delete();
     }
+  }
+
+  /// Creates an interpreter from raw model [bytes].
+  ///
+  /// This is the async, cross-platform spelling of [fromBuffer]. On native
+  /// platforms it completes immediately after constructing the interpreter.
+  static Future<Interpreter> fromBytes(
+    Uint8List bytes, {
+    InterpreterOptions? options,
+  }) async {
+    return Interpreter.fromBuffer(bytes, options: options);
   }
 
   /// Creates interpreter from a [assetName]
@@ -248,7 +274,7 @@ class Interpreter {
 
     var inferenceStartNanos = DateTime.now().microsecondsSinceEpoch;
     invoke();
-    _lastNativeInferenceDurationMicroSeconds =
+    _lastInferenceDurationMicroseconds =
         DateTime.now().microsecondsSinceEpoch - inferenceStartNanos;
   }
 

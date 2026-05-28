@@ -249,24 +249,21 @@ void main() {
       }
     });
 
-    test(
-      'lastNativeInferenceDurationMicroSeconds is non-negative after run',
-      () {
-        final output = inferOutput();
-        inferRunner.run(
-          {
-            'x': [
-              [1.0],
-            ],
-          },
-          {'output': output},
-        );
-        expect(
-          inferRunner.lastNativeInferenceDurationMicroSeconds,
-          greaterThanOrEqualTo(0),
-        );
-      },
-    );
+    test('lastInferenceDurationMicroseconds is non-negative after run', () {
+      final output = inferOutput();
+      inferRunner.run(
+        {
+          'x': [
+            [1.0],
+          ],
+        },
+        {'output': output},
+      );
+      expect(
+        inferRunner.lastInferenceDurationMicroseconds,
+        greaterThanOrEqualTo(0),
+      );
+    });
 
     test('throws StateError on closed runner', () {
       inferRunner.close();

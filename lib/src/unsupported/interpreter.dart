@@ -16,6 +16,14 @@ class Interpreter {
     'Interpreter.version is not supported on this platform',
   );
 
+  int get lastInferenceDurationMicroseconds => throw UnsupportedError(
+    'Interpreter.lastInferenceDurationMicroseconds is not supported on this platform',
+  );
+
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
   int get lastNativeInferenceDurationMicroSeconds => throw UnsupportedError(
     'Interpreter.lastNativeInferenceDurationMicroSeconds is not supported on this platform',
   );
@@ -34,6 +42,14 @@ class Interpreter {
     InterpreterOptions? options,
   }) => throw UnsupportedError(
     'Interpreter.fromBuffer is not supported on this platform',
+  );
+
+  /// Creates interpreter from raw model bytes.
+  static Future<Interpreter> fromBytes(
+    Uint8List bytes, {
+    InterpreterOptions? options,
+  }) => throw UnsupportedError(
+    'Interpreter.fromBytes is not supported on this platform',
   );
 
   /// Creates interpreter from a [assetName]

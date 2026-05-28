@@ -18,7 +18,7 @@ import '../util/flutter_asset_utils.dart';
 class Interpreter {
   TFLiteModel _model;
   bool _deleted = false;
-  int _lastNativeInferenceDurationMicroSeconds = 0;
+  int _lastInferenceDurationMicroseconds = 0;
 
   /// Returns the TFLite web runtime version string.
   static String get version => tflite_version.version;
@@ -26,18 +26,30 @@ class Interpreter {
   List<Tensor>? _inputTensors;
   List<Tensor>? _outputTensors;
 
-  /// Duration of the last native inference call in microseconds.
+  /// Duration of the last inference call in microseconds.
+  int get lastInferenceDurationMicroseconds =>
+      _lastInferenceDurationMicroseconds;
+
+  /// Duration of the last inference call in microseconds.
+  ///
+  /// Deprecated in favor of [lastInferenceDurationMicroseconds], which uses a
+  /// platform-neutral name and consistent microseconds casing.
+  @Deprecated(
+    'Use lastInferenceDurationMicroseconds instead. '
+    'This alias will be removed in a future major release.',
+  )
   int get lastNativeInferenceDurationMicroSeconds =>
-      _lastNativeInferenceDurationMicroSeconds;
+      lastInferenceDurationMicroseconds;
 
   Interpreter._(this._model);
 
-  /// Not supported on web. Use [fromAsset] or [fromBuffer] instead.
+  /// Not supported on web. Use [fromAsset] or [fromBytes] instead.
   factory Interpreter.fromFile(
     dynamic modelFile, {
     InterpreterOptions? options,
   }) => throw UnsupportedError(
-    'Interpreter.fromFile is not supported on web. Use fromAsset instead.',
+    'Interpreter.fromFile is not supported on web. '
+    'Use Interpreter.fromAsset or Interpreter.fromBytes instead.',
   );
 
   /// Creates interpreter from a [buffer].
@@ -158,7 +170,7 @@ class Interpreter {
       result = _model.predict<dynamic>(jsTensors);
     }
 
-    _lastNativeInferenceDurationMicroSeconds =
+    _lastInferenceDurationMicroseconds =
         DateTime.now().microsecondsSinceEpoch - inferenceStartNanos;
 
     // Extract output data

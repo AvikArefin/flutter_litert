@@ -16,6 +16,7 @@
 
 import 'dart:ffi';
 
+import 'package:ffi/ffi.dart';
 import 'package:quiver/check.dart';
 import '../bindings/bindings.dart';
 import '../bindings/tensorflow_lite_bindings_generated.dart';
@@ -25,6 +26,7 @@ import '../custom_ops/transpose_conv_bias.dart';
 /// LiteRT interpreter options.
 class InterpreterOptions {
   final Pointer<TfLiteInterpreterOptions> _options;
+  final List<Pointer<Char>> _customOpNames = [];
   bool _deleted = false;
 
   Pointer<TfLiteInterpreterOptions> get base => _options;
@@ -39,6 +41,10 @@ class InterpreterOptions {
   void delete() {
     checkState(!_deleted, message: 'InterpreterOptions already deleted.');
     tfliteBinding.TfLiteInterpreterOptionsDelete(_options);
+    for (final name in _customOpNames) {
+      calloc.free(name);
+    }
+    _customOpNames.clear();
     _deleted = true;
   }
 
@@ -51,6 +57,57 @@ class InterpreterOptions {
     tfliteBinding.TfLiteInterpreterOptionsAddDelegate(_options, delegate.base);
   }
 
+  /// Registers a custom op with these interpreter options.
+  ///
+  /// [registration] must point to a valid `TfLiteRegistration` returned by your
+  /// native custom-op library. The registration's contents must remain valid
+  /// for the lifetime of every interpreter created from these options.
+  ///
+  /// The op [name] must match the custom op name embedded in the `.tflite`
+  /// model. This method keeps the native op-name string alive until [delete].
+  ///
+  /// Call this before creating the interpreter.
+  ///
+  /// Example:
+  /// ```dart
+  /// final options = InterpreterOptions();
+  /// options.addCustomOp(
+  ///   name: 'MyCustomOpName',
+  ///   registration: registrationPointer,
+  /// );
+  /// final interpreter = await Interpreter.fromAsset('model.tflite', options: options);
+  /// ```
+  void addCustomOp<T extends NativeType>({
+    required String name,
+    required Pointer<T> registration,
+    int minVersion = 1,
+    int maxVersion = 1,
+  }) {
+    checkState(!_deleted, message: 'InterpreterOptions already deleted.');
+    checkArgument(
+      name.isNotEmpty,
+      message: 'Custom op name must not be empty.',
+    );
+    checkArgument(
+      minVersion >= 1,
+      message: 'minVersion must be greater than or equal to 1.',
+    );
+    checkArgument(
+      maxVersion >= minVersion,
+      message: 'maxVersion must be greater than or equal to minVersion.',
+    );
+
+    final opName = name.toNativeUtf8().cast<Char>();
+    _customOpNames.add(opName);
+    tfliteBinding.TfLiteInterpreterOptionsAddCustomOp(
+      _options,
+      opName,
+      registration.cast<TfLiteRegistration>(),
+      minVersion,
+      maxVersion,
+    );
+  }
+
   /// Registers MediaPipe custom ops (like Convolution2DTransposeBias).
   ///
   /// Call this before creating an interpreter for MediaPipe models that use
@@ -60,7 +117,7 @@ class InterpreterOptions {
   /// ```dart
   /// final options = InterpreterOptions();
   /// options.addMediaPipeCustomOps();
-  /// final interpreter = Interpreter.fromAsset('model.tflite', options: options);
+  /// final interpreter = await Interpreter.fromAsset('model.tflite', options: options);
   /// ```
   void addMediaPipeCustomOps() {
     TransposeConvBiasOp.registerWithOptions(_options);

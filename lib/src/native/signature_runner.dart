@@ -347,7 +347,8 @@ class SignatureRunner {
 
   /// Duration of the most recent invocation in microseconds.
   ///
-  /// Only meaningful after at least one call to [run] or [invoke].
+  /// Only meaningful after at least one call to [run]. Calling [invoke]
+  /// directly does not update this value.
   int get lastInferenceDurationMicroseconds =>
       _lastInferenceDurationMicroseconds;
 

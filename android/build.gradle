@@ -42,6 +42,20 @@ android {
     }
 }
 
+// Built-in Kotlin (AGP 8.11+/9) adds a Kotlin compile task to this module
+// even though it has no Kotlin sources; it defaults to JVM 21 and clashes
+// with the Java 17 target ("Inconsistent JVM-target ... (17) and (21)").
+// Pin the Kotlin target to 17 when the Kotlin extension is present. Older
+// toolchains that don't register it are skipped, avoiding any dependency on
+// the newer kotlin {} / compilerOptions DSL there.
+if (project.extensions.findByName("kotlin") != null) {
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        }
+    }
+}
+
 
 dependencies {
     def litert_version = "1.4.1"

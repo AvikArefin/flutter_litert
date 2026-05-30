@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_litert'
-  s.version          = '2.7.0'
+  s.version          = '2.8.0'
   s.summary          = 'LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.'
   s.description      = <<-DESC
 LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
@@ -135,8 +135,16 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
     'OTHER_LDFLAGS' => '$(inherited) -ObjC -all_load'
   })
 
+  # TFLite's C symbols are resolved at runtime via dlsym(RTLD_DEFAULT, ...) with
+  # no compile-time references in app code. App Store / TestFlight builds strip
+  # aggressively and drop these "unreferenced" symbols, so the app crashes with
+  # "Failed to lookup symbol 'TfLiteInterpreterOptionsCreate'" on distribution
+  # builds even though `flutter run --release` over USB works (#8, #9). Disable
+  # the stripping that removes them on the consuming app target.
   s.user_target_xcconfig = {
-    'OTHER_LDFLAGS' => '$(inherited) -ObjC'
+    'OTHER_LDFLAGS' => '$(inherited) -ObjC',
+    'DEAD_CODE_STRIPPING' => 'NO',
+    'STRIP_STYLE' => 'non-global'
   }
   s.swift_version = '5.0'
 end

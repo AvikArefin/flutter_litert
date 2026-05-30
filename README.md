@@ -48,7 +48,7 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.7.0
+  flutter_litert: ^2.8.0
 ```
 
 That's it for native platforms.
@@ -123,7 +123,7 @@ Packages built on flutter_litert:
 | Platform | Runtime | Version   | Bundling |
 |----------|---------|-----------|----------|
 | Android | LiteRT | 1.4.1     | Maven dependency, built automatically via Gradle |
-| iOS | TensorFlow Lite | 2.20.0    | Vendored xcframeworks, linked via CocoaPods |
+| iOS | TensorFlow Lite | 2.20.0    | xcframeworks via SPM (remote binary targets) or CocoaPods (vendored) |
 | macOS | TensorFlow Lite (C API) | 2.20.0    | Pre-built dylib, bundled via CocoaPods |
 | Windows | TensorFlow Lite (C API) | 2.20.0    | DLL bundled via CMake |
 | Linux | TensorFlow Lite (C API) | 2.20.0    | Shared library bundled via CMake |
@@ -640,7 +640,7 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.7.0
+  flutter_litert: ^2.8.0
   flutter_litert_flex: ^1.1.0
 ```
 

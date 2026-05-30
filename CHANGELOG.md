@@ -1,3 +1,15 @@
+## 2.8.0
+
+* Fix the "Inconsistent JVM-target compatibility detected ... (17) and (21)"
+  Android build failure under AGP 9 / Flutter 3.44+ (#10). The fix pins the
+  Kotlin JVM target to 17 only when AGP >= 9 is in use, so older Flutter/AGP
+  toolchains are unaffected and the minimum supported versions are unchanged.
+* Fix iOS "Failed to lookup symbol 'TfLiteInterpreterOptionsCreate'" crash on
+  App Store / TestFlight builds (#8, #9). The TFLite C symbols are resolved at
+  runtime via dlsym and were stripped during App Store distribution; the
+  CocoaPods podspec now disables that stripping on the app target so no manual
+  Xcode build-setting changes are required.
+
 ## 2.7.0
 
 * Add `InterpreterOptions.addCustomOp(...)`: high-level method for registering

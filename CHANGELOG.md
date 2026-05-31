@@ -1,3 +1,16 @@
+## 2.8.1
+
+* Complete the AGP 9 / built-in Kotlin fix from 2.8.0 (#10). 2.8.0 resolved the
+  "Inconsistent JVM-target ... (17) and (21)" error on the AGP 8.11 transitional
+  path, but a full migration to `android.builtInKotlin=true` on AGP 9 still
+  failed with "The 'org.jetbrains.kotlin.android' plugin is no longer required
+  since AGP 9.0": the Flutter Gradle plugin auto-applies the legacy Kotlin
+  plugin to this module, and AGP 9 rejects it. The plugin now applies
+  `kotlin-android` only on AGP < 9 (which also stops Flutter from auto-applying
+  it), and keeps the JVM-target pin guarded so the AGP-9-without-built-in-Kotlin
+  case is skipped. Verified building against AGP 8.11.1 and 9.0.1 with built-in
+  Kotlin both enabled and disabled.
+
 ## 2.8.0
 
 * Fix the "Inconsistent JVM-target compatibility detected ... (17) and (21)"

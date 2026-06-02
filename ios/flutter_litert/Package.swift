@@ -8,7 +8,7 @@ let package = Package(
         .iOS("13.0")
     ],
     products: [
-        .library(name: "flutter-litert", targets: ["flutter_litert"])
+        .library(name: "flutter-litert", type: .dynamic, targets: ["flutter_litert"])
     ],
     dependencies: [
         .package(name: "FlutterFramework", path: "../FlutterFramework")
@@ -50,6 +50,8 @@ let package = Package(
                 .target(name: "TensorFlowLiteC"),
                 .target(name: "TensorFlowLiteCMetal"),
                 .target(name: "TensorFlowLiteCCoreML"),
+                .target(name: "flutter_litert_delegate_symbols"),
+                .target(name: "flutter_litert_custom_ops"),
                 .product(name: "FlutterFramework", package: "FlutterFramework"),
             ],
             path: "Sources/flutter_litert",
@@ -63,6 +65,24 @@ let package = Package(
                 .linkedLibrary("c++"),
                 .unsafeFlags(["-ObjC"]),
             ]
+        ),
+        .target(
+            name: "flutter_litert_delegate_symbols",
+            dependencies: [
+                .target(name: "TensorFlowLiteC"),
+                .target(name: "TensorFlowLiteCMetal"),
+                .target(name: "TensorFlowLiteCCoreML"),
+            ],
+            path: "Sources/flutter_litert_delegate_symbols",
+            publicHeadersPath: "include"
+        ),
+        .target(
+            name: "flutter_litert_custom_ops",
+            dependencies: [
+                .target(name: "TensorFlowLiteC"),
+            ],
+            path: "Sources/flutter_litert_custom_ops",
+            publicHeadersPath: "include"
         )
     ]
 )

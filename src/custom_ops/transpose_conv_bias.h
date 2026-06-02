@@ -21,7 +21,10 @@
 #define TFLITE_FLUTTER_CUSTOM_TRANSPOSE_CONV_BIAS_H_
 
 // Platform-specific TFLite header includes
-#if (defined(__APPLE__) && TARGET_OS_IOS) || defined(TFLITE_USE_FRAMEWORK_HEADERS)
+#if defined(TFLITE_USE_LOCAL_HEADERS)
+#include "../tensorflow_lite/common.h"
+#include "../tensorflow_lite/c_api.h"
+#elif (defined(__APPLE__) && TARGET_OS_IOS) || defined(TFLITE_USE_FRAMEWORK_HEADERS)
 // iOS: Use framework headers from CocoaPods
 #include <TensorFlowLiteC/TensorFlowLiteC.h>
 #else

@@ -19,6 +19,14 @@ example/flex_test_host/
 # only example-source cloners need them, and they get them from GitHub.
 example/assets/
 
+# Local delegate benchmark harnesses. Keep them in the repository for
+# repeatable profiling without shipping machine-specific paths to pub.dev.
+example/integration_test/coreml_model_sweep_test.dart
+example/integration_test/full_delegate_sweep_test.dart
+example/integration_test/gpu_fp16_test.dart
+example/integration_test/ios_delegate_sweep_test.dart
+example/lib/ios_sweep_main.dart
+
 # Old example subdirectories (leftover from tflite_flutter)
 example/live_object_detection_ssd_mobilenet/
 example/reinforcement_learning/
@@ -26,6 +34,7 @@ example/text_classification/
 
 # Dev/CI files
 .github/
+.claude/
 makefile
 melos.yaml
 scripts/

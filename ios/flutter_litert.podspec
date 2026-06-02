@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_litert'
-  s.version          = '2.8.0'
+  s.version          = '2.8.2'
   s.summary          = 'LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.'
   s.description      = <<-DESC
 LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
@@ -22,9 +22,6 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
   # Include Swift plugin and forwarder C file (which #includes the actual sources)
   s.source_files = 'Classes/**/*'
 
-  # Preserve paths for header includes (these won't be compiled, just available for #include)
-  s.preserve_paths = '../src/tensorflow_lite/**/*.h', '../src/custom_ops/**/*.h'
-
   s.dependency 'Flutter'
 
   # System frameworks required by TFLite and its delegates
@@ -38,7 +35,7 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
   common_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
-    'GCC_PREPROCESSOR_DEFINITIONS' => '$(inherited) TFLITE_USE_FRAMEWORK_HEADERS=1',
+    'GCC_PREPROCESSOR_DEFINITIONS' => '$(inherited) TFLITE_USE_FRAMEWORK_HEADERS=1 FLUTTER_LITERT_COCOAPODS=1',
     'GCC_SYMBOLS_PRIVATE_EXTERN' => 'NO',
     'HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/../src" "${PODS_TARGET_SRCROOT}/../src/custom_ops"',
   }
@@ -135,12 +132,10 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
     'OTHER_LDFLAGS' => '$(inherited) -ObjC -all_load'
   })
 
-  # TFLite's C symbols are resolved at runtime via dlsym(RTLD_DEFAULT, ...) with
-  # no compile-time references in app code. App Store / TestFlight builds strip
-  # aggressively and drop these "unreferenced" symbols, so the app crashes with
-  # "Failed to lookup symbol 'TfLiteInterpreterOptionsCreate'" on distribution
-  # builds even though `flutter run --release` over USB works (#8, #9). Disable
-  # the stripping that removes them on the consuming app target.
+  # TFLite's C symbols are resolved at runtime via dlsym(RTLD_DEFAULT, ...).
+  # Classes/tflite_ffi_symbols.c provides compile-time references for every
+  # packaged C API. Keep these app-target settings as defense in depth against
+  # App Store / TestFlight post-processing stripping global symbols (#8, #9).
   s.user_target_xcconfig = {
     'OTHER_LDFLAGS' => '$(inherited) -ObjC',
     'DEAD_CODE_STRIPPING' => 'NO',

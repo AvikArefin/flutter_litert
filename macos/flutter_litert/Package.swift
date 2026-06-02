@@ -22,6 +22,8 @@ let package = Package(
             resources: [
                 .copy("Resources/libtensorflowlite_c-mac.dylib"),
                 .copy("Resources/libtflite_custom_ops.dylib"),
+                .copy("Resources/libtensorflowlite_gpu-mac.dylib"),
+                .copy("Resources/libtensorflowlite_coreml-mac.dylib"),
                 .process("PrivacyInfo.xcprivacy"),
             ]
         )

@@ -14,6 +14,13 @@ import 'performance_config.dart';
 /// Factory for creating interpreter options with the package's platform
 /// delegate mapping.
 class InterpreterFactory {
+  static void _warnDelegateFallback(String delegateName, Object error) {
+    stderr.writeln(
+      'flutter_litert: failed to initialize the $delegateName delegate; '
+      'falling back to CPU. Error: $error',
+    );
+  }
+
   /// Creates [InterpreterOptions] and an optional [Delegate] based on [config].
   static (InterpreterOptions, Delegate?) create(
     PerformanceConfig? config, {
@@ -85,11 +92,15 @@ class InterpreterFactory {
     }
     try {
       final xnnOpts = XNNPackDelegateOptions(numThreads: threadCount);
-      final xnnpackDelegate = XNNPackDelegate(options: xnnOpts);
-      xnnOpts.delete();
-      options.addDelegate(xnnpackDelegate);
-      return (options, xnnpackDelegate);
-    } catch (_) {
+      try {
+        final xnnpackDelegate = XNNPackDelegate(options: xnnOpts);
+        options.addDelegate(xnnpackDelegate);
+        return (options, xnnpackDelegate);
+      } finally {
+        xnnOpts.delete();
+      }
+    } catch (error) {
+      _warnDelegateFallback('XNNPACK', error);
       return (options, null);
     }
   }
@@ -106,7 +117,8 @@ class InterpreterFactory {
           : GpuDelegateV2() as Delegate;
       options.addDelegate(gpuDelegate);
       return (options, gpuDelegate);
-    } catch (_) {
+    } catch (error) {
+      _warnDelegateFallback('GPU', error);
       return (options, null);
     }
   }
@@ -119,11 +131,15 @@ class InterpreterFactory {
     }
     try {
       final coreOpts = CoreMlDelegateOptions(enabledDevices: 1);
-      final coremlDelegate = CoreMlDelegate(options: coreOpts);
-      coreOpts.delete();
-      options.addDelegate(coremlDelegate);
-      return (options, coremlDelegate);
-    } catch (_) {
+      try {
+        final coremlDelegate = CoreMlDelegate(options: coreOpts);
+        options.addDelegate(coremlDelegate);
+        return (options, coremlDelegate);
+      } finally {
+        coreOpts.delete();
+      }
+    } catch (error) {
+      _warnDelegateFallback('CoreML', error);
       return (options, null);
     }
   }

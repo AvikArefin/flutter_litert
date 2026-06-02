@@ -1,3 +1,19 @@
+## 2.8.2
+
+* Fix GPU and CoreML delegates silently falling back to CPU on macOS and iOS
+  (#11). macOS now bundles the GPU/CoreML dylibs that were previously omitted
+  from the Swift Package manifest. iOS retains all 212 packaged LiteRT, Metal,
+  and CoreML symbols that Dart FFI resolves but linker stripping would otherwise
+  drop. They are kept through a generated anchor on both CocoaPods and SPM, plus
+  an embedded dynamic SPM framework so they survive App Store archive stripping.
+  This extends the 2.8.0 mitigation (#8, #9) to every packaged API.
+* Log delegate initialization failures before falling back to CPU. A packaging
+  regression can no longer masquerade as unexpectedly slow GPU/CoreML
+  performance.
+* On Apple Silicon the Metal GPU is substantially faster for conv-heavy models
+  once actually loaded (for example, selfie segmentation ~27ms -> ~3ms versus
+  XNNPACK).
+
 ## 2.8.1
 
 * Complete the AGP 9 / built-in Kotlin fix from 2.8.0 (#10). 2.8.0 resolved the

@@ -35,7 +35,7 @@ import 'delegate_library_loader.dart';
 ///
 /// ```yaml
 /// dependencies:
-///   flutter_litert: ^2.8.0
+///   flutter_litert: ^2.8.3
 ///   flutter_litert_flex: ^1.1.0
 /// ```
 ///

@@ -1,3 +1,8 @@
+## 2.8.3
+
+* Android: support both AGP 8 and AGP 9 by moving the plugin Gradle files to
+  Kotlin DSL and updating the Android tooling plugin declarations (6c332e3b).
+
 ## 2.8.2
 
 * Fix GPU and CoreML delegates silently falling back to CPU on macOS and iOS

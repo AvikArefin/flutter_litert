@@ -30,5 +30,9 @@ LiteRT (formerly TensorFlow Lite) Flutter plugin with MediaPipe custom operation
     'flutter_litert/Sources/flutter_litert/Resources/libtflite_custom_ops.dylib',
     'flutter_litert/Sources/flutter_litert/Resources/libtensorflowlite_gpu-mac.dylib',
     'flutter_litert/Sources/flutter_litert/Resources/libtensorflowlite_coreml-mac.dylib',
+    # LiteRT Next runtime + Metal GPU accelerator (CompiledModel API).
+    # dlopen'd at runtime, so shipped as resources like the delegate dylibs above.
+    'flutter_litert/Sources/flutter_litert/Resources/libLiteRt.dylib',
+    'flutter_litert/Sources/flutter_litert/Resources/libLiteRtMetalAccelerator.dylib',
   ]
 end

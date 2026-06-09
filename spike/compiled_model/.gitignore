@@ -1,0 +1,7 @@
+# Prebuilt LiteRT runtime + accelerator libs are not committed (extract from the
+# PyPI `ai-edge-litert` 2.1.5 wheel for your platform). See README.md.
+*.dylib
+*.so
+*.dll
+.dart_tool/
+pubspec.lock

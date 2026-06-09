@@ -24,6 +24,8 @@ let package = Package(
                 .copy("Resources/libtflite_custom_ops.dylib"),
                 .copy("Resources/libtensorflowlite_gpu-mac.dylib"),
                 .copy("Resources/libtensorflowlite_coreml-mac.dylib"),
+                .copy("Resources/libLiteRt.dylib"),
+                .copy("Resources/libLiteRtMetalAccelerator.dylib"),
                 .process("PrivacyInfo.xcprivacy"),
             ]
         )

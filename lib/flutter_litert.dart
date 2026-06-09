@@ -6,6 +6,8 @@
 library;
 
 export 'src/all_native.dart' if (dart.library.js_interop) 'src/all_web.dart';
+export 'src/compiled_model/compiled_model.dart'
+    show Accelerator, CompiledModel, Precision;
 export 'src/isolate_interpreter_state.dart';
 export 'src/quantization_params.dart';
 export 'src/util/list_shape_extension.dart';

@@ -44,6 +44,26 @@ class CompiledModel {
     throw UnsupportedError('CompiledModel is not supported on this platform.');
   }
 
+  /// Number of model input tensors.
+  int get inputCount => throw UnsupportedError(
+    'CompiledModel is not supported on this platform.',
+  );
+
+  /// Number of model output tensors.
+  int get outputCount => throw UnsupportedError(
+    'CompiledModel is not supported on this platform.',
+  );
+
+  /// Byte size of each input tensor buffer.
+  List<int> get inputByteSizes => throw UnsupportedError(
+    'CompiledModel is not supported on this platform.',
+  );
+
+  /// Byte size of each output tensor buffer.
+  List<int> get outputByteSizes => throw UnsupportedError(
+    'CompiledModel is not supported on this platform.',
+  );
+
   /// Runs inference with Float32 input tensors and returns Float32 outputs.
   List<Float32List> run(List<Float32List> inputs) {
     throw UnsupportedError('CompiledModel is not supported on this platform.');

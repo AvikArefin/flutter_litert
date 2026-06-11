@@ -95,3 +95,8 @@ litert_flex/
 # FVM Version Cache
 .fvm/
 .fvmrc
+email_drafts/
+
+# SwiftPM build state (created by Xcode/SourceKit when indexing Package.swift)
+ios/flutter_litert/.build/
+macos/flutter_litert/.build/

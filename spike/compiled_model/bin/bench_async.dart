@@ -51,122 +51,82 @@ double _bench(
   required int warmup,
   required int iters,
 }) {
-  final createEnv = _rt
-      .lookupFunction<
-        Int32 Function(Int32, _P, _PP),
-        int Function(int, _P, _PP)
-      >('LiteRtCreateEnvironment');
+  final createEnv = _rt.lookupFunction<Int32 Function(Int32, _P, _PP),
+      int Function(int, _P, _PP)>('LiteRtCreateEnvironment');
   final createOpts = _rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
     'LiteRtCreateOptions',
   );
-  final setAccel = _rt
-      .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-        'LiteRtSetOptionsHardwareAccelerators',
-      );
-  final modelFromFile = _rt
-      .lookupFunction<
-        Int32 Function(Pointer<Utf8>, _PP),
-        int Function(Pointer<Utf8>, _PP)
-      >('LiteRtCreateModelFromFile');
-  final createCM = _rt
-      .lookupFunction<
-        Int32 Function(_P, _P, _P, _PP),
-        int Function(_P, _P, _P, _PP)
-      >('LiteRtCreateCompiledModel');
-  final getSig = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, _PP),
-        int Function(_P, int, _PP)
-      >('LiteRtGetModelSignature');
-  final numIn = _rt
-      .lookupFunction<
-        Int32 Function(_P, Pointer<IntPtr>),
-        int Function(_P, Pointer<IntPtr>)
-      >('LiteRtGetNumSignatureInputs');
-  final numOut = _rt
-      .lookupFunction<
-        Int32 Function(_P, Pointer<IntPtr>),
-        int Function(_P, Pointer<IntPtr>)
-      >('LiteRtGetNumSignatureOutputs');
-  final inTensorF = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, _PP),
-        int Function(_P, int, _PP)
-      >('LiteRtGetSignatureInputTensorByIndex');
-  final outTensorF = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, _PP),
-        int Function(_P, int, _PP)
-      >('LiteRtGetSignatureOutputTensorByIndex');
-  final rankedType = _rt
-      .lookupFunction<
-        Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-        int Function(_P, Pointer<LiteRtRankedTensorType>)
-      >('LiteRtGetRankedTensorType');
-  final inReq = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, IntPtr, _PP),
-        int Function(_P, int, int, _PP)
-      >('LiteRtGetCompiledModelInputBufferRequirements');
-  final outReq = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, IntPtr, _PP),
-        int Function(_P, int, int, _PP)
-      >('LiteRtGetCompiledModelOutputBufferRequirements');
-  final createBuf = _rt
-      .lookupFunction<
-        Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
-        int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)
-      >('LiteRtCreateManagedTensorBufferFromRequirements');
-  final lock = _rt
-      .lookupFunction<
-        Int32 Function(_P, _PP, Int32),
-        int Function(_P, _PP, int)
-      >('LiteRtLockTensorBuffer');
+  final setAccel =
+      _rt.lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+    'LiteRtSetOptionsHardwareAccelerators',
+  );
+  final modelFromFile = _rt.lookupFunction<Int32 Function(Pointer<Utf8>, _PP),
+      int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile');
+  final createCM = _rt.lookupFunction<Int32 Function(_P, _P, _P, _PP),
+      int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel');
+  final getSig = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
+      int Function(_P, int, _PP)>('LiteRtGetModelSignature');
+  final numIn = _rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
+      int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs');
+  final numOut = _rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
+      int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs');
+  final inTensorF = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
+      int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex');
+  final outTensorF = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
+      int Function(_P, int, _PP)>('LiteRtGetSignatureOutputTensorByIndex');
+  final rankedType = _rt.lookupFunction<
+      Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
+      int Function(
+          _P, Pointer<LiteRtRankedTensorType>)>('LiteRtGetRankedTensorType');
+  final inReq = _rt.lookupFunction<
+      Int32 Function(_P, IntPtr, IntPtr, _PP),
+      int Function(
+          _P, int, int, _PP)>('LiteRtGetCompiledModelInputBufferRequirements');
+  final outReq = _rt.lookupFunction<
+      Int32 Function(_P, IntPtr, IntPtr, _PP),
+      int Function(
+          _P, int, int, _PP)>('LiteRtGetCompiledModelOutputBufferRequirements');
+  final createBuf = _rt.lookupFunction<
+      Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
+      int Function(_P, Pointer<LiteRtRankedTensorType>, _P,
+          _PP)>('LiteRtCreateManagedTensorBufferFromRequirements');
+  final lock = _rt.lookupFunction<Int32 Function(_P, _PP, Int32),
+      int Function(_P, _PP, int)>('LiteRtLockTensorBuffer');
   final unlock = _rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
     'LiteRtUnlockTensorBuffer',
   );
-  final reqSize = _rt
-      .lookupFunction<
-        Int32 Function(_P, Pointer<IntPtr>),
-        int Function(_P, Pointer<IntPtr>)
-      >('LiteRtGetTensorBufferRequirementsBufferSize');
-  final getInLayout = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
-        int Function(_P, int, int, Pointer<LiteRtLayout>)
-      >('LiteRtGetCompiledModelInputTensorLayout');
-  final getOutLayouts = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
-        int Function(_P, int, int, Pointer<LiteRtLayout>, int)
-      >('LiteRtGetCompiledModelOutputTensorLayouts');
-  final runSync = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
-        int Function(_P, int, int, _PP, int, _PP)
-      >('LiteRtRunCompiledModel');
-  final runAsync = _rt
-      .lookupFunction<
-        Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP, Pointer<Uint8>),
-        int Function(_P, int, int, _PP, int, _PP, Pointer<Uint8>)
-      >('LiteRtRunCompiledModelAsync');
-  final hasEvent = _rt
-      .lookupFunction<
-        Int32 Function(_P, Pointer<Uint8>),
-        int Function(_P, Pointer<Uint8>)
-      >('LiteRtHasTensorBufferEvent');
-  final getEvent = _rt
-      .lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
-        'LiteRtGetTensorBufferEvent',
-      );
+  final reqSize = _rt.lookupFunction<
+      Int32 Function(_P, Pointer<IntPtr>),
+      int Function(
+          _P, Pointer<IntPtr>)>('LiteRtGetTensorBufferRequirementsBufferSize');
+  final getInLayout = _rt.lookupFunction<
+      Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
+      int Function(_P, int, int,
+          Pointer<LiteRtLayout>)>('LiteRtGetCompiledModelInputTensorLayout');
+  final getOutLayouts = _rt.lookupFunction<
+      Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
+      int Function(_P, int, int, Pointer<LiteRtLayout>,
+          int)>('LiteRtGetCompiledModelOutputTensorLayouts');
+  final runSync = _rt.lookupFunction<
+      Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
+      int Function(_P, int, int, _PP, int, _PP)>('LiteRtRunCompiledModel');
+  final runAsync = _rt.lookupFunction<
+      Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP, Pointer<Uint8>),
+      int Function(_P, int, int, _PP, int, _PP,
+          Pointer<Uint8>)>('LiteRtRunCompiledModelAsync');
+  final hasEvent = _rt.lookupFunction<Int32 Function(_P, Pointer<Uint8>),
+      int Function(_P, Pointer<Uint8>)>('LiteRtHasTensorBufferEvent');
+  final getEvent =
+      _rt.lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
+    'LiteRtGetTensorBufferEvent',
+  );
   final clearEvent = _rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
     'LiteRtClearTensorBufferEvent',
   );
-  final waitEvent = _rt
-      .lookupFunction<Int32 Function(_P, Int64), int Function(_P, int)>(
-        'LiteRtWaitEvent',
-      );
+  final waitEvent =
+      _rt.lookupFunction<Int32 Function(_P, Int64), int Function(_P, int)>(
+    'LiteRtWaitEvent',
+  );
   void ck(String w, int s) {
     if (s != kOk) throw StateError('$w → $s');
   }

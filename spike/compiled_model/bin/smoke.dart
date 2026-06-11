@@ -8,8 +8,8 @@ import 'package:ffi/ffi.dart';
 const int kOk = 0;
 const int kCpu = 1; // kLiteRtHwAcceleratorCpu = 1 << 0
 
-typedef _CreateEnvC =
-    Int32 Function(Int32, Pointer<Void>, Pointer<Pointer<Void>>);
+typedef _CreateEnvC = Int32 Function(
+    Int32, Pointer<Void>, Pointer<Pointer<Void>>);
 typedef _CreateEnv = int Function(int, Pointer<Void>, Pointer<Pointer<Void>>);
 
 typedef _CreateOptsC = Int32 Function(Pointer<Pointer<Void>>);
@@ -21,20 +21,18 @@ typedef _SetAccel = int Function(Pointer<Void>, int);
 typedef _ModelFromFileC = Int32 Function(Pointer<Utf8>, Pointer<Pointer<Void>>);
 typedef _ModelFromFile = int Function(Pointer<Utf8>, Pointer<Pointer<Void>>);
 
-typedef _CreateCMC =
-    Int32 Function(
-      Pointer<Void>,
-      Pointer<Void>,
-      Pointer<Void>,
-      Pointer<Pointer<Void>>,
-    );
-typedef _CreateCM =
-    int Function(
-      Pointer<Void>,
-      Pointer<Void>,
-      Pointer<Void>,
-      Pointer<Pointer<Void>>,
-    );
+typedef _CreateCMC = Int32 Function(
+  Pointer<Void>,
+  Pointer<Void>,
+  Pointer<Void>,
+  Pointer<Pointer<Void>>,
+);
+typedef _CreateCM = int Function(
+  Pointer<Void>,
+  Pointer<Void>,
+  Pointer<Void>,
+  Pointer<Pointer<Void>>,
+);
 
 typedef _DestroyC = Void Function(Pointer<Void>);
 typedef _Destroy = void Function(Pointer<Void>);

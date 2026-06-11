@@ -24,7 +24,6 @@ import '../bindings/litert_ffi.dart';
 import '../bindings/litert_loader.dart';
 
 const int _kLiteRtStatusOk = 0;
-const int _kLiteRtStatusErrorTimeoutExpired = 7;
 const int _kLiteRtHwAcceleratorCpu = 1;
 const int _kLiteRtHwAcceleratorGpu = 2;
 const int _kLiteRtHwAcceleratorNpu = 4;
@@ -32,18 +31,29 @@ const int _kLiteRtElementTypeFloat32 = 1;
 const int _kLiteRtTensorBufferLockModeRead = 0;
 const int _kLiteRtTensorBufferLockModeWrite = 1;
 const int _kLiteRtDelegatePrecisionFp32 = 2;
-const int _kRankedTensorTypeLayoutOffset = 4;
-const int _kLiteRtLayoutSize = 68;
 const int _kLiteRtAnySize = 16;
 const int _kLiteRtAnyValueOffset = 8;
 const int _kLiteRtEnvOptionSize = 24;
 const int _kLiteRtEnvOptionValueOffset = 8;
+const int _kHostMemoryAlignment = 64;
 
 /// Hardware accelerator requested for LiteRT Next compilation.
 enum Accelerator { cpu, gpu, npu }
 
 /// GPU precision mode for LiteRT Next compilation.
 enum Precision { fp16, fp32 }
+
+/// Tensor buffer allocation mode for CompiledModel I/O.
+///
+/// [managed] uses LiteRT-managed buffers and copies host data through the
+/// documented lock/write/unlock and lock/read/unlock path. [hostMemory] wraps
+/// package-owned, 64-byte-aligned host memory with
+/// `LiteRtCreateTensorBufferFromHostMemory`.
+///
+/// Host-memory buffers are opt-in because performance is model- and
+/// accelerator-dependent: they can reduce lock/copy overhead for some strict
+/// GPU models, but are slower for others.
+enum TensorBufferMode { managed, hostMemory }
 
 /// LiteRT Next CompiledModel inference API.
 class CompiledModel {
@@ -56,8 +66,13 @@ class CompiledModel {
     this._compiledModel,
     this._inputBuffers,
     this._outputBuffers,
+    this._inputHostMemory,
+    this._outputHostMemory,
+    this._hostMemoryAllocations,
     this._inputByteSizes,
     this._outputByteSizes,
+    this._tensorBufferMode,
+    this._accelerators,
     this._gpuOptionsIdentifier,
   ) : _inputCount = _inputByteSizes.length,
       _outputCount = _outputByteSizes.length;
@@ -70,8 +85,13 @@ class CompiledModel {
   final Pointer<Void> _compiledModel;
   final Pointer<Pointer<Void>> _inputBuffers;
   final Pointer<Pointer<Void>> _outputBuffers;
+  final List<_HostMemoryAllocation?> _inputHostMemory;
+  final List<_HostMemoryAllocation?> _outputHostMemory;
+  final List<_HostMemoryAllocation> _hostMemoryAllocations;
   final List<int> _inputByteSizes;
   final List<int> _outputByteSizes;
+  final TensorBufferMode _tensorBufferMode;
+  final Set<Accelerator> _accelerators;
   final Pointer<Utf8>? _gpuOptionsIdentifier;
   final int _inputCount;
   final int _outputCount;
@@ -90,15 +110,29 @@ class CompiledModel {
   /// Byte size of each output tensor's managed buffer, index-aligned with [run]'s result.
   List<int> get outputByteSizes => List.unmodifiable(_outputByteSizes);
 
+  /// Tensor buffer allocation mode used by this model.
+  TensorBufferMode get tensorBufferMode => _tensorBufferMode;
+
+  /// Accelerators this model was compiled with.
+  ///
+  /// This is the set requested at creation that compilation succeeded with.
+  /// LiteRT has no public API to report per-op placement, so when the set
+  /// includes [Accelerator.cpu] as a fallback, individual ops may still run
+  /// on the CPU. Callers implementing their own GPU-to-CPU retry should use
+  /// this to surface which configuration actually compiled.
+  Set<Accelerator> get accelerators => Set.unmodifiable(_accelerators);
+
   /// Creates a compiled model from a model file.
   static CompiledModel fromFile(
     String path, {
     Set<Accelerator> accelerators = const {Accelerator.cpu},
     Precision precision = Precision.fp16,
+    TensorBufferMode tensorBufferMode = TensorBufferMode.managed,
   }) {
     return _fromSource(
       accelerators: accelerators,
       precision: precision,
+      tensorBufferMode: tensorBufferMode,
       createModel: (rt) => _createModelFromFile(rt, path),
     );
   }
@@ -111,10 +145,12 @@ class CompiledModel {
     Uint8List bytes, {
     Set<Accelerator> accelerators = const {Accelerator.cpu},
     Precision precision = Precision.fp16,
+    TensorBufferMode tensorBufferMode = TensorBufferMode.managed,
   }) {
     return _fromSource(
       accelerators: accelerators,
       precision: precision,
+      tensorBufferMode: tensorBufferMode,
       createModel: (rt) => _createModelFromBuffer(rt, bytes),
     );
   }
@@ -122,6 +158,7 @@ class CompiledModel {
   static CompiledModel _fromSource({
     required Set<Accelerator> accelerators,
     required Precision precision,
+    required TensorBufferMode tensorBufferMode,
     required _ModelSource Function(LiteRtBindings rt) createModel,
   }) {
     _checkStructLayouts();
@@ -138,6 +175,9 @@ class CompiledModel {
     Pointer<Utf8>? gpuOptionsIdentifier;
     var createdInputBuffers = 0;
     var createdOutputBuffers = 0;
+    final inputHostMemory = <_HostMemoryAllocation?>[];
+    final outputHostMemory = <_HostMemoryAllocation?>[];
+    final hostMemoryAllocations = <_HostMemoryAllocation>[];
 
     try {
       environment = _createEnvironment(rt);
@@ -165,6 +205,9 @@ class CompiledModel {
           signature,
           i,
           inputByteSizes,
+          tensorBufferMode,
+          inputHostMemory,
+          hostMemoryAllocations,
         );
         inputBuffers[i] = buffer;
         createdInputBuffers++;
@@ -172,7 +215,9 @@ class CompiledModel {
 
       outputBuffers = calloc<Pointer<Void>>(outputCount);
       final outputByteSizes = <int>[];
-      final outputLayouts = calloc<LiteRtLayout>(outputCount);
+      final outputLayouts = calloc<Uint8>(
+        outputCount * kLiteRtLayoutByteSize,
+      ).cast<LiteRtLayout>();
       try {
         _check(
           'LiteRtGetCompiledModelOutputTensorLayouts',
@@ -191,8 +236,12 @@ class CompiledModel {
             compiledModel,
             signature,
             i,
-            outputLayouts + i,
+            (outputLayouts.cast<Uint8>() + i * kLiteRtLayoutByteSize)
+                .cast<LiteRtLayout>(),
             outputByteSizes,
+            tensorBufferMode,
+            outputHostMemory,
+            hostMemoryAllocations,
           );
           outputBuffers[i] = buffer;
           createdOutputBuffers++;
@@ -210,8 +259,13 @@ class CompiledModel {
         compiledModel,
         inputBuffers,
         outputBuffers,
+        inputHostMemory,
+        outputHostMemory,
+        hostMemoryAllocations,
         inputByteSizes,
         outputByteSizes,
+        tensorBufferMode,
+        Set.of(accelerators),
         gpuOptionsIdentifier,
       );
     } catch (_) {
@@ -227,6 +281,7 @@ class CompiledModel {
         options: options,
         environment: environment,
         gpuOptionsIdentifier: gpuOptionsIdentifier,
+        hostMemoryAllocations: hostMemoryAllocations,
       );
       rethrow;
     }
@@ -247,6 +302,13 @@ class CompiledModel {
       _writeInput(i, inputs[i]);
     }
 
+    _dispatch();
+
+    return List<Float32List>.generate(_outputCount, _readOutput);
+  }
+
+  void _dispatch() {
+    _ensureOpen();
     _check(
       'LiteRtRunCompiledModel',
       _rt.runCompiledModel(
@@ -258,8 +320,6 @@ class CompiledModel {
         _outputBuffers,
       ),
     );
-
-    return List<Float32List>.generate(_outputCount, _readOutput);
   }
 
   /// Runs inference asynchronously when the selected accelerator supports it.
@@ -277,6 +337,68 @@ class CompiledModel {
       _writeInput(i, inputs[i]);
     }
 
+    await _dispatchAsync();
+
+    return List<Float32List>.generate(_outputCount, _readOutput);
+  }
+
+  /// Writes input [index] directly into this model's host-memory tensor buffer.
+  ///
+  /// This is available only when [tensorBufferMode] is
+  /// [TensorBufferMode.hostMemory]. [write] receives a [Float32List] view backed
+  /// by the model-owned 64-byte-aligned host memory passed to
+  /// `LiteRtCreateTensorBufferFromHostMemory`.
+  ///
+  /// Do not call this while a previous [dispatchAsync] is still pending. The
+  /// current implementation of [dispatchAsync] waits for completion before
+  /// returning, so sequential `writeInput` → `dispatchAsync` → `readOutput`
+  /// usage is safe.
+  void writeInput(int index, void Function(Float32List input) write) {
+    _ensureOpen();
+    _ensureHostMemoryMode('writeInput');
+    RangeError.checkValidIndex(index, this, 'index', _inputCount);
+    final hostMemory = _inputHostMemory[index]!;
+    write(hostMemory.asFloat32List(_inputByteSizes[index]));
+  }
+
+  /// Runs inference using inputs previously written with [writeInput].
+  ///
+  /// This is available only when [tensorBufferMode] is
+  /// [TensorBufferMode.hostMemory].
+  void dispatch() {
+    _ensureOpen();
+    _ensureHostMemoryMode('dispatch');
+    _dispatch();
+  }
+
+  /// Runs inference asynchronously using inputs previously written with
+  /// [writeInput].
+  ///
+  /// This is available only when [tensorBufferMode] is
+  /// [TensorBufferMode.hostMemory]. The returned future completes after output
+  /// events have completed or after the runtime reports synchronous completion.
+  Future<void> dispatchAsync() async {
+    _ensureOpen();
+    _ensureHostMemoryMode('dispatchAsync');
+    await _dispatchAsync();
+  }
+
+  /// Reads output [index] directly from this model's host-memory tensor buffer.
+  ///
+  /// This is available only when [tensorBufferMode] is
+  /// [TensorBufferMode.hostMemory]. [read] receives a [Float32List] view backed
+  /// by the model-owned host memory; use the callback to avoid allocating output
+  /// copies in hot paths.
+  R readOutput<R>(int index, R Function(Float32List output) read) {
+    _ensureOpen();
+    _ensureHostMemoryMode('readOutput');
+    RangeError.checkValidIndex(index, this, 'index', _outputCount);
+    final hostMemory = _outputHostMemory[index]!;
+    return read(hostMemory.asFloat32List(_outputByteSizes[index]));
+  }
+
+  Future<void> _dispatchAsync() async {
+    _ensureOpen();
     final asyncOut = calloc<Uint8>();
     try {
       _check(
@@ -293,12 +415,43 @@ class CompiledModel {
       );
 
       if (asyncOut.value != 0) {
-        await _waitForAsyncOutputs();
+        _waitForAsyncOutputs();
       }
-
-      return List<Float32List>.generate(_outputCount, _readOutput);
     } finally {
       calloc.free(asyncOut);
+    }
+  }
+
+  R _withLockedFloats<R>(
+    Pointer<Void> buffer,
+    int byteSize,
+    int lockMode,
+    String label,
+    R Function(Float32List) fn,
+  ) {
+    final hostAddress = calloc<Pointer<Void>>();
+    var locked = false;
+    try {
+      _check(
+        'LiteRtLockTensorBuffer $label',
+        _rt.lockTensorBuffer(buffer, hostAddress, lockMode),
+      );
+      locked = true;
+      final bytes = hostAddress.value.cast<Uint8>().asTypedList(byteSize);
+      final floats = Float32List.view(
+        bytes.buffer,
+        bytes.offsetInBytes,
+        byteSize ~/ sizeOf<Float>(),
+      );
+      return fn(floats);
+    } finally {
+      if (locked) {
+        _check(
+          'LiteRtUnlockTensorBuffer $label',
+          _rt.unlockTensorBuffer(buffer),
+        );
+      }
+      calloc.free(hostAddress);
     }
   }
 
@@ -317,13 +470,13 @@ class CompiledModel {
       options: _options,
       environment: _environment,
       gpuOptionsIdentifier: _gpuOptionsIdentifier,
+      hostMemoryAllocations: _hostMemoryAllocations,
     );
     _closed = true;
   }
 
   void _writeInput(int index, Float32List input) {
-    final expectedBytes = _inputByteSizes[index];
-    final expectedFloats = expectedBytes ~/ sizeOf<Float>();
+    final expectedFloats = _inputByteSizes[index] ~/ sizeOf<Float>();
     if (input.length != expectedFloats) {
       throw ArgumentError.value(
         input.length,
@@ -332,90 +485,49 @@ class CompiledModel {
       );
     }
 
-    final hostAddress = calloc<Pointer<Void>>();
-    var locked = false;
-    try {
-      _check(
-        'LiteRtLockTensorBuffer input[$index]',
-        _rt.lockTensorBuffer(
-          _inputBuffers[index],
-          hostAddress,
-          _kLiteRtTensorBufferLockModeWrite,
-        ),
-      );
-      locked = true;
-      final bytes = hostAddress.value.cast<Uint8>().asTypedList(expectedBytes);
-      final floats = Float32List.view(
-        bytes.buffer,
-        bytes.offsetInBytes,
-        expectedFloats,
-      );
-      floats.setAll(0, input);
-    } finally {
-      if (locked) {
-        _check(
-          'LiteRtUnlockTensorBuffer input[$index]',
-          _rt.unlockTensorBuffer(_inputBuffers[index]),
-        );
-      }
-      calloc.free(hostAddress);
+    final hostMemory = _inputHostMemory[index];
+    if (hostMemory != null) {
+      hostMemory.asFloat32List(_inputByteSizes[index]).setAll(0, input);
+      return;
     }
+
+    _withLockedFloats(
+      _inputBuffers[index],
+      _inputByteSizes[index],
+      _kLiteRtTensorBufferLockModeWrite,
+      'input[$index]',
+      (floats) => floats.setAll(0, input),
+    );
   }
 
-  Future<void> _waitForAsyncOutputs() async {
+  void _waitForAsyncOutputs() {
     final hasEvent = calloc<Uint8>();
     final eventOut = calloc<Pointer<Void>>();
-    final pending = List<bool>.filled(_outputCount, true);
-    var pendingCount = _outputCount;
-    var sawAnyEvent = false;
 
     try {
-      while (pendingCount > 0) {
-        _ensureOpen();
-        for (var i = 0; i < _outputCount; i++) {
-          if (!pending[i]) continue;
+      for (var i = 0; i < _outputCount; i++) {
+        hasEvent.value = 0;
+        _check(
+          'LiteRtHasTensorBufferEvent output[$i]',
+          _rt.hasTensorBufferEvent(_outputBuffers[i], hasEvent),
+        );
+        if (hasEvent.value == 0) continue;
 
-          hasEvent.value = 0;
-          _check(
-            'LiteRtHasTensorBufferEvent output[$i]',
-            _rt.hasTensorBufferEvent(_outputBuffers[i], hasEvent),
-          );
-          if (hasEvent.value == 0) {
-            if (sawAnyEvent) {
-              pending[i] = false;
-              pendingCount--;
-            }
-            continue;
-          }
-          sawAnyEvent = true;
+        eventOut.value = nullptr;
+        _check(
+          'LiteRtGetTensorBufferEvent output[$i]',
+          _rt.getTensorBufferEvent(_outputBuffers[i], eventOut),
+        );
+        if (eventOut.value == nullptr) continue;
 
-          eventOut.value = nullptr;
-          _check(
-            'LiteRtGetTensorBufferEvent output[$i]',
-            _rt.getTensorBufferEvent(_outputBuffers[i], eventOut),
-          );
-          if (eventOut.value == nullptr) {
-            pending[i] = false;
-            pendingCount--;
-            continue;
-          }
+        // Indefinite wait (-1), the same pattern the runtime itself uses for
+        // sync Run and TensorBuffer::Lock on event-carrying buffers.
+        _check('LiteRtWaitEvent output[$i]', _rt.waitEvent(eventOut.value, -1));
 
-          // Timeout 0 polls completion without blocking the Dart isolate.
-          final waitStatus = _rt.waitEvent(eventOut.value, 0);
-          if (waitStatus == _kLiteRtStatusErrorTimeoutExpired) continue;
-          _check('LiteRtWaitEvent output[$i]', waitStatus);
-
-          _check(
-            'LiteRtClearTensorBufferEvent output[$i]',
-            _rt.clearTensorBufferEvent(_outputBuffers[i]),
-          );
-          pending[i] = false;
-          pendingCount--;
-        }
-
-        if (pendingCount > 0) {
-          await Future<void>.delayed(Duration.zero);
-        }
+        _check(
+          'LiteRtClearTensorBufferEvent output[$i]',
+          _rt.clearTensorBufferEvent(_outputBuffers[i]),
+        );
       }
     } finally {
       calloc.free(eventOut);
@@ -424,36 +536,20 @@ class CompiledModel {
   }
 
   Float32List _readOutput(int index) {
-    final byteSize = _outputByteSizes[index];
-    final floatCount = byteSize ~/ sizeOf<Float>();
-    final hostAddress = calloc<Pointer<Void>>();
-    var locked = false;
-    try {
-      _check(
-        'LiteRtLockTensorBuffer output[$index]',
-        _rt.lockTensorBuffer(
-          _outputBuffers[index],
-          hostAddress,
-          _kLiteRtTensorBufferLockModeRead,
-        ),
+    final hostMemory = _outputHostMemory[index];
+    if (hostMemory != null) {
+      return Float32List.fromList(
+        hostMemory.asFloat32List(_outputByteSizes[index]),
       );
-      locked = true;
-      final bytes = hostAddress.value.cast<Uint8>().asTypedList(byteSize);
-      final floats = Float32List.view(
-        bytes.buffer,
-        bytes.offsetInBytes,
-        floatCount,
-      );
-      return Float32List.fromList(floats);
-    } finally {
-      if (locked) {
-        _check(
-          'LiteRtUnlockTensorBuffer output[$index]',
-          _rt.unlockTensorBuffer(_outputBuffers[index]),
-        );
-      }
-      calloc.free(hostAddress);
     }
+
+    return _withLockedFloats(
+      _outputBuffers[index],
+      _outputByteSizes[index],
+      _kLiteRtTensorBufferLockModeRead,
+      'output[$index]',
+      Float32List.fromList,
+    );
   }
 
   void _ensureOpen() {
@@ -461,6 +557,40 @@ class CompiledModel {
       throw StateError('CompiledModel is already closed.');
     }
   }
+
+  void _ensureHostMemoryMode(String method) {
+    if (_tensorBufferMode != TensorBufferMode.hostMemory) {
+      throw StateError(
+        'CompiledModel.$method requires '
+        'TensorBufferMode.${TensorBufferMode.hostMemory.name}.',
+      );
+    }
+  }
+}
+
+final class _HostMemoryAllocation {
+  _HostMemoryAllocation._(this.raw, this.aligned);
+
+  factory _HostMemoryAllocation.allocate(int byteSize) {
+    // calloc (zero-initialized): the official docs require delegate padding in
+    // the buffer to be "included and initialized".
+    final raw = calloc<Uint8>(byteSize + _kHostMemoryAlignment - 1);
+    final alignedAddress =
+        (raw.address + _kHostMemoryAlignment - 1) &
+        ~(_kHostMemoryAlignment - 1);
+    return _HostMemoryAllocation._(
+      raw,
+      Pointer<Uint8>.fromAddress(alignedAddress),
+    );
+  }
+
+  final Pointer<Uint8> raw;
+  final Pointer<Uint8> aligned;
+
+  Float32List asFloat32List(int byteSize) =>
+      aligned.cast<Float>().asTypedList(byteSize ~/ sizeOf<Float>());
+
+  void free() => calloc.free(raw);
 }
 
 Pointer<Void> _createEnvironment(LiteRtBindings rt) {
@@ -661,6 +791,9 @@ Pointer<Void> _createInputBuffer(
   Pointer<Void> signature,
   int index,
   List<int> inputByteSizes,
+  TensorBufferMode tensorBufferMode,
+  List<_HostMemoryAllocation?> inputHostMemory,
+  List<_HostMemoryAllocation> hostMemoryAllocations,
 ) {
   return _withRankedTensorType(
     rt,
@@ -670,7 +803,7 @@ Pointer<Void> _createInputBuffer(
     isInput: true,
     (tensorType) {
       final layoutPtr =
-          (tensorType.cast<Uint8>() + _kRankedTensorTypeLayoutOffset)
+          (tensorType.cast<Uint8>() + kLiteRtRankedTensorTypeLayoutOffset)
               .cast<LiteRtLayout>();
       _check(
         'LiteRtGetCompiledModelInputTensorLayout input[$index]',
@@ -688,6 +821,9 @@ Pointer<Void> _createInputBuffer(
         index,
         tensorType,
         inputByteSizes,
+        tensorBufferMode: tensorBufferMode,
+        hostMemoryForTensor: inputHostMemory,
+        hostMemoryAllocations: hostMemoryAllocations,
         isInput: true,
       );
     },
@@ -702,6 +838,9 @@ Pointer<Void> _createOutputBuffer(
   int index,
   Pointer<LiteRtLayout> outputLayout,
   List<int> outputByteSizes,
+  TensorBufferMode tensorBufferMode,
+  List<_HostMemoryAllocation?> outputHostMemory,
+  List<_HostMemoryAllocation> hostMemoryAllocations,
 ) {
   return _withRankedTensorType(
     rt,
@@ -710,11 +849,11 @@ Pointer<Void> _createOutputBuffer(
     index,
     isInput: false,
     (tensorType) {
-      (tensorType.cast<Uint8>() + _kRankedTensorTypeLayoutOffset)
-          .asTypedList(_kLiteRtLayoutSize)
+      (tensorType.cast<Uint8>() + kLiteRtRankedTensorTypeLayoutOffset)
+          .asTypedList(kLiteRtLayoutByteSize)
           .setAll(
             0,
-            outputLayout.cast<Uint8>().asTypedList(_kLiteRtLayoutSize),
+            outputLayout.cast<Uint8>().asTypedList(kLiteRtLayoutByteSize),
           );
       return _createBufferFromRequirements(
         rt,
@@ -723,6 +862,9 @@ Pointer<Void> _createOutputBuffer(
         index,
         tensorType,
         outputByteSizes,
+        tensorBufferMode: tensorBufferMode,
+        hostMemoryForTensor: outputHostMemory,
+        hostMemoryAllocations: hostMemoryAllocations,
         isInput: false,
       );
     },
@@ -738,7 +880,9 @@ Pointer<Void> _withRankedTensorType(
   required bool isInput,
 }) {
   final tensorOut = calloc<Pointer<Void>>();
-  final tensorType = calloc<LiteRtRankedTensorType>();
+  final tensorType = calloc<Uint8>(
+    kLiteRtRankedTensorTypeByteSize,
+  ).cast<LiteRtRankedTensorType>();
   try {
     final tensorStatus = isInput
         ? rt.getSignatureInputTensorByIndex(signature, index, tensorOut)
@@ -762,12 +906,16 @@ Pointer<Void> _createBufferFromRequirements(
   int index,
   Pointer<LiteRtRankedTensorType> tensorType,
   List<int> byteSizes, {
+  required TensorBufferMode tensorBufferMode,
+  required List<_HostMemoryAllocation?> hostMemoryForTensor,
+  required List<_HostMemoryAllocation> hostMemoryAllocations,
   required bool isInput,
 }) {
   final requirementsOut = calloc<Pointer<Void>>();
   final sizeOut = calloc<IntPtr>();
   final bufferOut = calloc<Pointer<Void>>();
   final label = isInput ? 'input[$index]' : 'output[$index]';
+  _HostMemoryAllocation? hostMemory;
 
   try {
     final requirementsStatus = isInput
@@ -792,17 +940,39 @@ Pointer<Void> _createBufferFromRequirements(
       rt.getTensorBufferRequirementsBufferSize(requirementsOut.value, sizeOut),
     );
     _checkFloat32Tensor(label, tensorType, sizeOut.value);
-    _check(
-      'LiteRtCreateManagedTensorBufferFromRequirements $label',
-      rt.createManagedTensorBufferFromRequirements(
-        environment,
-        tensorType,
-        requirementsOut.value,
-        bufferOut,
-      ),
-    );
+    switch (tensorBufferMode) {
+      case TensorBufferMode.managed:
+        _check(
+          'LiteRtCreateManagedTensorBufferFromRequirements $label',
+          rt.createManagedTensorBufferFromRequirements(
+            environment,
+            tensorType,
+            requirementsOut.value,
+            bufferOut,
+          ),
+        );
+        hostMemoryForTensor.add(null);
+      case TensorBufferMode.hostMemory:
+        hostMemory = _HostMemoryAllocation.allocate(sizeOut.value);
+        _check(
+          'LiteRtCreateTensorBufferFromHostMemory $label',
+          rt.createTensorBufferFromHostMemory(
+            tensorType,
+            hostMemory.aligned.cast<Void>(),
+            sizeOut.value,
+            nullptr,
+            bufferOut,
+          ),
+        );
+        hostMemoryForTensor.add(hostMemory);
+        hostMemoryAllocations.add(hostMemory);
+        hostMemory = null;
+    }
     byteSizes.add(sizeOut.value);
     return bufferOut.value;
+  } catch (_) {
+    hostMemory?.free();
+    rethrow;
   } finally {
     // The requirements handle is borrowed from LiteRtCompiledModel; only the
     // holder pointer is owned here.
@@ -824,6 +994,7 @@ void _releaseNative(
   Pointer<Void>? options,
   Pointer<Void>? environment,
   Pointer<Utf8>? gpuOptionsIdentifier,
+  List<_HostMemoryAllocation>? hostMemoryAllocations,
 }) {
   if (outputBuffers != null) {
     for (var i = 0; i < outputCount; i++) {
@@ -840,6 +1011,11 @@ void _releaseNative(
       }
     }
     calloc.free(inputBuffers);
+  }
+  if (hostMemoryAllocations != null) {
+    for (final allocation in hostMemoryAllocations) {
+      allocation.free();
+    }
   }
   if (compiledModel != null && compiledModel != nullptr) {
     rt.destroyCompiledModel(compiledModel);
@@ -885,10 +1061,12 @@ void _checkFloat32Tensor(
   Pointer<LiteRtRankedTensorType> tensorType,
   int byteSize,
 ) {
-  if (tensorType.ref.elementType != _kLiteRtElementTypeFloat32) {
+  // element_type is an int32 at offset 0 on every supported ABI.
+  final elementType = tensorType.cast<Int32>().value;
+  if (elementType != _kLiteRtElementTypeFloat32) {
     throw UnsupportedError(
       'CompiledModel.run supports Float32 tensors only; $label has LiteRT '
-      'element type ${tensorType.ref.elementType}.',
+      'element type $elementType.',
     );
   }
   if (byteSize % sizeOf<Float>() != 0) {
@@ -897,11 +1075,10 @@ void _checkFloat32Tensor(
 }
 
 void _checkStructLayouts() {
-  if (sizeOf<LiteRtLayout>() != _kLiteRtLayoutSize) {
-    throw StateError(
-      'LiteRtLayout size ${sizeOf<LiteRtLayout>()} != $_kLiteRtLayoutSize.',
-    );
-  }
+  // LiteRtLayout/LiteRtRankedTensorType are opaque on the Dart side because
+  // their ABI differs per compiler (MSVC vs clang/gcc bitfield packing); both
+  // layouts are pinned by static_asserts in litert/c/litert_layout.h and
+  // sized here via kLiteRtLayoutByteSize/kLiteRtRankedTensorTypeByteSize.
   if (sizeOf<LiteRtAny>() != _kLiteRtAnySize) {
     throw StateError(
       'LiteRtAny size ${sizeOf<LiteRtAny>()} != $_kLiteRtAnySize.',
@@ -915,11 +1092,6 @@ void _checkStructLayouts() {
   }
   _checkLiteRtAnyValueOffset();
   _checkLiteRtEnvOptionValueOffset();
-  if (sizeOf<LiteRtRankedTensorType>() != 72) {
-    throw StateError(
-      'LiteRtRankedTensorType size ${sizeOf<LiteRtRankedTensorType>()} != 72.',
-    );
-  }
 }
 
 void _checkLiteRtAnyValueOffset() {

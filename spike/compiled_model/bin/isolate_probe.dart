@@ -47,140 +47,103 @@ final class LiteRtRankedTensorType extends Struct {
 
 final class _Api {
   _Api(DynamicLibrary rt)
-    : createEnv = rt
-          .lookupFunction<
-            Int32 Function(Int32, _P, _PP),
-            int Function(int, _P, _PP)
-          >('LiteRtCreateEnvironment'),
-      destroyEnv = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-        'LiteRtDestroyEnvironment',
-      ),
-      createOpts = rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
-        'LiteRtCreateOptions',
-      ),
-      destroyOpts = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-        'LiteRtDestroyOptions',
-      ),
-      setAccel = rt
-          .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-            'LiteRtSetOptionsHardwareAccelerators',
-          ),
-      modelFromFile = rt
-          .lookupFunction<
-            Int32 Function(Pointer<Utf8>, _PP),
-            int Function(Pointer<Utf8>, _PP)
-          >('LiteRtCreateModelFromFile'),
-      destroyModel = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-        'LiteRtDestroyModel',
-      ),
-      createCM = rt
-          .lookupFunction<
-            Int32 Function(_P, _P, _P, _PP),
-            int Function(_P, _P, _P, _PP)
-          >('LiteRtCreateCompiledModel'),
-      destroyCM = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-        'LiteRtDestroyCompiledModel',
-      ),
-      getSig = rt
-          .lookupFunction<
+      : createEnv = rt.lookupFunction<Int32 Function(Int32, _P, _PP),
+            int Function(int, _P, _PP)>('LiteRtCreateEnvironment'),
+        destroyEnv = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+          'LiteRtDestroyEnvironment',
+        ),
+        createOpts = rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
+          'LiteRtCreateOptions',
+        ),
+        destroyOpts = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+          'LiteRtDestroyOptions',
+        ),
+        setAccel =
+            rt.lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+          'LiteRtSetOptionsHardwareAccelerators',
+        ),
+        modelFromFile = rt.lookupFunction<Int32 Function(Pointer<Utf8>, _PP),
+            int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile'),
+        destroyModel = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+          'LiteRtDestroyModel',
+        ),
+        createCM = rt.lookupFunction<Int32 Function(_P, _P, _P, _PP),
+            int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel'),
+        destroyCM = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+          'LiteRtDestroyCompiledModel',
+        ),
+        getSig = rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
+            int Function(_P, int, _PP)>('LiteRtGetModelSignature'),
+        numIn = rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
+            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs'),
+        numOut = rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
+            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs'),
+        inTensor = rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
+            int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex'),
+        outTensor = rt.lookupFunction<
             Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)
-          >('LiteRtGetModelSignature'),
-      numIn = rt
-          .lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)
-          >('LiteRtGetNumSignatureInputs'),
-      numOut = rt
-          .lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)
-          >('LiteRtGetNumSignatureOutputs'),
-      inTensor = rt
-          .lookupFunction<
-            Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)
-          >('LiteRtGetSignatureInputTensorByIndex'),
-      outTensor = rt
-          .lookupFunction<
-            Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)
-          >('LiteRtGetSignatureOutputTensorByIndex'),
-      rankedType = rt
-          .lookupFunction<
+            int Function(
+                _P, int, _PP)>('LiteRtGetSignatureOutputTensorByIndex'),
+        rankedType = rt.lookupFunction<
             Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-            int Function(_P, Pointer<LiteRtRankedTensorType>)
-          >('LiteRtGetRankedTensorType'),
-      inReq = rt
-          .lookupFunction<
+            int Function(_P,
+                Pointer<LiteRtRankedTensorType>)>('LiteRtGetRankedTensorType'),
+        inReq = rt.lookupFunction<
             Int32 Function(_P, IntPtr, IntPtr, _PP),
-            int Function(_P, int, int, _PP)
-          >('LiteRtGetCompiledModelInputBufferRequirements'),
-      outReq = rt
-          .lookupFunction<
+            int Function(_P, int, int,
+                _PP)>('LiteRtGetCompiledModelInputBufferRequirements'),
+        outReq = rt.lookupFunction<
             Int32 Function(_P, IntPtr, IntPtr, _PP),
-            int Function(_P, int, int, _PP)
-          >('LiteRtGetCompiledModelOutputBufferRequirements'),
-      reqSize = rt
-          .lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)
-          >('LiteRtGetTensorBufferRequirementsBufferSize'),
-      createBuf = rt
-          .lookupFunction<
+            int Function(_P, int, int,
+                _PP)>('LiteRtGetCompiledModelOutputBufferRequirements'),
+        reqSize = rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
+                int Function(_P, Pointer<IntPtr>)>(
+            'LiteRtGetTensorBufferRequirementsBufferSize'),
+        createBuf = rt.lookupFunction<
             Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
-            int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)
-          >('LiteRtCreateManagedTensorBufferFromRequirements'),
-      destroyBuf = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-        'LiteRtDestroyTensorBuffer',
-      ),
-      lock = rt
-          .lookupFunction<
-            Int32 Function(_P, _PP, Int32),
-            int Function(_P, _PP, int)
-          >('LiteRtLockTensorBuffer'),
-      unlock = rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
-        'LiteRtUnlockTensorBuffer',
-      ),
-      getInLayout = rt
-          .lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
-            int Function(_P, int, int, Pointer<LiteRtLayout>)
-          >('LiteRtGetCompiledModelInputTensorLayout'),
-      getOutLayouts = rt
-          .lookupFunction<
+            int Function(_P, Pointer<LiteRtRankedTensorType>, _P,
+                _PP)>('LiteRtCreateManagedTensorBufferFromRequirements'),
+        destroyBuf = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+          'LiteRtDestroyTensorBuffer',
+        ),
+        lock = rt.lookupFunction<Int32 Function(_P, _PP, Int32),
+            int Function(_P, _PP, int)>('LiteRtLockTensorBuffer'),
+        unlock = rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
+          'LiteRtUnlockTensorBuffer',
+        ),
+        getInLayout = rt.lookupFunction<
+                Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
+                int Function(_P, int, int, Pointer<LiteRtLayout>)>(
+            'LiteRtGetCompiledModelInputTensorLayout'),
+        getOutLayouts = rt.lookupFunction<
             Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
-            int Function(_P, int, int, Pointer<LiteRtLayout>, int)
-          >('LiteRtGetCompiledModelOutputTensorLayouts'),
-      runAsync = rt
-          .lookupFunction<
-            Int32 Function(
-              _P,
-              IntPtr,
-              IntPtr,
-              _PP,
-              IntPtr,
-              _PP,
-              Pointer<Uint8>,
-            ),
-            int Function(_P, int, int, _PP, int, _PP, Pointer<Uint8>)
-          >('LiteRtRunCompiledModelAsync'),
-      hasEvent = rt
-          .lookupFunction<
-            Int32 Function(_P, Pointer<Uint8>),
-            int Function(_P, Pointer<Uint8>)
-          >('LiteRtHasTensorBufferEvent'),
-      getEvent = rt
-          .lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
-            'LiteRtGetTensorBufferEvent',
-          ),
-      clearEvent = rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
-        'LiteRtClearTensorBufferEvent',
-      ),
-      waitEvent = rt
-          .lookupFunction<Int32 Function(_P, Int64), int Function(_P, int)>(
-            'LiteRtWaitEvent',
-          );
+            int Function(_P, int, int, Pointer<LiteRtLayout>,
+                int)>('LiteRtGetCompiledModelOutputTensorLayouts'),
+        runAsync = rt.lookupFunction<
+                Int32 Function(
+                  _P,
+                  IntPtr,
+                  IntPtr,
+                  _PP,
+                  IntPtr,
+                  _PP,
+                  Pointer<Uint8>,
+                ),
+                int Function(_P, int, int, _PP, int, _PP, Pointer<Uint8>)>(
+            'LiteRtRunCompiledModelAsync'),
+        hasEvent = rt.lookupFunction<Int32 Function(_P, Pointer<Uint8>),
+            int Function(_P, Pointer<Uint8>)>('LiteRtHasTensorBufferEvent'),
+        getEvent =
+            rt.lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
+          'LiteRtGetTensorBufferEvent',
+        ),
+        clearEvent = rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
+          'LiteRtClearTensorBufferEvent',
+        ),
+        waitEvent =
+            rt.lookupFunction<Int32 Function(_P, Int64), int Function(_P, int)>(
+          'LiteRtWaitEvent',
+        );
 
   final int Function(int, _P, _PP) createEnv;
   final void Function(_P) destroyEnv;
@@ -511,8 +474,8 @@ final class _Session {
         api.lock(inBufs[index], addrOut, kLockWrite),
       );
       final bytes = addrOut.value.cast<Uint8>().asTypedList(
-        inputByteSizes[index],
-      );
+            inputByteSizes[index],
+          );
       final floats = Float32List.view(
         bytes.buffer,
         bytes.offsetInBytes,

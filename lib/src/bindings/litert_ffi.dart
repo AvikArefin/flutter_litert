@@ -15,6 +15,7 @@
  */
 
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 
@@ -25,27 +26,33 @@ const int kLiteRtEnvOptionTagRuntimeLibraryDir = 22;
 
 /// LiteRtLayout:
 /// { uint rank:7; bool has_strides:1; int32 dims[8]; uint32 strides[8]; }
-/// ABI size is 68 bytes on the supported Apple/Linux desktop builds.
-final class LiteRtLayout extends Struct {
-  @Uint32()
-  external int bitfields;
-
-  @Array(8)
-  external Array<Int32> dimensions;
-
-  @Array(8)
-  external Array<Uint32> strides;
-}
+///
+/// Opaque because the ABI differs per compiler: clang/gcc pack both bitfields
+/// into one 4-byte unit (size 68, dims at 4, strides at 36) while MSVC gives
+/// each bitfield its own storage unit (size 72, dims at 8, strides at 40).
+/// Both layouts are pinned by static_asserts in the LiteRT header
+/// `litert/c/litert_layout.h`. Dart never reads the fields; it only
+/// allocates, copies, and passes these structs through the C API, so sizing
+/// via [kLiteRtLayoutByteSize] is sufficient.
+final class LiteRtLayout extends Opaque {}
 
 /// LiteRtRankedTensorType:
 /// { int32 element_type; LiteRtLayout layout; }
-/// ABI size is 72 bytes on the supported Apple/Linux desktop builds.
-final class LiteRtRankedTensorType extends Struct {
-  @Int32()
-  external int elementType;
+///
+/// Opaque for the same reason as [LiteRtLayout]: 72 bytes with clang/gcc,
+/// 76 bytes with MSVC. The element type is an int32 at offset 0 and the
+/// layout starts at [kLiteRtRankedTensorTypeLayoutOffset] on every supported
+/// ABI.
+final class LiteRtRankedTensorType extends Opaque {}
 
-  external LiteRtLayout layout;
-}
+/// ABI size of [LiteRtLayout] for the current platform.
+final int kLiteRtLayoutByteSize = Platform.isWindows ? 72 : 68;
+
+/// ABI size of [LiteRtRankedTensorType] for the current platform.
+final int kLiteRtRankedTensorTypeByteSize = Platform.isWindows ? 76 : 72;
+
+/// Byte offset of the layout field within [LiteRtRankedTensorType].
+const int kLiteRtRankedTensorTypeLayoutOffset = 4;
 
 /// LiteRtAny:
 /// { int32 type; union { bool; int64; double; const char*; const void*; } }
@@ -248,6 +255,23 @@ final class LiteRtBindings {
               Pointer<Pointer<Void>>,
             )
           >('LiteRtCreateManagedTensorBufferFromRequirements'),
+      createTensorBufferFromHostMemory = dylib
+          .lookupFunction<
+            Int32 Function(
+              Pointer<LiteRtRankedTensorType>,
+              Pointer<Void>,
+              IntPtr,
+              Pointer<Void>,
+              Pointer<Pointer<Void>>,
+            ),
+            int Function(
+              Pointer<LiteRtRankedTensorType>,
+              Pointer<Void>,
+              int,
+              Pointer<Void>,
+              Pointer<Pointer<Void>>,
+            )
+          >('LiteRtCreateTensorBufferFromHostMemory'),
       destroyTensorBuffer = dylib
           .lookupFunction<
             Void Function(Pointer<Void>),
@@ -417,6 +441,14 @@ final class LiteRtBindings {
     Pointer<Pointer<Void>>,
   )
   createManagedTensorBufferFromRequirements;
+  final int Function(
+    Pointer<LiteRtRankedTensorType>,
+    Pointer<Void>,
+    int,
+    Pointer<Void>,
+    Pointer<Pointer<Void>>,
+  )
+  createTensorBufferFromHostMemory;
   final void Function(Pointer<Void>) destroyTensorBuffer;
   final int Function(Pointer<Void>, Pointer<Int32>) getTensorBufferType;
   final int Function(Pointer<Void>, Pointer<Pointer<Void>>, int)

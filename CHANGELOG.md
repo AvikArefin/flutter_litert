@@ -1,3 +1,52 @@
+## Unreleased
+
+* Fix: `TensorFloat32Views` input views are now genuinely writable. They were
+  previously built from the unmodifiable `Tensor.data` view, so indexed writes
+  (`views.inputs[0][i] = x`) threw `UnsupportedError`, and bulk
+  `setAll`/`setRange` only worked through a Dart VM enforcement gap that a
+  future SDK could close. Views are now captured via the new
+  `Tensor.asFloat32View()`, a mutable `Float32List` aliasing the tensor's
+  native buffer (valid until the next resize/`allocateTensors`).
+* `SignatureRunner.run()` per-call overhead roughly halved (16–17µs → 7µs per
+  call on the bundled `test/benchmark/signature_runner_benchmark_test.dart`):
+  tensor handles are cached by name between allocations, and the valid-names
+  error text is built only when a lookup actually fails instead of on every
+  `getInputTensor`/`getOutputTensor` call.
+* Behavior change: `IsolateInterpreter.run`/`runForMultipleInputs` no longer
+  silently drop calls. A call issued while a previous run is in flight is now
+  queued and completes with real results (previously it returned normally
+  without writing the output buffers); frame-skipping callers can check
+  `state == IsolateInterpreterState.loading` before calling. Running after
+  `close()` now throws `StateError` instead of returning silently.
+* `TensorType.fromValue` is O(1) instead of scanning all enum values (it runs
+  on every `Tensor.type` access), and inference timing uses a reused monotonic
+  `Stopwatch` instead of two `DateTime.now()` calls per run.
+* Interpreter hot-path overhaul, measured on the bundled
+  `test/benchmark/engine_overhead_benchmark_test.dart` (MediaPipe
+  face_detection_short_range, macOS host):
+  * `run()`/`runForMultipleInputs()` with nested-list input and output drops
+    from 8.9ms to 1.9ms per inference (native floor 1.0ms) by converting
+    tensors through a single pre-sized buffer instead of one small allocation
+    per element, and by reading outputs through typed views instead of a
+    per-element `ByteData.view`.
+  * `Tensor.setTo`/`copyTo` now copy directly between Dart memory and
+    `TfLiteTensorData` instead of round-tripping through a native scratch
+    buffer (two extra copies per tensor per inference).
+  * Fix: passing a flat `Float32List` (or other typed data) as an input no
+    longer resizes the input tensor to rank 1 — which broke models with
+    rank-sensitive ops (`CONV_2D failed to prepare`). Flat typed data whose
+    element count matches the tensor is now staged as-is, and is the fastest
+    `run()` input type.
+  * New: outputs can be flat typed data (`Float32List`, `Int32List`,
+    `Int64List`, `Int16List`, `Int8List`). Bytes are bulk-copied directly
+    into the buffer; previously this threw a shape-mismatch `ArgumentError`.
+    `run()` with `Float32List` in/out now measures within ~7% of the
+    raw tensor-views floor.
+  * Behavior note: `copyTo(Uint8List)`/`copyTo(ByteBuffer)` now fill and
+    return the destination instead of returning a separate copy.
+* CompiledModel: per-dispatch native out-params are allocated once per model
+  instead of per call (`run`, `runAsync`, lock/unlock paths).
+
 ## 2.8.3
 
 * Android: support both AGP 8 and AGP 9 by moving the plugin Gradle files to

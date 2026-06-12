@@ -39,67 +39,87 @@ void ck(String w, int s) {
 }
 
 class _Fns {
-  final createEnv = _rt.lookupFunction<Int32 Function(IntPtr, _P, _PP),
-      int Function(int, _P, _PP)>('LiteRtCreateEnvironment');
+  final createEnv = _rt.lookupFunction<
+    Int32 Function(IntPtr, _P, _PP),
+    int Function(int, _P, _PP)
+  >('LiteRtCreateEnvironment');
   final createOpts = _rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
     'LiteRtCreateOptions',
   );
-  final setAccel =
-      _rt.lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-    'LiteRtSetOptionsHardwareAccelerators',
-  );
-  final modelFromFile = _rt.lookupFunction<Int32 Function(Pointer<Utf8>, _PP),
-      int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile');
-  final createCM = _rt.lookupFunction<Int32 Function(_P, _P, _P, _PP),
-      int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel');
-  final getSig = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-      int Function(_P, int, _PP)>('LiteRtGetModelSignature');
-  final numIn = _rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-      int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs');
-  final numOut = _rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-      int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs');
-  final inTensor = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-      int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex');
-  final outTensor = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-      int Function(_P, int, _PP)>('LiteRtGetSignatureOutputTensorByIndex');
+  final setAccel = _rt
+      .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+        'LiteRtSetOptionsHardwareAccelerators',
+      );
+  final modelFromFile = _rt.lookupFunction<
+    Int32 Function(Pointer<Utf8>, _PP),
+    int Function(Pointer<Utf8>, _PP)
+  >('LiteRtCreateModelFromFile');
+  final createCM = _rt.lookupFunction<
+    Int32 Function(_P, _P, _P, _PP),
+    int Function(_P, _P, _P, _PP)
+  >('LiteRtCreateCompiledModel');
+  final getSig = _rt.lookupFunction<
+    Int32 Function(_P, IntPtr, _PP),
+    int Function(_P, int, _PP)
+  >('LiteRtGetModelSignature');
+  final numIn = _rt.lookupFunction<
+    Int32 Function(_P, Pointer<IntPtr>),
+    int Function(_P, Pointer<IntPtr>)
+  >('LiteRtGetNumSignatureInputs');
+  final numOut = _rt.lookupFunction<
+    Int32 Function(_P, Pointer<IntPtr>),
+    int Function(_P, Pointer<IntPtr>)
+  >('LiteRtGetNumSignatureOutputs');
+  final inTensor = _rt.lookupFunction<
+    Int32 Function(_P, IntPtr, _PP),
+    int Function(_P, int, _PP)
+  >('LiteRtGetSignatureInputTensorByIndex');
+  final outTensor = _rt.lookupFunction<
+    Int32 Function(_P, IntPtr, _PP),
+    int Function(_P, int, _PP)
+  >('LiteRtGetSignatureOutputTensorByIndex');
   final rankedType = _rt.lookupFunction<
-      Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-      int Function(
-          _P, Pointer<LiteRtRankedTensorType>)>('LiteRtGetRankedTensorType');
+    Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
+    int Function(_P, Pointer<LiteRtRankedTensorType>)
+  >('LiteRtGetRankedTensorType');
   final inReq = _rt.lookupFunction<
-      Int32 Function(_P, IntPtr, IntPtr, _PP),
-      int Function(
-          _P, int, int, _PP)>('LiteRtGetCompiledModelInputBufferRequirements');
+    Int32 Function(_P, IntPtr, IntPtr, _PP),
+    int Function(_P, int, int, _PP)
+  >('LiteRtGetCompiledModelInputBufferRequirements');
   final outReq = _rt.lookupFunction<
-      Int32 Function(_P, IntPtr, IntPtr, _PP),
-      int Function(
-          _P, int, int, _PP)>('LiteRtGetCompiledModelOutputBufferRequirements');
+    Int32 Function(_P, IntPtr, IntPtr, _PP),
+    int Function(_P, int, int, _PP)
+  >('LiteRtGetCompiledModelOutputBufferRequirements');
   final reqSize = _rt.lookupFunction<
-      Int32 Function(_P, Pointer<IntPtr>),
-      int Function(
-          _P, Pointer<IntPtr>)>('LiteRtGetTensorBufferRequirementsBufferSize');
+    Int32 Function(_P, Pointer<IntPtr>),
+    int Function(_P, Pointer<IntPtr>)
+  >('LiteRtGetTensorBufferRequirementsBufferSize');
   final createManaged = _rt.lookupFunction<
-      Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
-      int Function(_P, Pointer<LiteRtRankedTensorType>, _P,
-          _PP)>('LiteRtCreateManagedTensorBufferFromRequirements');
+    Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
+    int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)
+  >('LiteRtCreateManagedTensorBufferFromRequirements');
   final createFromHost = _rt.lookupFunction<
-      Int32 Function(Pointer<LiteRtRankedTensorType>, _P, IntPtr, _P, _PP),
-      int Function(Pointer<LiteRtRankedTensorType>, _P, int, _P,
-          _PP)>('LiteRtCreateTensorBufferFromHostMemory');
-  final lock = _rt.lookupFunction<Int32 Function(_P, _PP, Int32),
-      int Function(_P, _PP, int)>('LiteRtLockTensorBuffer');
+    Int32 Function(Pointer<LiteRtRankedTensorType>, _P, IntPtr, _P, _PP),
+    int Function(Pointer<LiteRtRankedTensorType>, _P, int, _P, _PP)
+  >('LiteRtCreateTensorBufferFromHostMemory');
+  final lock = _rt.lookupFunction<
+    Int32 Function(_P, _PP, Int32),
+    int Function(_P, _PP, int)
+  >('LiteRtLockTensorBuffer');
   final unlock = _rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
     'LiteRtUnlockTensorBuffer',
   );
   final run = _rt.lookupFunction<
-      Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
-      int Function(_P, int, int, _PP, int, _PP)>('LiteRtRunCompiledModel');
+    Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
+    int Function(_P, int, int, _PP, int, _PP)
+  >('LiteRtRunCompiledModel');
 }
 
 void main(List<String> args) {
-  final model = args.isNotEmpty
-      ? args[0]
-      : '/Users/hugocornellier/IdeaProjects/face_detection_tflite/assets/models/face_detection_back.tflite';
+  final model =
+      args.isNotEmpty
+          ? args[0]
+          : '/Users/hugocornellier/IdeaProjects/face_detection_tflite/assets/models/face_detection_back.tflite';
   _rt = DynamicLibrary.open('/tmp/cm_spike/libLiteRt.dylib');
   print(
     'model: ${model.split('/').last}  (330 runs/mode, 30 warmup, median µs)\n',

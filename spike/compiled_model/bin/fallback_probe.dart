@@ -82,11 +82,7 @@ final class _Cell {
   final bool ran;
   final String result;
 
-  String toLine() => [
-        compiles ? 'Y' : 'N',
-        ran ? 'Y' : 'N',
-        result,
-      ].join('\t');
+  String toLine() => [compiles ? 'Y' : 'N', ran ? 'Y' : 'N', result].join('\t');
 }
 
 final class _DtypeException implements Exception {
@@ -103,18 +99,21 @@ final class _LiteRtStatusException implements Exception {
 
 final class _PosixApi {
   _PosixApi(DynamicLibrary lib)
-      : open = lib.lookupFunction<Int32 Function(Pointer<Utf8>, Int32),
-            int Function(Pointer<Utf8>, int)>('open'),
-        dup =
-            lib.lookupFunction<Int32 Function(Int32), int Function(int)>('dup'),
-        dup2 = lib.lookupFunction<Int32 Function(Int32, Int32),
-            int Function(int, int)>('dup2'),
-        close = lib.lookupFunction<Int32 Function(Int32), int Function(int)>(
-          'close',
-        ),
-        fflush = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'fflush',
-        );
+    : open = lib.lookupFunction<
+        Int32 Function(Pointer<Utf8>, Int32),
+        int Function(Pointer<Utf8>, int)
+      >('open'),
+      dup = lib.lookupFunction<Int32 Function(Int32), int Function(int)>('dup'),
+      dup2 = lib
+          .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
+            'dup2',
+          ),
+      close = lib.lookupFunction<Int32 Function(Int32), int Function(int)>(
+        'close',
+      ),
+      fflush = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'fflush',
+      );
 
   final int Function(Pointer<Utf8>, int) open;
   final int Function(int) dup;
@@ -125,88 +124,99 @@ final class _PosixApi {
 
 final class _LiteRtApi {
   _LiteRtApi(DynamicLibrary lib)
-      : createEnv = lib.lookupFunction<Int32 Function(Int32, _P, _PP),
-            int Function(int, _P, _PP)>('LiteRtCreateEnvironment'),
-        destroyEnv = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyEnvironment',
-        ),
-        createOpts = lib.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
-          'LiteRtCreateOptions',
-        ),
-        destroyOpts = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyOptions',
-        ),
-        setAccel = lib
-            .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-          'LiteRtSetOptionsHardwareAccelerators',
-        ),
-        modelFromFile = lib.lookupFunction<Int32 Function(Pointer<Utf8>, _PP),
-            int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile'),
-        destroyModel = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyModel',
-        ),
-        createCM = lib.lookupFunction<Int32 Function(_P, _P, _P, _PP),
-            int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel'),
-        destroyCM = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyCompiledModel',
-        ),
-        getSig = lib.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetModelSignature'),
-        numIn = lib.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs'),
-        numOut = lib.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs'),
-        inTensor = lib.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex'),
-        outTensor = lib.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>(
-          'LiteRtGetSignatureOutputTensorByIndex',
-        ),
-        rankedType = lib.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-            int Function(_P, Pointer<LiteRtRankedTensorType>)>(
-          'LiteRtGetRankedTensorType',
-        ),
-        inReq = lib.lookupFunction<Int32 Function(_P, IntPtr, IntPtr, _PP),
-            int Function(_P, int, int, _PP)>(
-          'LiteRtGetCompiledModelInputBufferRequirements',
-        ),
-        outReq = lib.lookupFunction<Int32 Function(_P, IntPtr, IntPtr, _PP),
-            int Function(_P, int, int, _PP)>(
-          'LiteRtGetCompiledModelOutputBufferRequirements',
-        ),
-        reqSize = lib.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>(
-          'LiteRtGetTensorBufferRequirementsBufferSize',
-        ),
-        createBuf = lib.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
-            int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)>(
-          'LiteRtCreateManagedTensorBufferFromRequirements',
-        ),
-        destroyBuf = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyTensorBuffer',
-        ),
-        lock = lib.lookupFunction<Int32 Function(_P, _PP, Int32),
-            int Function(_P, _PP, int)>('LiteRtLockTensorBuffer'),
-        unlock = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'LiteRtUnlockTensorBuffer',
-        ),
-        getInLayout = lib.lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
-            int Function(_P, int, int, Pointer<LiteRtLayout>)>(
-          'LiteRtGetCompiledModelInputTensorLayout',
-        ),
-        getOutLayouts = lib.lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
-            int Function(_P, int, int, Pointer<LiteRtLayout>, int)>(
-          'LiteRtGetCompiledModelOutputTensorLayouts',
-        ),
-        runSync = lib.lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
-            int Function(_P, int, int, _PP, int, _PP)>(
-          'LiteRtRunCompiledModel',
-        );
+    : createEnv = lib.lookupFunction<
+        Int32 Function(Int32, _P, _PP),
+        int Function(int, _P, _PP)
+      >('LiteRtCreateEnvironment'),
+      destroyEnv = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyEnvironment',
+      ),
+      createOpts = lib.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
+        'LiteRtCreateOptions',
+      ),
+      destroyOpts = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyOptions',
+      ),
+      setAccel = lib
+          .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+            'LiteRtSetOptionsHardwareAccelerators',
+          ),
+      modelFromFile = lib.lookupFunction<
+        Int32 Function(Pointer<Utf8>, _PP),
+        int Function(Pointer<Utf8>, _PP)
+      >('LiteRtCreateModelFromFile'),
+      destroyModel = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyModel',
+      ),
+      createCM = lib.lookupFunction<
+        Int32 Function(_P, _P, _P, _PP),
+        int Function(_P, _P, _P, _PP)
+      >('LiteRtCreateCompiledModel'),
+      destroyCM = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyCompiledModel',
+      ),
+      getSig = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetModelSignature'),
+      numIn = lib.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSignatureInputs'),
+      numOut = lib.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSignatureOutputs'),
+      inTensor = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureInputTensorByIndex'),
+      outTensor = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureOutputTensorByIndex'),
+      rankedType = lib.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
+        int Function(_P, Pointer<LiteRtRankedTensorType>)
+      >('LiteRtGetRankedTensorType'),
+      inReq = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP),
+        int Function(_P, int, int, _PP)
+      >('LiteRtGetCompiledModelInputBufferRequirements'),
+      outReq = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP),
+        int Function(_P, int, int, _PP)
+      >('LiteRtGetCompiledModelOutputBufferRequirements'),
+      reqSize = lib.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetTensorBufferRequirementsBufferSize'),
+      createBuf = lib.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
+        int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)
+      >('LiteRtCreateManagedTensorBufferFromRequirements'),
+      destroyBuf = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyTensorBuffer',
+      ),
+      lock = lib.lookupFunction<
+        Int32 Function(_P, _PP, Int32),
+        int Function(_P, _PP, int)
+      >('LiteRtLockTensorBuffer'),
+      unlock = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'LiteRtUnlockTensorBuffer',
+      ),
+      getInLayout = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
+        int Function(_P, int, int, Pointer<LiteRtLayout>)
+      >('LiteRtGetCompiledModelInputTensorLayout'),
+      getOutLayouts = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
+        int Function(_P, int, int, Pointer<LiteRtLayout>, int)
+      >('LiteRtGetCompiledModelOutputTensorLayouts'),
+      runSync = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
+        int Function(_P, int, int, _PP, int, _PP)
+      >('LiteRtRunCompiledModel');
 
   final int Function(int, _P, _PP) createEnv;
   final void Function(_P) destroyEnv;
@@ -250,10 +260,7 @@ final class _CompiledSession {
       env = envOut.value;
       _ckRt('LiteRtCreateOptions', api.createOpts(optsOut));
       opts = optsOut.value;
-      _ckRt(
-        'LiteRtSetOptionsHardwareAccelerators',
-        api.setAccel(opts, mask),
-      );
+      _ckRt('LiteRtSetOptionsHardwareAccelerators', api.setAccel(opts, mask));
       _ckRt('LiteRtCreateModelFromFile', api.modelFromFile(pathPtr, modelOut));
       model = modelOut.value;
       _ckRt('LiteRtGetModelSignature', api.getSig(model, 0, sigOut));
@@ -523,20 +530,23 @@ void main(List<String> args) {
 
   for (final model in models) {
     for (final (maskName, mask) in kMasks) {
-      final cell = File(model).existsSync()
-          ? _measureChildCell(model, mask)
-          : const _Cell(
-              compiles: false,
-              ran: false,
-              result: 'ERR(missing-model)',
-            );
-      rows.add(_Row(
-        model: _basename(model),
-        mask: maskName,
-        compiles: cell.compiles,
-        ran: cell.ran,
-        result: cell.result,
-      ));
+      final cell =
+          File(model).existsSync()
+              ? _measureChildCell(model, mask)
+              : const _Cell(
+                compiles: false,
+                ran: false,
+                result: 'ERR(missing-model)',
+              );
+      rows.add(
+        _Row(
+          model: _basename(model),
+          mask: maskName,
+          compiles: cell.compiles,
+          ran: cell.ran,
+          result: cell.result,
+        ),
+      );
     }
   }
 
@@ -545,11 +555,9 @@ void main(List<String> args) {
 
 void _runChildCell(List<String> args) {
   if (args.length != 3) {
-    print(const _Cell(
-      compiles: false,
-      ran: false,
-      result: 'ERR(args)',
-    ).toLine());
+    print(
+      const _Cell(compiles: false, ran: false, result: 'ERR(args)').toLine(),
+    );
     return;
   }
 
@@ -557,11 +565,9 @@ void _runChildCell(List<String> args) {
   final path = args[1];
   final mask = int.tryParse(args[2]);
   if (mask == null) {
-    print(const _Cell(
-      compiles: false,
-      ran: false,
-      result: 'ERR(mask)',
-    ).toLine());
+    print(
+      const _Cell(compiles: false, ran: false, result: 'ERR(mask)').toLine(),
+    );
     return;
   }
 
@@ -572,11 +578,12 @@ void _runChildCell(List<String> args) {
 
 _Cell _measureChildCell(String path, int mask) {
   final scriptPath = Platform.script.toFilePath();
-  final result = Process.runSync(
-    Platform.resolvedExecutable,
-    [scriptPath, kCellArg, path, '$mask'],
-    workingDirectory: Directory.current.path,
-  );
+  final result = Process.runSync(Platform.resolvedExecutable, [
+    scriptPath,
+    kCellArg,
+    path,
+    '$mask',
+  ], workingDirectory: Directory.current.path);
   if (result.exitCode != 0) {
     return _Cell(
       compiles: false,
@@ -606,11 +613,7 @@ _Cell _measureCell(String path, int mask) {
     final api = _LiteRtApi(DynamicLibrary.open('./libLiteRt.dylib'));
     session = _CompiledSession(api, path, mask);
     final median = session.measureSyncMedian(warmup: kWarmup, iters: kTimed);
-    return _Cell(
-      compiles: true,
-      ran: true,
-      result: median.toStringAsFixed(1),
-    );
+    return _Cell(compiles: true, ran: true, result: median.toStringAsFixed(1));
   } on _DtypeException {
     return const _Cell(
       compiles: true,
@@ -621,9 +624,10 @@ _Cell _measureCell(String path, int mask) {
     return _Cell(
       compiles: e.afterCompile,
       ran: false,
-      result: e.afterCompile
-          ? 'ERR(${e.op}:LiteRtStatus=${e.status})'
-          : 'LiteRtStatus=${e.status}',
+      result:
+          e.afterCompile
+              ? 'ERR(${e.op}:LiteRtStatus=${e.status})'
+              : 'LiteRtStatus=${e.status}',
     );
   } catch (e) {
     return _Cell(
@@ -667,13 +671,7 @@ T _withNativeOutputMuted<T>(_PosixApi posix, T Function() f) {
 }
 
 void _printTable(List<_Row> rows) {
-  const headers = [
-    'model',
-    'mask',
-    'compiles',
-    'ran',
-    'median_us_or_status',
-  ];
+  const headers = ['model', 'mask', 'compiles', 'ran', 'median_us_or_status'];
   final widths = List<int>.from(headers.map((h) => h.length));
   for (final row in rows) {
     final values = _rowValues(row);
@@ -690,12 +688,12 @@ void _printTable(List<_Row> rows) {
 }
 
 List<String> _rowValues(_Row row) => [
-      row.model,
-      row.mask,
-      row.compiles ? 'yes' : 'no',
-      row.ran ? 'yes' : 'no',
-      row.result,
-    ];
+  row.model,
+  row.mask,
+  row.compiles ? 'yes' : 'no',
+  row.ran ? 'yes' : 'no',
+  row.result,
+];
 
 String _formatRow(List<String> values, List<int> widths) {
   return List<String>.generate(values.length, (i) {

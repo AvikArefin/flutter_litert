@@ -44,12 +44,29 @@ let package = Package(
             url: "https://github.com/hugocornellier/flutter_litert/releases/download/flex-v1.1.1/TensorFlowLiteCCoreML-spm.xcframework.zip",
             checksum: "69e9c00536e15fca060bf8542e3e8f5ee6f8b7017226ed2407db4939db0bf6ae"
         ),
+        // LiteRT Next runtime + Metal accelerator (CompiledModel API). These
+        // are library-type xcframeworks holding bare dylibs: the file names
+        // must stay `libLiteRt.dylib` / `libLiteRtMetalAccelerator.dylib`
+        // because the runtime registers the GPU accelerator by scanning the
+        // embedded Frameworks directory for that exact accelerator file name.
+        .binaryTarget(
+            name: "LiteRt",
+            url: "https://github.com/hugocornellier/flutter_litert/releases/download/litert-ios-v1.0.0/LiteRt-spm.xcframework.zip",
+            checksum: "0b51264db16b729d9f1c2fc9a9f4bf864e9406e8426555b305f0d77b979a0c62"
+        ),
+        .binaryTarget(
+            name: "LiteRtMetalAccelerator",
+            url: "https://github.com/hugocornellier/flutter_litert/releases/download/litert-ios-v1.0.0/LiteRtMetalAccelerator-spm.xcframework.zip",
+            checksum: "de52f942c0733e8f6344d10388c4ef81526186a9ad326c0c68080717574a5125"
+        ),
         .target(
             name: "flutter_litert",
             dependencies: [
                 .target(name: "TensorFlowLiteC"),
                 .target(name: "TensorFlowLiteCMetal"),
                 .target(name: "TensorFlowLiteCCoreML"),
+                .target(name: "LiteRt"),
+                .target(name: "LiteRtMetalAccelerator"),
                 .target(name: "flutter_litert_delegate_symbols"),
                 .target(name: "flutter_litert_custom_ops"),
                 .product(name: "FlutterFramework", package: "FlutterFramework"),

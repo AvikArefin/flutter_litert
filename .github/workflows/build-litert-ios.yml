@@ -1,0 +1,115 @@
+name: Build LiteRT Next iOS xcframeworks
+
+# Repackages Google's prebuilt LiteRT Next iOS binaries (litert/prebuilt in
+# google-ai-edge/LiteRT, stored as Git LFS) into the two xcframework variants
+# the plugin ships:
+#
+# - SwiftPM: library-type (bare dylib) xcframeworks. Xcode embeds the dylibs
+#   under their original file names, so LiteRT's GPU-plugin discovery — a
+#   dlopen of `libLiteRtMetalAccelerator.dylib` from the RuntimeLibraryDir —
+#   works as designed.
+# - CocoaPods: conventional framework-wrapped xcframeworks (CocoaPods rejects
+#   vendored bare-dylib xcframeworks). The framework rename breaks the
+#   file-name scan, so ios/Classes/litert_gpu_accelerator_shim.c registers
+#   the Metal accelerator via the runtime's RTLD_DEFAULT probe instead.
+#   Built by scripts/wrap_litert_ios_frameworks.sh, which also lipos an
+#   empty x86_64 stub into the simulator slice so CocoaPods' slice-arch
+#   matching succeeds.
+
+on:
+  workflow_dispatch:
+    inputs:
+      litert_ref:
+        description: >-
+          google-ai-edge/LiteRT git ref to package. The default is the last
+          prebuilt update whose C API matches the v2.1.5 bindings used on all
+          other platforms (newer prebuilts add a LiteRtEnvironment parameter
+          to LiteRtCreateModelFromFile/FromBuffer and need binding updates).
+        required: true
+        default: '1adc2475829fbe52d5670873821a45bea8779532'
+      release_tag:
+        description: 'Existing release tag to upload assets to (empty = artifacts only)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout LiteRT prebuilts (Git LFS)
+        uses: actions/checkout@v4
+        with:
+          repository: google-ai-edge/LiteRT
+          ref: ${{ github.event.inputs.litert_ref }}
+          lfs: true
+          sparse-checkout: |
+            litert/prebuilt
+          path: LiteRT
+
+      - name: Stage prebuilt dylibs
+        run: |
+          PREBUILT=LiteRT/litert/prebuilt
+          # The repo stores LFS files with a literal .lfs suffix; strip it.
+          for f in $PREBUILT/ios_arm64/*.lfs $PREBUILT/ios_sim_arm64/*.lfs; do
+            [ -e "$f" ] && mv "$f" "${f%.lfs}"
+          done
+          ls -la $PREBUILT/ios_arm64 $PREBUILT/ios_sim_arm64
+
+      - name: Create SwiftPM (bare dylib) xcframeworks
+        run: |
+          PREBUILT=LiteRT/litert/prebuilt
+          mkdir -p spm
+          xcodebuild -create-xcframework \
+            -library $PREBUILT/ios_arm64/libLiteRt.dylib \
+            -library $PREBUILT/ios_sim_arm64/libLiteRt.dylib \
+            -output spm/LiteRt.xcframework
+          xcodebuild -create-xcframework \
+            -library $PREBUILT/ios_arm64/libLiteRtMetalAccelerator.dylib \
+            -library $PREBUILT/ios_sim_arm64/libLiteRtMetalAccelerator.dylib \
+            -output spm/LiteRtMetalAccelerator.xcframework
+
+      - name: Create CocoaPods (framework-wrapped) xcframeworks
+        run: |
+          mkdir -p pods
+          ./scripts/wrap_litert_ios_frameworks.sh LiteRT/litert/prebuilt pods
+
+      - name: Zip assets
+        run: |
+          # Single zip for the podspec download block (framework-wrapped).
+          (cd pods && zip -qry ../litert-ios-frameworks.zip \
+            LiteRt.xcframework LiteRtMetalAccelerator.xcframework)
+          # Per-framework zips for SPM binaryTarget(url:checksum:). Use ditto
+          # so the zip layout matches what SPM expects.
+          ditto -c -k --keepParent spm/LiteRt.xcframework \
+            LiteRt-spm.xcframework.zip
+          ditto -c -k --keepParent spm/LiteRtMetalAccelerator.xcframework \
+            LiteRtMetalAccelerator-spm.xcframework.zip
+          echo "SPM checksums (paste into ios/flutter_litert/Package.swift):"
+          swift package compute-checksum LiteRt-spm.xcframework.zip
+          swift package compute-checksum LiteRtMetalAccelerator-spm.xcframework.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: litert-ios-xcframeworks
+          path: |
+            litert-ios-frameworks.zip
+            LiteRt-spm.xcframework.zip
+            LiteRtMetalAccelerator-spm.xcframework.zip
+
+      - name: Upload to release
+        if: ${{ github.event.inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload '${{ github.event.inputs.release_tag }}' \
+            --repo '${{ github.repository }}' --clobber \
+            litert-ios-frameworks.zip \
+            LiteRt-spm.xcframework.zip \
+            LiteRtMetalAccelerator-spm.xcframework.zip

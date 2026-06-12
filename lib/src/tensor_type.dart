@@ -30,10 +30,13 @@ enum TensorType {
   ///
   /// Returns [TensorType.noType] if the value is not recognised.
   static TensorType fromValue(int value) {
-    for (final t in TensorType.values) {
-      if (t.value == value) return t;
+    // Values are contiguous and equal to declaration index (pinned by
+    // tensor_type_test.dart), so index directly instead of scanning. This
+    // runs on every Tensor.type access, which is on the inference hot path.
+    if (value < 0 || value >= TensorType.values.length) {
+      return TensorType.noType;
     }
-    return TensorType.noType;
+    return TensorType.values[value];
   }
 
   final int value;

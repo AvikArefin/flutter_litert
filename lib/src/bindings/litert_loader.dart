@@ -34,12 +34,11 @@ String? get litertRuntimeDir {
 /// Top-level finals are initialized lazily on first access in Dart.
 final DynamicLibrary litertDynamicLibrary = () {
   if (Platform.isAndroid) {
-    throw UnsupportedError('LiteRT Next is not supported on Android yet.');
+    return _loadAndroidLibrary();
   }
 
   if (Platform.isIOS) {
-    _litertRuntimeDir = null;
-    return DynamicLibrary.process();
+    return _loadIosLibrary();
   }
 
   if (Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
@@ -48,6 +47,62 @@ final DynamicLibrary litertDynamicLibrary = () {
 
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
 }();
+
+DynamicLibrary _loadAndroidLibrary() {
+  // libLiteRt.so is bundled as a jniLib by android/build.gradle.kts
+  // (downloaded at build time from the API-pinned release), so the Android
+  // linker resolves the bare soname from the app's native library directory.
+  //
+  // _litertRuntimeDir stays null on purpose: native libraries may be loaded
+  // straight from the APK (extractNativeLibs=false), so there is no reliable
+  // directory to scan. With no RuntimeLibraryDir option, the runtime's GPU
+  // probe degenerates to dlopen'ing the bare accelerator sonames
+  // (e.g. `libLiteRtClGlAccelerator.so`), which the Android linker resolves
+  // from the same native library path — so the bundled GPU accelerator is
+  // still discoverable.
+  _litertRuntimeDir = null;
+  return DynamicLibrary.open('libLiteRt.so');
+}
+
+DynamicLibrary _loadIosLibrary() {
+  // Two embedded layouts exist, one per distribution channel:
+  // - SwiftPM ships bare dylibs inside library-type xcframeworks, embedded
+  //   into the app's Frameworks directory under their original file names.
+  //   Preserving the names matters: the runtime registers the GPU
+  //   accelerator by dlopen'ing `libLiteRtMetalAccelerator.dylib` from the
+  //   directory passed as kLiteRtEnvOptionTagRuntimeLibraryDir
+  //   (litertRuntimeDir).
+  // - CocoaPods rejects bare-dylib xcframeworks, so it ships conventional
+  //   framework bundles (LiteRt.framework/LiteRt). There the file-name scan
+  //   cannot match, and the Metal accelerator is registered by the
+  //   LiteRtRegisterGpuAccelerator shim in ios/Classes (found by the
+  //   runtime's RTLD_DEFAULT registration probe).
+  final frameworksDir =
+      '${Directory(Platform.resolvedExecutable).parent.path}/Frameworks';
+  final attemptedPaths = <String>[];
+  final loaded = _probeLiteRtLibraryPaths(
+    envVar: 'LITERT_LIB_PATH',
+    paths: [
+      '$frameworksDir/libLiteRt.dylib',
+      '$frameworksDir/LiteRt.framework/LiteRt',
+      'libLiteRt.dylib',
+    ],
+    attemptedPaths: attemptedPaths,
+  );
+  if (loaded != null) {
+    // The accelerator scan expects the directory that holds the bare
+    // accelerator dylib, which is the Frameworks directory in both layouts
+    // that can provide it.
+    _litertRuntimeDir = frameworksDir;
+    return loaded.library;
+  }
+
+  // Fall back to the process image for apps that link LiteRT some other
+  // way. The Metal accelerator cannot be auto-registered in this case
+  // because the runtime directory is unknown.
+  _litertRuntimeDir = null;
+  return DynamicLibrary.process();
+}
 
 DynamicLibrary _loadDesktopLibrary() {
   final List<String> attemptedPaths = [];

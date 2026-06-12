@@ -111,6 +111,11 @@ class IsolateInterpreter {
     }
   }
 
+  // Serializes runs: each call waits for the previous one instead of being
+  // dropped. The chain itself swallows errors so one failed run does not
+  // poison subsequent calls; each caller still receives its own error.
+  Future<void> _runQueue = Future.value();
+
   /// Run LiteRT model for single input and output.
   Future<void> run(Object input, Object output) {
     var map = <int, Object>{};
@@ -120,15 +125,31 @@ class IsolateInterpreter {
   }
 
   /// Run LiteRT model for multiple inputs and outputs.
+  ///
+  /// Calls are serialized: a call issued while a previous run is still in
+  /// flight waits its turn. (Earlier versions silently dropped such calls,
+  /// returning normally without writing [outputs].) To skip frames instead
+  /// of queueing, check [state] before calling.
+  ///
+  /// Throws [StateError] if [close] has been called.
   Future<void> runForMultipleInputs(
+    List<Object> inputs,
+    Map<int, Object> outputs,
+  ) {
+    if (_closed) {
+      throw StateError('IsolateInterpreter.run called after close().');
+    }
+    final run = _runQueue.then((_) => _runSerialized(inputs, outputs));
+    _runQueue = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
+  Future<void> _runSerialized(
     List<Object> inputs,
     Map<int, Object> outputs,
   ) async {
     if (_closed) {
-      return;
-    }
-    if (state == IsolateInterpreterState.loading) {
-      return;
+      throw StateError('IsolateInterpreter was closed while a run was queued.');
     }
     _state = IsolateInterpreterState.loading;
 
@@ -136,6 +157,12 @@ class IsolateInterpreter {
 
     _sendPort.send(data);
     await _wait();
+
+    // close() during the run ends _wait by closing the state stream; the
+    // worker isolate is killed, so the tensors must not be read.
+    if (_closed) {
+      throw StateError('IsolateInterpreter was closed during a run.');
+    }
 
     final outputTensors = _callerInterpreter.getOutputTensors();
     for (var i = 0; i < outputTensors.length; i++) {

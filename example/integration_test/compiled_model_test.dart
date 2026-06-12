@@ -1,0 +1,169 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:flutter_litert/flutter_litert.dart';
+import 'package:flutter_litert/src/bindings/litert_loader.dart'
+    show litertRuntimeDir;
+
+/// End-to-end CompiledModel (LiteRT Next) checks inside a real app process.
+///
+/// CPU tests must pass wherever the LiteRT runtime is bundled — all five
+/// native platforms. On desktop this proves the production load path: the
+/// platform build bundles the runtime next to the executable and the loader
+/// resolves it from there, not from the package checkout. GPU tests assert
+/// success when the platform accelerator initializes and skip when it cannot
+/// (headless or emulated environments without a working GPU stack, or
+/// platforms where the GPU accelerator library is not bundled).
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  late File modelFile;
+  late Uint8List modelBytes;
+
+  setUpAll(() async {
+    final data = await rootBundle.load('assets/simple_model.tflite');
+    modelBytes = data.buffer.asUint8List();
+    final tmpDir = await Directory.systemTemp.createTemp('litert_cm_test_');
+    modelFile = File('${tmpDir.path}/simple_model.tflite');
+    await modelFile.writeAsBytes(modelBytes);
+  });
+
+  group('CompiledModel (LiteRT Next)', () {
+    testWidgets('loads the runtime from the app bundle on Linux/Windows', (
+      tester,
+    ) async {
+      if (!(Platform.isLinux || Platform.isWindows)) {
+        markTestSkipped('Bundle-origin check is for desktop CMake bundling.');
+        return;
+      }
+      // Force the lazy loader, then assert the library it actually dlopen'd
+      // came from next to the executable — where CMake bundled_libraries puts
+      // it for end users — and not from the loader's package-checkout
+      // fallback, which exists in CI/dev environments but not in shipped
+      // apps. This is what makes a green run prove the bundling worked.
+      CompiledModel.fromBuffer(
+        modelBytes,
+        accelerators: {Accelerator.cpu},
+      ).close();
+      final execDir = File(Platform.resolvedExecutable).parent.path;
+      final expectedDir = Platform.isLinux ? '$execDir/lib' : execDir;
+      expect(
+        litertRuntimeDir,
+        Directory(expectedDir).resolveSymbolicLinksSync(),
+      );
+    });
+
+    testWidgets('compiles and runs on the CPU accelerator', (tester) async {
+      final cm = CompiledModel.fromFile(
+        modelFile.path,
+        accelerators: {Accelerator.cpu},
+      );
+      addTearDown(cm.close);
+
+      expect(cm.accelerators, {Accelerator.cpu});
+      expect(cm.inputCount, 1);
+      expect(cm.outputCount, 1);
+
+      // Model is y = 2*x + 1.
+      final input = Float32List(cm.inputByteSizes[0] ~/ 4);
+      input[0] = 3.0;
+      final output = cm.run([input]);
+      expect(output[0][0], closeTo(7.0, 1e-3));
+    });
+
+    testWidgets('compiles from bytes and runAsync matches run', (tester) async {
+      final cm = CompiledModel.fromBuffer(
+        modelBytes,
+        accelerators: {Accelerator.cpu},
+      );
+      addTearDown(cm.close);
+
+      final input = Float32List(cm.inputByteSizes[0] ~/ 4);
+      input[0] = -1.0;
+      final syncOut = cm.run([input]);
+      final asyncOut = await cm.runAsync([input]);
+      expect(asyncOut, syncOut);
+      expect(syncOut[0][0], closeTo(-1.0, 1e-3));
+    });
+
+    testWidgets('host-memory buffers match managed buffers on CPU', (
+      tester,
+    ) async {
+      final managed = CompiledModel.fromFile(
+        modelFile.path,
+        accelerators: {Accelerator.cpu},
+      );
+      final hostMemory = CompiledModel.fromFile(
+        modelFile.path,
+        accelerators: {Accelerator.cpu},
+        tensorBufferMode: TensorBufferMode.hostMemory,
+      );
+      addTearDown(managed.close);
+      addTearDown(hostMemory.close);
+
+      final input = Float32List(managed.inputByteSizes[0] ~/ 4);
+      input[0] = 5.0;
+      expect(hostMemory.run([input]), managed.run([input]));
+    });
+
+    testWidgets('compiles with GPU and CPU fallback', (tester) async {
+      final cm = CompiledModel.fromFile(
+        modelFile.path,
+        accelerators: {Accelerator.gpu, Accelerator.cpu},
+      );
+      addTearDown(cm.close);
+
+      // Sync run on purpose. On the iOS *simulator*, MTLSimDriver's shared
+      // events can wedge when an async-run Metal model is closed and a new
+      // environment then waits on an async event (reproduced reliably with
+      // async here followed by the async strict-GPU test below; sync-then-
+      // async sequences are fine). Real devices use a different Metal driver.
+      final input = Float32List(cm.inputByteSizes[0] ~/ 4);
+      input[0] = 3.0;
+      final output = cm.run([input]);
+      expect(output[0][0], closeTo(7.0, 1e-3));
+    });
+
+    testWidgets('compiles and runs on the strict GPU accelerator '
+        'when the GPU stack is available', (tester) async {
+      final CompiledModel cm;
+      try {
+        cm = CompiledModel.fromFile(
+          modelFile.path,
+          accelerators: {Accelerator.gpu},
+        );
+      } on StateError catch (e) {
+        if (_isGpuUnavailable(e)) {
+          markTestSkipped('GPU accelerator unavailable here.');
+          return;
+        }
+        rethrow;
+      }
+      addTearDown(cm.close);
+
+      final input = Float32List(cm.inputByteSizes[0] ~/ 4);
+      input[0] = 3.0;
+      final output = await cm.runAsync([input]);
+      expect(output[0][0], closeTo(7.0, 1e-3));
+    });
+  });
+}
+
+/// Whether [e] means "the GPU accelerator can't run here", as opposed to a
+/// real failure.
+///
+/// On Apple platforms the Metal accelerator is always bundled, so only the
+/// documented headless-compilation status (504) is acceptable. On Android the
+/// OpenCL/GL accelerator depends on the device or emulator GPU stack, so any
+/// LiteRT status from a strict-GPU create means the accelerator is absent
+/// (emulators in particular have no working OpenCL). On Linux and Windows the
+/// GPU accelerator library is not bundled at all (only the base runtime is),
+/// so strict-GPU creation is expected to fail with any LiteRT status.
+bool _isGpuUnavailable(StateError e) {
+  if (e.message.contains('LiteRtStatus=504')) return true;
+  return (Platform.isAndroid || Platform.isLinux || Platform.isWindows) &&
+      e.message.contains('LiteRtStatus=');
+}

@@ -37,6 +37,8 @@ class Interpreter {
   bool _deleted = false;
   bool _allocated = false;
   int _lastInferenceDurationMicroseconds = 0;
+  // Reused: monotonic and allocation-free, unlike DateTime.now() per run.
+  final Stopwatch _inferenceStopwatch = Stopwatch();
 
   /// Returns the LiteRT runtime version string.
   static String get version =>
@@ -272,10 +274,13 @@ class Interpreter {
       inputTensors.elementAt(i).setTo(inputs[i]);
     }
 
-    var inferenceStartNanos = DateTime.now().microsecondsSinceEpoch;
+    _inferenceStopwatch
+      ..reset()
+      ..start();
     invoke();
+    _inferenceStopwatch.stop();
     _lastInferenceDurationMicroseconds =
-        DateTime.now().microsecondsSinceEpoch - inferenceStartNanos;
+        _inferenceStopwatch.elapsedMicroseconds;
   }
 
   List<Tensor> _buildTensorList(int count, Tensor Function(int) getter) =>

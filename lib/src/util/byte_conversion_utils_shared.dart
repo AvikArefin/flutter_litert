@@ -38,17 +38,163 @@ class ByteConversionUtils {
         if (strings.length == o.length && o.isNotEmpty) {
           return encodeTFStrings(strings);
         }
+        List<int> bytes = <int>[];
+        for (var e in o) {
+          bytes.addAll(convertObjectToBytes(e, tensorType));
+        }
+        return Uint8List.fromList(bytes);
       }
     }
-    List<int> bytes = <int>[];
+    final typedBytes = _typedDataBytes(o, tensorType);
+    if (typedBytes != null) {
+      return typedBytes;
+    }
     if (o is List) {
-      for (var e in o) {
-        bytes.addAll(convertObjectToBytes(e, tensorType));
-      }
-    } else {
-      return _convertElementToBytes(o, tensorType);
+      return _convertListToBytes(o, tensorType);
     }
-    return Uint8List.fromList(bytes);
+    return _convertElementToBytes(o, tensorType);
+  }
+
+  /// Zero-copy view of [o]'s backing bytes when its runtime type already
+  /// matches the tensor's element type.
+  static Uint8List? _typedDataBytes(Object o, TensorType tensorType) {
+    if (tensorType == TensorType.float32) {
+      if (o is Float32List) return _viewBytes(o);
+      // Single-pass narrowing conversion instead of the element-wise path.
+      if (o is Float64List) return _viewBytes(Float32List.fromList(o));
+    }
+    if (tensorType == TensorType.int32 && o is Int32List) return _viewBytes(o);
+    if (tensorType == TensorType.int64 && o is Int64List) return _viewBytes(o);
+    if (tensorType == TensorType.int16 && o is Int16List) return _viewBytes(o);
+    if (tensorType == TensorType.int8 && o is Int8List) return _viewBytes(o);
+    return null;
+  }
+
+  static Uint8List _viewBytes(TypedData data) =>
+      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+
+  /// Converts a (possibly nested) list by counting leaf elements once and
+  /// filling a single pre-sized buffer, instead of allocating a small byte
+  /// buffer per element.
+  static Uint8List _convertListToBytes(List o, TensorType tensorType) {
+    final count = _countLeafElements(o);
+    if (count == 0) return Uint8List(0);
+    final elementSize = _elementByteSize(tensorType);
+    if (elementSize == null) {
+      throw ArgumentError(
+        'The input data tfliteType ${_firstLeaf(o).runtimeType} is unsupported',
+      );
+    }
+    final data = ByteData(count * elementSize);
+    _fillLeafBytes(o, data, 0, tensorType);
+    return data.buffer.asUint8List();
+  }
+
+  static int _countLeafElements(List list) {
+    var count = 0;
+    for (final e in list) {
+      if (e is List) {
+        count += _countLeafElements(e);
+      } else {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  static Object? _firstLeaf(List list) {
+    Object? node = list;
+    while (node is List && node.isNotEmpty) {
+      node = node.first;
+    }
+    return node;
+  }
+
+  static int? _elementByteSize(TensorType tensorType) {
+    if (tensorType == TensorType.float32) return 4;
+    if (tensorType == TensorType.int32) return 4;
+    if (tensorType == TensorType.int64) return 8;
+    if (tensorType == TensorType.int16) return 2;
+    if (tensorType == TensorType.float16) return 2;
+    if (tensorType == TensorType.int8) return 1;
+    if (tensorType == TensorType.uint8) return 1;
+    return null;
+  }
+
+  static int _fillLeafBytes(
+    List list,
+    ByteData data,
+    int offset,
+    TensorType tensorType,
+  ) {
+    for (final e in list) {
+      if (e is List) {
+        offset = _fillLeafBytes(e, data, offset, tensorType);
+      } else {
+        offset = _writeElement(data, offset, e, tensorType);
+      }
+    }
+    return offset;
+  }
+
+  static int _writeElement(
+    ByteData data,
+    int offset,
+    Object? e,
+    TensorType tensorType,
+  ) {
+    if (tensorType == TensorType.float32) {
+      if (e is num) {
+        data.setFloat32(offset, e.toDouble(), Endian.little);
+        return offset + 4;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    if (tensorType == TensorType.int32) {
+      if (e is int) {
+        data.setInt32(offset, e, Endian.little);
+        return offset + 4;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    if (tensorType == TensorType.int64) {
+      if (e is int) {
+        data.setInt64(offset, e, Endian.little);
+        return offset + 8;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    if (tensorType == TensorType.int16) {
+      if (e is int) {
+        data.setInt16(offset, e, Endian.little);
+        return offset + 2;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    if (tensorType == TensorType.float16) {
+      if (e is num) {
+        data.setUint16(offset, float32ToFloat16(e.toDouble()), Endian.little);
+        return offset + 2;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    if (tensorType == TensorType.int8) {
+      if (e is int) {
+        data.setInt8(offset, e);
+        return offset + 1;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    if (tensorType == TensorType.uint8) {
+      if (e is int) {
+        data.setUint8(offset, e);
+        return offset + 1;
+      }
+      throw ByteConversionError(input: e as Object, tensorType: tensorType);
+    }
+    throw ArgumentError(
+      'The input data tfliteType ${e.runtimeType} is unsupported',
+    );
   }
 
   static Uint8List _convertElementToBytes(Object o, TensorType tensorType) {
@@ -152,55 +298,56 @@ class ByteConversionUtils {
       _encodeTFStrings(strings);
 
   /// Converts raw tensor bytes back to a Dart object with the given [shape] and [tensorType].
+  ///
+  /// The returned object never aliases [bytes]: reshape boxes every element
+  /// into new lists, so callers may pass views over volatile native memory.
   static Object convertBytesToObject(
     Uint8List bytes,
     TensorType tensorType,
     List<int> shape,
   ) {
-    List<dynamic> list = [];
     if (tensorType == TensorType.int32) {
-      for (var i = 0; i < bytes.length; i += 4) {
-        list.add(ByteData.view(bytes.buffer).getInt32(i, Endian.little));
-      }
-      return list.reshape<int>(shape);
+      final b = _aligned(bytes, 4);
+      return b.buffer
+          .asInt32List(b.offsetInBytes, b.lengthInBytes ~/ 4)
+          .reshape<int>(shape);
     } else if (tensorType == TensorType.float32) {
-      for (var i = 0; i < bytes.length; i += 4) {
-        list.add(ByteData.view(bytes.buffer).getFloat32(i, Endian.little));
-      }
-      return list.reshape<double>(shape);
+      final b = _aligned(bytes, 4);
+      return b.buffer
+          .asFloat32List(b.offsetInBytes, b.lengthInBytes ~/ 4)
+          .reshape<double>(shape);
     } else if (tensorType == TensorType.int16) {
-      for (var i = 0; i < bytes.length; i += 2) {
-        list.add(ByteData.view(bytes.buffer).getInt16(i, Endian.little));
-      }
-      return list.reshape<int>(shape);
+      final b = _aligned(bytes, 2);
+      return b.buffer
+          .asInt16List(b.offsetInBytes, b.lengthInBytes ~/ 2)
+          .reshape<int>(shape);
     } else if (tensorType == TensorType.float16) {
-      for (var i = 0; i < bytes.length; i += 2) {
-        int float16 = ByteData.view(bytes.buffer).getUint16(i, Endian.little);
-        double float32 = float16ToFloat32(float16);
-        list.add(float32);
+      final data = ByteData.sublistView(bytes);
+      final list = List<double>.filled(bytes.length ~/ 2, 0);
+      for (var i = 0; i < list.length; i++) {
+        list[i] = float16ToFloat32(data.getUint16(i * 2, Endian.little));
       }
       return list.reshape<double>(shape);
     } else if (tensorType == TensorType.int8) {
-      for (var i = 0; i < bytes.length; i += 1) {
-        list.add(ByteData.view(bytes.buffer).getInt8(i));
-      }
-      return list.reshape<int>(shape);
+      return bytes.buffer
+          .asInt8List(bytes.offsetInBytes, bytes.lengthInBytes)
+          .reshape<int>(shape);
     } else if (tensorType == TensorType.uint8) {
-      for (var i = 0; i < bytes.length; i += 1) {
-        list.add(ByteData.view(bytes.buffer).getUint8(i));
-      }
-      return list.reshape<int>(shape);
+      return bytes.reshape<int>(shape);
     } else if (tensorType == TensorType.int64) {
-      for (var i = 0; i < bytes.length; i += 8) {
-        list.add(ByteData.view(bytes.buffer).getInt64(i, Endian.little));
-      }
-      return list.reshape<int>(shape);
+      final b = _aligned(bytes, 8);
+      return b.buffer
+          .asInt64List(b.offsetInBytes, b.lengthInBytes ~/ 8)
+          .reshape<int>(shape);
     } else if (tensorType == TensorType.string) {
-      list.add(decodeTFStrings(bytes));
-      return list;
+      return <dynamic>[decodeTFStrings(bytes)];
     }
     throw UnsupportedError("$tensorType is not Supported.");
   }
+
+  /// Returns [bytes] if its view offset satisfies [alignment], else a copy.
+  static Uint8List _aligned(Uint8List bytes, int alignment) =>
+      bytes.offsetInBytes % alignment == 0 ? bytes : Uint8List.fromList(bytes);
 
   /// Converts a float64 [value] to its float16 byte representation.
   static Uint8List floatToFloat16Bytes(double value) =>

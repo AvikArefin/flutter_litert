@@ -8,6 +8,9 @@ public class FlutterLitertPlugin: NSObject, FlutterPlugin {
     // Dart FFI resolves LiteRT APIs through dlsym(RTLD_DEFAULT), so keep the
     // packaged framework symbols reachable in release/TestFlight builds.
     FlutterLitertRetainFfiSymbols()
+    // Keep the CompiledModel Metal-accelerator registration shim linked; the
+    // LiteRT runtime finds it via dlsym(RTLD_DEFAULT) at environment setup.
+    FlutterLitertRetainLiteRtGpuShim()
 
     let channel = FlutterMethodChannel(name: "flutter_litert", binaryMessenger: registrar.messenger())
     let instance = FlutterLitertPlugin()

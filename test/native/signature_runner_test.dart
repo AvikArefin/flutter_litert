@@ -120,18 +120,47 @@ void main() {
       );
     });
 
-    test('getInputTensor throws ArgumentError for invalid name', () {
+    test('getInputTensor throws ArgumentError listing valid names', () {
       expect(
         () => inferRunner.getInputTensor('nonexistent'),
-        throwsA(isA<ArgumentError>()),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message.toString(),
+            'message',
+            allOf(contains('nonexistent'), contains('x')),
+          ),
+        ),
       );
     });
 
-    test('getOutputTensor throws ArgumentError for invalid name', () {
+    test('getOutputTensor throws ArgumentError listing valid names', () {
       expect(
         () => inferRunner.getOutputTensor('nonexistent'),
-        throwsA(isA<ArgumentError>()),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message.toString(),
+            'message',
+            allOf(contains('nonexistent'), contains('output')),
+          ),
+        ),
       );
+    });
+
+    test('repeated getInputTensor returns a usable cached handle', () {
+      final first = inferRunner.getInputTensor('x');
+      final second = inferRunner.getInputTensor('x');
+      expect(identical(first, second), isTrue);
+      expect(second.shape, equals([1, 1]));
+    });
+
+    test('resizeInputTensor invalidates cached tensor handles', () {
+      final before = inferRunner.getInputTensor('x');
+      expect(before.shape, equals([1, 1]));
+      inferRunner.resizeInputTensor('x', [1, 1]);
+      inferRunner.allocateTensors();
+      final after = inferRunner.getInputTensor('x');
+      expect(identical(before, after), isFalse);
+      expect(after.shape, equals([1, 1]));
     });
   });
 

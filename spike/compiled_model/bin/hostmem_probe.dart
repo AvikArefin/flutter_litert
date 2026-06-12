@@ -38,9 +38,10 @@ void ck(String w, int s) {
 }
 
 void main(List<String> args) {
-  final model = args.isNotEmpty
-      ? args[0]
-      : '/Users/hugocornellier/IdeaProjects/face_detection_tflite/assets/models/face_detection_back.tflite';
+  final model =
+      args.isNotEmpty
+          ? args[0]
+          : '/Users/hugocornellier/IdeaProjects/face_detection_tflite/assets/models/face_detection_back.tflite';
   _rt = DynamicLibrary.open('/tmp/cm_spike/libLiteRt.dylib');
   print('model: ${model.split('/').last}\n');
 
@@ -60,65 +61,88 @@ void main(List<String> args) {
 }
 
 void _probe(String path, int accel) {
-  final createEnv = _rt.lookupFunction<Int32 Function(IntPtr, _P, _PP),
-      int Function(int, _P, _PP)>('LiteRtCreateEnvironment');
+  final createEnv = _rt.lookupFunction<
+    Int32 Function(IntPtr, _P, _PP),
+    int Function(int, _P, _PP)
+  >('LiteRtCreateEnvironment');
   final createOpts = _rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
-      'LiteRtCreateOptions');
-  final setAccel =
-      _rt.lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-          'LiteRtSetOptionsHardwareAccelerators');
-  final modelFromFile = _rt.lookupFunction<Int32 Function(Pointer<Utf8>, _PP),
-      int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile');
-  final createCM = _rt.lookupFunction<Int32 Function(_P, _P, _P, _PP),
-      int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel');
-  final getSig = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-      int Function(_P, int, _PP)>('LiteRtGetModelSignature');
-  final numIn = _rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-      int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs');
-  final numOut = _rt.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-      int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs');
-  final inTensor = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-      int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex');
-  final outTensor = _rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-      int Function(_P, int, _PP)>('LiteRtGetSignatureOutputTensorByIndex');
+    'LiteRtCreateOptions',
+  );
+  final setAccel = _rt
+      .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+        'LiteRtSetOptionsHardwareAccelerators',
+      );
+  final modelFromFile = _rt.lookupFunction<
+    Int32 Function(Pointer<Utf8>, _PP),
+    int Function(Pointer<Utf8>, _PP)
+  >('LiteRtCreateModelFromFile');
+  final createCM = _rt.lookupFunction<
+    Int32 Function(_P, _P, _P, _PP),
+    int Function(_P, _P, _P, _PP)
+  >('LiteRtCreateCompiledModel');
+  final getSig = _rt.lookupFunction<
+    Int32 Function(_P, IntPtr, _PP),
+    int Function(_P, int, _PP)
+  >('LiteRtGetModelSignature');
+  final numIn = _rt.lookupFunction<
+    Int32 Function(_P, Pointer<IntPtr>),
+    int Function(_P, Pointer<IntPtr>)
+  >('LiteRtGetNumSignatureInputs');
+  final numOut = _rt.lookupFunction<
+    Int32 Function(_P, Pointer<IntPtr>),
+    int Function(_P, Pointer<IntPtr>)
+  >('LiteRtGetNumSignatureOutputs');
+  final inTensor = _rt.lookupFunction<
+    Int32 Function(_P, IntPtr, _PP),
+    int Function(_P, int, _PP)
+  >('LiteRtGetSignatureInputTensorByIndex');
+  final outTensor = _rt.lookupFunction<
+    Int32 Function(_P, IntPtr, _PP),
+    int Function(_P, int, _PP)
+  >('LiteRtGetSignatureOutputTensorByIndex');
   final rankedType = _rt.lookupFunction<
-      Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-      int Function(
-          _P, Pointer<LiteRtRankedTensorType>)>('LiteRtGetRankedTensorType');
+    Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
+    int Function(_P, Pointer<LiteRtRankedTensorType>)
+  >('LiteRtGetRankedTensorType');
   final inReq = _rt.lookupFunction<
-      Int32 Function(_P, IntPtr, IntPtr, _PP),
-      int Function(
-          _P, int, int, _PP)>('LiteRtGetCompiledModelInputBufferRequirements');
+    Int32 Function(_P, IntPtr, IntPtr, _PP),
+    int Function(_P, int, int, _PP)
+  >('LiteRtGetCompiledModelInputBufferRequirements');
   final outReq = _rt.lookupFunction<
-      Int32 Function(_P, IntPtr, IntPtr, _PP),
-      int Function(
-          _P, int, int, _PP)>('LiteRtGetCompiledModelOutputBufferRequirements');
+    Int32 Function(_P, IntPtr, IntPtr, _PP),
+    int Function(_P, int, int, _PP)
+  >('LiteRtGetCompiledModelOutputBufferRequirements');
   final reqSize = _rt.lookupFunction<
-      Int32 Function(_P, Pointer<IntPtr>),
-      int Function(
-          _P, Pointer<IntPtr>)>('LiteRtGetTensorBufferRequirementsBufferSize');
-  final reqNumTypes = _rt.lookupFunction<Int32 Function(_P, Pointer<Int32>),
-          int Function(_P, Pointer<Int32>)>(
-      'LiteRtGetNumTensorBufferRequirementsSupportedBufferTypes');
+    Int32 Function(_P, Pointer<IntPtr>),
+    int Function(_P, Pointer<IntPtr>)
+  >('LiteRtGetTensorBufferRequirementsBufferSize');
+  final reqNumTypes = _rt.lookupFunction<
+    Int32 Function(_P, Pointer<Int32>),
+    int Function(_P, Pointer<Int32>)
+  >('LiteRtGetNumTensorBufferRequirementsSupportedBufferTypes');
   final reqTypeAt = _rt.lookupFunction<
-          Int32 Function(_P, Int32, Pointer<Int32>),
-          int Function(_P, int, Pointer<Int32>)>(
-      'LiteRtGetTensorBufferRequirementsSupportedTensorBufferType');
+    Int32 Function(_P, Int32, Pointer<Int32>),
+    int Function(_P, int, Pointer<Int32>)
+  >('LiteRtGetTensorBufferRequirementsSupportedTensorBufferType');
   final createManaged = _rt.lookupFunction<
-      Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
-      int Function(_P, Pointer<LiteRtRankedTensorType>, _P,
-          _PP)>('LiteRtCreateManagedTensorBufferFromRequirements');
+    Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
+    int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)
+  >('LiteRtCreateManagedTensorBufferFromRequirements');
   final createFromHost = _rt.lookupFunction<
-      Int32 Function(Pointer<LiteRtRankedTensorType>, _P, IntPtr, _P, _PP),
-      int Function(Pointer<LiteRtRankedTensorType>, _P, int, _P,
-          _PP)>('LiteRtCreateTensorBufferFromHostMemory');
-  final lock = _rt.lookupFunction<Int32 Function(_P, _PP, Int32),
-      int Function(_P, _PP, int)>('LiteRtLockTensorBuffer');
+    Int32 Function(Pointer<LiteRtRankedTensorType>, _P, IntPtr, _P, _PP),
+    int Function(Pointer<LiteRtRankedTensorType>, _P, int, _P, _PP)
+  >('LiteRtCreateTensorBufferFromHostMemory');
+  final lock = _rt.lookupFunction<
+    Int32 Function(_P, _PP, Int32),
+    int Function(_P, _PP, int)
+  >('LiteRtLockTensorBuffer');
   final unlock = _rt.lookupFunction<Int32 Function(_P), int Function(_P)>(
-      'LiteRtUnlockTensorBuffer');
+    'LiteRtUnlockTensorBuffer',
+  );
   final run = _rt.lookupFunction<
-      Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
-      int Function(_P, int, int, _PP, int, _PP)>('LiteRtRunCompiledModel');
+    Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
+    int Function(_P, int, int, _PP, int, _PP)
+  >('LiteRtRunCompiledModel');
 
   // --- setup ---
   final envOut = calloc<Pointer<Void>>();
@@ -174,8 +198,10 @@ void _probe(String path, int accel) {
     ck('size', reqSize(rOut.value, sP));
     sizes.add(sP.value);
     final label = isIn ? 'input[$idx]' : 'output[$idx]';
-    print('  $label bytes=${sP.value} supportedTypes=[${typesOf(rOut.value)}]'
-        ' (1=HostMemory, 30=MetalBuffer)');
+    print(
+      '  $label bytes=${sP.value} supportedTypes=[${typesOf(rOut.value)}]'
+      ' (1=HostMemory, 30=MetalBuffer)',
+    );
   }
 
   // --- 2. managed-buffer reference run ---
@@ -202,8 +228,9 @@ void _probe(String path, int accel) {
   Float32List readOutput(_P buf, int bytes) {
     final hp = calloc<Pointer<Void>>();
     ck('lockR', lock(buf, hp, kLockRead));
-    final out =
-        Float32List.fromList(hp.value.cast<Float>().asTypedList(bytes ~/ 4));
+    final out = Float32List.fromList(
+      hp.value.cast<Float>().asTypedList(bytes ~/ 4),
+    );
     ck('unlockR', unlock(buf));
     calloc.free(hp);
     return out;
@@ -232,7 +259,8 @@ void _probe(String path, int accel) {
     final st = createFromHost(rtts[i], aligned.cast(), sizes[i], nullptr, bOut);
     if (st != kOk) {
       print(
-          '  CreateTensorBufferFromHostMemory(${i < nIn ? "input" : "output"}) → $st');
+        '  CreateTensorBufferFromHostMemory(${i < nIn ? "input" : "output"}) → $st',
+      );
       return;
     }
     hostBufs.add(bOut.value);
@@ -263,7 +291,8 @@ void _probe(String path, int accel) {
     }
   }
   print(
-      '  Run(host-memory) OK; max |diff| vs managed = ${maxDiff.toStringAsFixed(6)}');
+    '  Run(host-memory) OK; max |diff| vs managed = ${maxDiff.toStringAsFixed(6)}',
+  );
 
   // --- 5. timing: managed+lock I/O vs host-memory views ---
   double med(List<int> xs) {

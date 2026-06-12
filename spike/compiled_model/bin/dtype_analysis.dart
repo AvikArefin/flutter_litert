@@ -151,100 +151,126 @@ final Map<int, String> kStatusNames = {
 
 final class _Api {
   _Api(DynamicLibrary rt)
-      : createEnv = rt.lookupFunction<Int32 Function(Int32, _P, _PP),
-            int Function(int, _P, _PP)>('LiteRtCreateEnvironment'),
-        destroyEnv = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyEnvironment',
-        ),
-        createOpts = rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
-          'LiteRtCreateOptions',
-        ),
-        destroyOpts = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyOptions',
-        ),
-        setAccel =
-            rt.lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-          'LiteRtSetOptionsHardwareAccelerators',
-        ),
-        createModelFromFile = rt.lookupFunction<
-            Int32 Function(Pointer<Utf8>, _PP),
-            int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile'),
-        destroyModel = rt.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyModel',
-        ),
-        createCompiledModel = rt.lookupFunction<Int32 Function(_P, _P, _P, _PP),
-            int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel'),
-        destroyCompiledModel =
-            rt.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyCompiledModel',
-        ),
-        getStatusString = rt.lookupFunction<Pointer<Utf8> Function(Int32),
-            Pointer<Utf8> Function(int)>('LiteRtGetStatusString'),
-        getNumModelSignatures = rt.lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumModelSignatures'),
-        getModelSignature = rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetModelSignature'),
-        getSignatureKey =
-            rt.lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
-                'LiteRtGetSignatureKey'),
-        getNumSignatureInputs = rt.lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs'),
-        getNumSignatureOutputs = rt.lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs'),
-        getSignatureInputName = rt.lookupFunction<
-            Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSignatureInputName'),
-        getSignatureOutputName = rt.lookupFunction<
-            Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSignatureOutputName'),
-        getSignatureInputTensorByIndex = rt.lookupFunction<
-            Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex'),
-        getSignatureOutputTensorByIndex = rt.lookupFunction<
-            Int32 Function(_P, IntPtr, _PP),
-            int Function(
-                _P, int, _PP)>('LiteRtGetSignatureOutputTensorByIndex'),
-        getMainModelSubgraphIndex = rt.lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(
-                _P, Pointer<IntPtr>)>('LiteRtGetMainModelSubgraphIndex'),
-        getModelSubgraph = rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetModelSubgraph'),
-        getNumSubgraphInputs = rt.lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSubgraphInputs'),
-        getNumSubgraphOutputs = rt.lookupFunction<
-            Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSubgraphOutputs'),
-        getSubgraphInput = rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSubgraphInput'),
-        getSubgraphOutput = rt.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSubgraphOutput'),
-        getTensorName =
-            rt.lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
-                'LiteRtGetTensorName'),
-        getTensorIndex = rt.lookupFunction<Int32 Function(_P, Pointer<Uint32>),
-            int Function(_P, Pointer<Uint32>)>('LiteRtGetTensorIndex'),
-        getRankedTensorType = rt.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-            int Function(_P,
-                Pointer<LiteRtRankedTensorType>)>('LiteRtGetRankedTensorType'),
-        getQuantizationTypeId = rt.lookupFunction<
-            Int32 Function(_P, Pointer<Int32>),
-            int Function(_P, Pointer<Int32>)>('LiteRtGetQuantizationTypeId'),
-        getPerTensorQuantization = rt.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtQuantizationPerTensor>),
-            int Function(_P, Pointer<LiteRtQuantizationPerTensor>)>(
-          'LiteRtGetPerTensorQuantization',
-        ),
-        getPerChannelQuantization = rt.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtQuantizationPerChannel>),
-            int Function(_P, Pointer<LiteRtQuantizationPerChannel>)>(
-          'LiteRtGetPerChannelQuantization',
-        );
+    : createEnv = rt.lookupFunction<
+        Int32 Function(Int32, _P, _PP),
+        int Function(int, _P, _PP)
+      >('LiteRtCreateEnvironment'),
+      destroyEnv = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyEnvironment',
+      ),
+      createOpts = rt.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
+        'LiteRtCreateOptions',
+      ),
+      destroyOpts = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyOptions',
+      ),
+      setAccel = rt
+          .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+            'LiteRtSetOptionsHardwareAccelerators',
+          ),
+      createModelFromFile = rt.lookupFunction<
+        Int32 Function(Pointer<Utf8>, _PP),
+        int Function(Pointer<Utf8>, _PP)
+      >('LiteRtCreateModelFromFile'),
+      destroyModel = rt.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyModel',
+      ),
+      createCompiledModel = rt.lookupFunction<
+        Int32 Function(_P, _P, _P, _PP),
+        int Function(_P, _P, _P, _PP)
+      >('LiteRtCreateCompiledModel'),
+      destroyCompiledModel = rt
+          .lookupFunction<Void Function(_P), void Function(_P)>(
+            'LiteRtDestroyCompiledModel',
+          ),
+      getStatusString = rt.lookupFunction<
+        Pointer<Utf8> Function(Int32),
+        Pointer<Utf8> Function(int)
+      >('LiteRtGetStatusString'),
+      getNumModelSignatures = rt.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumModelSignatures'),
+      getModelSignature = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetModelSignature'),
+      getSignatureKey = rt
+          .lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
+            'LiteRtGetSignatureKey',
+          ),
+      getNumSignatureInputs = rt.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSignatureInputs'),
+      getNumSignatureOutputs = rt.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSignatureOutputs'),
+      getSignatureInputName = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureInputName'),
+      getSignatureOutputName = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureOutputName'),
+      getSignatureInputTensorByIndex = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureInputTensorByIndex'),
+      getSignatureOutputTensorByIndex = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureOutputTensorByIndex'),
+      getMainModelSubgraphIndex = rt.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetMainModelSubgraphIndex'),
+      getModelSubgraph = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetModelSubgraph'),
+      getNumSubgraphInputs = rt.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSubgraphInputs'),
+      getNumSubgraphOutputs = rt.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSubgraphOutputs'),
+      getSubgraphInput = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSubgraphInput'),
+      getSubgraphOutput = rt.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSubgraphOutput'),
+      getTensorName = rt
+          .lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
+            'LiteRtGetTensorName',
+          ),
+      getTensorIndex = rt.lookupFunction<
+        Int32 Function(_P, Pointer<Uint32>),
+        int Function(_P, Pointer<Uint32>)
+      >('LiteRtGetTensorIndex'),
+      getRankedTensorType = rt.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
+        int Function(_P, Pointer<LiteRtRankedTensorType>)
+      >('LiteRtGetRankedTensorType'),
+      getQuantizationTypeId = rt.lookupFunction<
+        Int32 Function(_P, Pointer<Int32>),
+        int Function(_P, Pointer<Int32>)
+      >('LiteRtGetQuantizationTypeId'),
+      getPerTensorQuantization = rt.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtQuantizationPerTensor>),
+        int Function(_P, Pointer<LiteRtQuantizationPerTensor>)
+      >('LiteRtGetPerTensorQuantization'),
+      getPerChannelQuantization = rt.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtQuantizationPerChannel>),
+        int Function(_P, Pointer<LiteRtQuantizationPerChannel>)
+      >('LiteRtGetPerChannelQuantization');
 
   final int Function(int, _P, _PP) createEnv;
   final void Function(_P) destroyEnv;
@@ -276,9 +302,9 @@ final class _Api {
   final int Function(_P, Pointer<LiteRtRankedTensorType>) getRankedTensorType;
   final int Function(_P, Pointer<Int32>) getQuantizationTypeId;
   final int Function(_P, Pointer<LiteRtQuantizationPerTensor>)
-      getPerTensorQuantization;
+  getPerTensorQuantization;
   final int Function(_P, Pointer<LiteRtQuantizationPerChannel>)
-      getPerChannelQuantization;
+  getPerChannelQuantization;
 }
 
 void main(List<String> args) async {
@@ -325,9 +351,7 @@ void _printTensorMetadata(_Api api, ModelCase modelCase) {
   final modelOut = calloc<Pointer<Void>>();
   try {
     final modelStatus = api.createModelFromFile(pathPtr, modelOut);
-    print(
-      'metadata_model_status: ${_status(api, modelStatus)}',
-    );
+    print('metadata_model_status: ${_status(api, modelStatus)}');
     if (modelStatus != kOk) return;
 
     final model = modelOut.value;
@@ -389,10 +413,16 @@ _IoSource _openIoSource(_Api api, _P model) {
   final subgraphIndexOut = calloc<IntPtr>();
   final subgraphOut = calloc<Pointer<Void>>();
   try {
-    _ck(api, 'LiteRtGetMainModelSubgraphIndex',
-        api.getMainModelSubgraphIndex(model, subgraphIndexOut));
-    _ck(api, 'LiteRtGetModelSubgraph',
-        api.getModelSubgraph(model, subgraphIndexOut.value, subgraphOut));
+    _ck(
+      api,
+      'LiteRtGetMainModelSubgraphIndex',
+      api.getMainModelSubgraphIndex(model, subgraphIndexOut),
+    );
+    _ck(
+      api,
+      'LiteRtGetModelSubgraph',
+      api.getModelSubgraph(model, subgraphIndexOut.value, subgraphOut),
+    );
     return _SubgraphIoSource(api, subgraphOut.value, subgraphIndexOut.value);
   } finally {
     calloc.free(subgraphOut);
@@ -418,13 +448,20 @@ final class _SignatureIoSource implements _IoSource {
     final nOutOut = calloc<IntPtr>();
     try {
       final keyStatus = api.getSignatureKey(signature, keyOut);
-      key = keyStatus == kOk && keyOut.value != nullptr
-          ? keyOut.value.cast<Utf8>().toDartString()
-          : '';
-      _ck(api, 'LiteRtGetNumSignatureInputs',
-          api.getNumSignatureInputs(signature, nInOut));
-      _ck(api, 'LiteRtGetNumSignatureOutputs',
-          api.getNumSignatureOutputs(signature, nOutOut));
+      key =
+          keyStatus == kOk && keyOut.value != nullptr
+              ? keyOut.value.cast<Utf8>().toDartString()
+              : '';
+      _ck(
+        api,
+        'LiteRtGetNumSignatureInputs',
+        api.getNumSignatureInputs(signature, nInOut),
+      );
+      _ck(
+        api,
+        'LiteRtGetNumSignatureOutputs',
+        api.getNumSignatureOutputs(signature, nOutOut),
+      );
       numInputs = nInOut.value;
       numOutputs = nOutOut.value;
     } finally {
@@ -444,7 +481,8 @@ final class _SignatureIoSource implements _IoSource {
   late final int numOutputs;
 
   @override
-  String get description => 'signature[$index] key="$key" '
+  String get description =>
+      'signature[$index] key="$key" '
       'inputs=$numInputs outputs=$numOutputs';
 
   @override
@@ -456,20 +494,12 @@ final class _SignatureIoSource implements _IoSource {
       api.getSignatureOutputTensorByIndex(signature, index, tensorOut);
 
   @override
-  String? inputName(int index) => _signatureName(
-        api,
-        signature,
-        index,
-        api.getSignatureInputName,
-      );
+  String? inputName(int index) =>
+      _signatureName(api, signature, index, api.getSignatureInputName);
 
   @override
-  String? outputName(int index) => _signatureName(
-        api,
-        signature,
-        index,
-        api.getSignatureOutputName,
-      );
+  String? outputName(int index) =>
+      _signatureName(api, signature, index, api.getSignatureOutputName);
 
   @override
   void close() {}
@@ -480,10 +510,16 @@ final class _SubgraphIoSource implements _IoSource {
     final nInOut = calloc<IntPtr>();
     final nOutOut = calloc<IntPtr>();
     try {
-      _ck(api, 'LiteRtGetNumSubgraphInputs',
-          api.getNumSubgraphInputs(subgraph, nInOut));
-      _ck(api, 'LiteRtGetNumSubgraphOutputs',
-          api.getNumSubgraphOutputs(subgraph, nOutOut));
+      _ck(
+        api,
+        'LiteRtGetNumSubgraphInputs',
+        api.getNumSubgraphInputs(subgraph, nInOut),
+      );
+      _ck(
+        api,
+        'LiteRtGetNumSubgraphOutputs',
+        api.getNumSubgraphOutputs(subgraph, nOutOut),
+      );
       numInputs = nInOut.value;
       numOutputs = nOutOut.value;
     } finally {
@@ -630,24 +666,18 @@ String _quantization(_Api api, _P tensor) {
 
 List<int> _dims(LiteRtLayout layout) {
   final rank = layout.bitfields & 0x7f;
-  return [
-    for (var i = 0; i < rank; i++) layout.dimensions[i],
-  ];
+  return [for (var i = 0; i < rank; i++) layout.dimensions[i]];
 }
 
 Future<String> _runCompileChild(ModelCase model, int accel) async {
   final scriptPath = Platform.script.toFilePath();
-  final result = await Process.run(
-    Platform.resolvedExecutable,
-    [
-      scriptPath,
-      '--compile-probe',
-      model.label,
-      accel.toString(),
-      model.path,
-    ],
-    workingDirectory: Directory.current.path,
-  );
+  final result = await Process.run(Platform.resolvedExecutable, [
+    scriptPath,
+    '--compile-probe',
+    model.label,
+    accel.toString(),
+    model.path,
+  ], workingDirectory: Directory.current.path);
 
   final buffer = StringBuffer();
   final stdoutText = (result.stdout as String).trimRight();
@@ -732,10 +762,10 @@ String _elementName(int elementType) =>
     kElementTypeNames[elementType] ?? 'Unknown';
 
 String _accelName(int accel) => switch (accel) {
-      kCpu => 'CPU',
-      kGpu => 'GPU',
-      _ => 'ACCEL',
-    };
+  kCpu => 'CPU',
+  kGpu => 'GPU',
+  _ => 'ACCEL',
+};
 
 String _status(_Api api, int status) {
   if (status == -1) return 'not-attempted';

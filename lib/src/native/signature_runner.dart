@@ -92,6 +92,8 @@ class SignatureRunner {
   bool _closed = false;
   bool _allocated = false;
   int _lastInferenceDurationMicroseconds = 0;
+  // Reused: monotonic and allocation-free, unlike DateTime.now() per run.
+  final Stopwatch _inferenceStopwatch = Stopwatch();
 
   /// Creates a [SignatureRunner] from a raw native pointer.
   ///
@@ -123,6 +125,18 @@ class SignatureRunner {
   List<String> get inputNames =>
       List.generate(inputCount, getInputName, growable: false);
 
+  // Tensor handles cached by name. Resolving a tensor costs a UTF-8
+  // encode + FFI lookup per call, and run() resolves each input twice;
+  // handles are stable between allocations, so cache until
+  // resizeInputTensor/allocateTensors.
+  final Map<String, Tensor> _inputTensorCache = {};
+  final Map<String, Tensor> _outputTensorCache = {};
+
+  void _invalidateTensorCaches() {
+    _inputTensorCache.clear();
+    _outputTensorCache.clear();
+  }
+
   Tensor _getTensorByName(
     String name,
     Pointer<TfLiteTensor> Function(
@@ -131,17 +145,19 @@ class SignatureRunner {
     )
     nativeGetter,
     String kind,
-    List<String> validNames,
+    List<String> Function() validNames,
   ) {
     final namePtr = name.toNativeUtf8();
     try {
       final tensor = nativeGetter(_runner, namePtr.cast());
-      checkArgument(
-        isNotNull(tensor),
-        message:
-            '$kind tensor "$name" not found. '
-            'Valid $kind names: ${validNames.join(', ')}',
-      );
+      if (!isNotNull(tensor)) {
+        // Valid names are resolved only on failure: building the list costs
+        // one FFI call plus a string decode per tensor.
+        throw ArgumentError(
+          '$kind tensor "$name" not found. '
+          'Valid $kind names: ${validNames().join(', ')}',
+        );
+      }
       return Tensor(tensor);
     } finally {
       calloc.free(namePtr);
@@ -151,12 +167,13 @@ class SignatureRunner {
   /// Returns the input [Tensor] identified by [name].
   ///
   /// Throws [ArgumentError] if [name] is not a valid input name.
-  Tensor getInputTensor(String name) => _getTensorByName(
-    name,
-    tfliteBinding.TfLiteSignatureRunnerGetInputTensor,
-    'Input',
-    inputNames,
-  );
+  Tensor getInputTensor(String name) =>
+      _inputTensorCache[name] ??= _getTensorByName(
+        name,
+        tfliteBinding.TfLiteSignatureRunnerGetInputTensor,
+        'Input',
+        () => inputNames,
+      );
 
   /// Returns all input tensors for this signature.
   List<Tensor> getInputTensors() =>
@@ -183,6 +200,7 @@ class SignatureRunner {
         );
         checkState(status == TfLiteStatus.kTfLiteOk);
         _allocated = false;
+        _invalidateTensorCaches();
       } finally {
         calloc.free(dimensions);
       }
@@ -206,6 +224,9 @@ class SignatureRunner {
           TfLiteStatus.kTfLiteOk,
     );
     _allocated = true;
+    // Allocation can relocate tensor structs (e.g. first-time delegate
+    // application grows the tensors arena), so cached handles may dangle.
+    _invalidateTensorCaches();
   }
 
   /// Runs this signature.
@@ -258,12 +279,13 @@ class SignatureRunner {
   /// Returns the output [Tensor] identified by [name].
   ///
   /// Throws [ArgumentError] if [name] is not a valid output name.
-  Tensor getOutputTensor(String name) => _getTensorByName(
-    name,
-    tfliteBinding.TfLiteSignatureRunnerGetOutputTensor,
-    'Output',
-    outputNames,
-  );
+  Tensor getOutputTensor(String name) =>
+      _outputTensorCache[name] ??= _getTensorByName(
+        name,
+        tfliteBinding.TfLiteSignatureRunnerGetOutputTensor,
+        'Output',
+        () => outputNames,
+      );
 
   /// Returns all output tensors for this signature.
   List<Tensor> getOutputTensors() =>
@@ -317,10 +339,13 @@ class SignatureRunner {
       getInputTensor(entry.key).setTo(entry.value);
     }
 
-    final startMicros = DateTime.now().microsecondsSinceEpoch;
+    _inferenceStopwatch
+      ..reset()
+      ..start();
     invoke();
+    _inferenceStopwatch.stop();
     _lastInferenceDurationMicroseconds =
-        DateTime.now().microsecondsSinceEpoch - startMicros;
+        _inferenceStopwatch.elapsedMicroseconds;
 
     // Copy output data back to Dart objects.
     for (final entry in outputs.entries) {

@@ -98,6 +98,12 @@ class CompiledModel {
 
   bool _closed = false;
 
+  // Per-dispatch native out-params, allocated once instead of per call.
+  late final Pointer<Pointer<Void>> _lockScratch = calloc<Pointer<Void>>();
+  late final Pointer<Uint8> _asyncScratch = calloc<Uint8>();
+  late final Pointer<Uint8> _hasEventScratch = calloc<Uint8>();
+  late final Pointer<Pointer<Void>> _eventScratch = calloc<Pointer<Void>>();
+
   /// Number of input tensors for the default signature.
   int get inputCount => _inputCount;
 
@@ -399,26 +405,22 @@ class CompiledModel {
 
   Future<void> _dispatchAsync() async {
     _ensureOpen();
-    final asyncOut = calloc<Uint8>();
-    try {
-      _check(
-        'LiteRtRunCompiledModelAsync',
-        _rt.runCompiledModelAsync(
-          _compiledModel,
-          0,
-          _inputCount,
-          _inputBuffers,
-          _outputCount,
-          _outputBuffers,
-          asyncOut,
-        ),
-      );
+    final asyncOut = _asyncScratch..value = 0;
+    _check(
+      'LiteRtRunCompiledModelAsync',
+      _rt.runCompiledModelAsync(
+        _compiledModel,
+        0,
+        _inputCount,
+        _inputBuffers,
+        _outputCount,
+        _outputBuffers,
+        asyncOut,
+      ),
+    );
 
-      if (asyncOut.value != 0) {
-        _waitForAsyncOutputs();
-      }
-    } finally {
-      calloc.free(asyncOut);
+    if (asyncOut.value != 0) {
+      _waitForAsyncOutputs();
     }
   }
 
@@ -429,7 +431,7 @@ class CompiledModel {
     String label,
     R Function(Float32List) fn,
   ) {
-    final hostAddress = calloc<Pointer<Void>>();
+    final hostAddress = _lockScratch..value = nullptr;
     var locked = false;
     try {
       _check(
@@ -451,13 +453,16 @@ class CompiledModel {
           _rt.unlockTensorBuffer(buffer),
         );
       }
-      calloc.free(hostAddress);
     }
   }
 
   /// Releases native CompiledModel resources.
   void close() {
     if (_closed) return;
+    calloc.free(_lockScratch);
+    calloc.free(_asyncScratch);
+    calloc.free(_hasEventScratch);
+    calloc.free(_eventScratch);
     _releaseNative(
       _rt,
       inputBuffers: _inputBuffers,
@@ -501,37 +506,32 @@ class CompiledModel {
   }
 
   void _waitForAsyncOutputs() {
-    final hasEvent = calloc<Uint8>();
-    final eventOut = calloc<Pointer<Void>>();
+    final hasEvent = _hasEventScratch;
+    final eventOut = _eventScratch;
 
-    try {
-      for (var i = 0; i < _outputCount; i++) {
-        hasEvent.value = 0;
-        _check(
-          'LiteRtHasTensorBufferEvent output[$i]',
-          _rt.hasTensorBufferEvent(_outputBuffers[i], hasEvent),
-        );
-        if (hasEvent.value == 0) continue;
+    for (var i = 0; i < _outputCount; i++) {
+      hasEvent.value = 0;
+      _check(
+        'LiteRtHasTensorBufferEvent output[$i]',
+        _rt.hasTensorBufferEvent(_outputBuffers[i], hasEvent),
+      );
+      if (hasEvent.value == 0) continue;
 
-        eventOut.value = nullptr;
-        _check(
-          'LiteRtGetTensorBufferEvent output[$i]',
-          _rt.getTensorBufferEvent(_outputBuffers[i], eventOut),
-        );
-        if (eventOut.value == nullptr) continue;
+      eventOut.value = nullptr;
+      _check(
+        'LiteRtGetTensorBufferEvent output[$i]',
+        _rt.getTensorBufferEvent(_outputBuffers[i], eventOut),
+      );
+      if (eventOut.value == nullptr) continue;
 
-        // Indefinite wait (-1), the same pattern the runtime itself uses for
-        // sync Run and TensorBuffer::Lock on event-carrying buffers.
-        _check('LiteRtWaitEvent output[$i]', _rt.waitEvent(eventOut.value, -1));
+      // Indefinite wait (-1), the same pattern the runtime itself uses for
+      // sync Run and TensorBuffer::Lock on event-carrying buffers.
+      _check('LiteRtWaitEvent output[$i]', _rt.waitEvent(eventOut.value, -1));
 
-        _check(
-          'LiteRtClearTensorBufferEvent output[$i]',
-          _rt.clearTensorBufferEvent(_outputBuffers[i]),
-        );
-      }
-    } finally {
-      calloc.free(eventOut);
-      calloc.free(hasEvent);
+      _check(
+        'LiteRtClearTensorBufferEvent output[$i]',
+        _rt.clearTensorBufferEvent(_outputBuffers[i]),
+      );
     }
   }
 

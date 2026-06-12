@@ -46,18 +46,22 @@ class TensorFloat32Views {
   /// Returned lists are unmodifiable (the views themselves can be written
   /// to, but the list of views can't be reassigned).
   factory TensorFloat32Views.capture(Interpreter interp) {
+    // Views must come from asFloat32View(), not Tensor.data: the data getter
+    // returns an unmodifiable view, and writes through its buffer would rely
+    // on a Dart VM enforcement gap (indexed stores throw; setAll only works
+    // because the memmove fast path skips the unmodifiable check).
     final int inCount = interp.getInputTensors().length;
     final List<Float32List> inputs =
         List<Float32List>.unmodifiable(<Float32List>[
           for (int i = 0; i < inCount; i++)
-            interp.getInputTensor(i).data.buffer.asFloat32List(),
+            interp.getInputTensor(i).asFloat32View(),
         ]);
 
     final int outCount = interp.getOutputTensors().length;
     final List<Float32List> outputs =
         List<Float32List>.unmodifiable(<Float32List>[
           for (int i = 0; i < outCount; i++)
-            interp.getOutputTensor(i).data.buffer.asFloat32List(),
+            interp.getOutputTensor(i).asFloat32View(),
         ]);
 
     return TensorFloat32Views._(inputs, outputs);

@@ -34,9 +34,13 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_BINARY_DIR}/custom_ops")
 
 set(FLUTTER_LITERT_TFLITE_DLL "${CMAKE_CURRENT_SOURCE_DIR}/libtensorflowlite_c-win.dll")
+# LiteRT Next runtime (CompiledModel API), x86_64; from the official
+# ai-edge-litert 2.1.5 PyPI wheel.
+set(FLUTTER_LITERT_LITERT_DLL "${CMAKE_CURRENT_SOURCE_DIR}/libLiteRt.dll")
 
 set(flutter_tflite_bundled_libraries
   "${FLUTTER_LITERT_TFLITE_DLL}"
+  "${FLUTTER_LITERT_LITERT_DLL}"
   "$<TARGET_FILE:tflite_custom_ops>"
 )
 
@@ -45,6 +49,7 @@ set(flutter_tflite_bundled_libraries
 # bundled native libraries are included.
 set(flutter_litert_bundled_libraries
   "${FLUTTER_LITERT_TFLITE_DLL}"
+  "${FLUTTER_LITERT_LITERT_DLL}"
   "$<TARGET_FILE:tflite_custom_ops>"
 )
 

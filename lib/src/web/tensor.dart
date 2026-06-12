@@ -49,6 +49,12 @@ class Tensor {
   /// Underlying data buffer as bytes.
   Uint8List get data => _data.asUnmodifiableView();
 
+  /// Aliasing native tensor memory is not possible on web; tensors are
+  /// Dart-side buffers that the engine copies from. Use [data] instead.
+  Float32List asFloat32View() => throw UnsupportedError(
+    'Tensor.asFloat32View is not supported on web; use Tensor.data.',
+  );
+
   /// Quantization params (not available on web).
   QuantizationParams get params => QuantizationParams(1.0, 0);
 

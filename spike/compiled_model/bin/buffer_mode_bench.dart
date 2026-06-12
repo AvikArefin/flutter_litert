@@ -11,9 +11,10 @@ import 'dart:typed_data';
 import 'package:flutter_litert/src/compiled_model/compiled_model.dart';
 
 void main(List<String> args) async {
-  final model = args.isNotEmpty
-      ? args[0]
-      : 'example/assets/superanimal_rtmpose_s_float16.tflite';
+  final model =
+      args.isNotEmpty
+          ? args[0]
+          : 'example/assets/superanimal_rtmpose_s_float16.tflite';
   const warmup = 30;
   const iterations = 150;
   const repeats = 3;
@@ -41,9 +42,10 @@ void main(List<String> args) async {
             warmup: warmup,
             iterations: iterations,
           );
-          final diff = reference == null
-              ? null
-              : _maxDiff(reference.lastOutputs, result.lastOutputs);
+          final diff =
+              reference == null
+                  ? null
+                  : _maxDiff(reference.lastOutputs, result.lastOutputs);
           reference ??= result;
           byPath[path]!.add(result);
           print(

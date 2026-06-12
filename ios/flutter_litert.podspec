@@ -55,6 +55,25 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
     puts '[flutter_litert] TensorFlow Lite iOS frameworks installed.'
   end
 
+  # LiteRT Next runtime + Metal accelerator (CompiledModel API). CocoaPods
+  # rejects vendored xcframeworks containing bare dylibs, so these are
+  # conventional framework-wrapped variants (built by
+  # scripts/wrap_litert_ios_frameworks.sh). The framework rename breaks
+  # LiteRT's GPU-plugin file-name scan; Classes/litert_gpu_accelerator_shim.c
+  # registers the Metal accelerator instead. (The SwiftPM channel ships
+  # bare-dylib xcframeworks where the runtime's own scan works.)
+  litert_marker = File.join(framework_dir, 'LiteRt.xcframework',
+                            'ios-arm64', 'LiteRt.framework', 'LiteRt')
+  unless File.exist?(litert_marker)
+    puts '[flutter_litert] Downloading LiteRT Next iOS frameworks...'
+    zip = File.join(framework_dir, '_litert_ios.zip')
+    system("curl -sL 'https://github.com/hugocornellier/flutter_litert/releases/download/litert-ios-v1.0.0/litert-ios-frameworks.zip' -o '#{zip}'")
+    abort '[flutter_litert] ERROR: Failed to download LiteRT Next iOS frameworks. Check your internet connection.' unless $?.success?
+    system("unzip -qo '#{zip}' -d '#{framework_dir}'")
+    File.delete(zip) if File.exist?(zip)
+    puts '[flutter_litert] LiteRT Next iOS frameworks installed.'
+  end
+
   # When flutter_litert_flex is present, TensorFlowLiteFlex needs -all_load to
   # pull in C++ static initializers for TF op registration. TFLiteC and TFLiteFlex
   # share 15 symbols (XNNPack delegate + AcquireFlexDelegate). Make those symbols
@@ -126,7 +145,9 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
 
   s.vendored_frameworks = 'TensorFlowLiteC.xcframework',
                            'TensorFlowLiteCMetal.xcframework',
-                           'TensorFlowLiteCCoreML.xcframework'
+                           'TensorFlowLiteCCoreML.xcframework',
+                           'LiteRt.xcframework',
+                           'LiteRtMetalAccelerator.xcframework'
 
   s.pod_target_xcconfig = common_xcconfig.merge({
     'OTHER_LDFLAGS' => '$(inherited) -ObjC -all_load'

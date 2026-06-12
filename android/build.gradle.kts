@@ -1,3 +1,4 @@
+import java.net.URI
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 
@@ -71,4 +72,58 @@ dependencies {
     val litert = "1.4.1"
     add("implementation", "com.google.ai.edge.litert:litert:$litert")
     add("implementation", "com.google.ai.edge.litert:litert-gpu:$litert")
+}
+
+// LiteRT Next runtime + GPU accelerator (CompiledModel API). Downloaded at
+// build time (not shipped in the pub package) and bundled as jniLibs,
+// additively alongside the classic Maven litert artifacts above — the
+// Interpreter path is unchanged. The release assets are repackaged from
+// google-ai-edge/LiteRT prebuilts at the API-pinned commit shared with the
+// iOS binaries (see .github/workflows/build-litert-ios.yml notes); both
+// ABIs (arm64-v8a, x86_64) are 16 KB page-size aligned.
+val litertJniRelease = "litert-android-v1.0.0"
+val litertJniDir = layout.buildDirectory.dir("litert-jni")
+
+val downloadLitertJni = tasks.register("downloadLitertJni") {
+    val outDir = litertJniDir.get().asFile
+    outputs.dir(outDir)
+    doLast {
+        val marker = File(outDir, "arm64-v8a/libLiteRt.so")
+        if (marker.exists()) return@doLast
+        outDir.mkdirs()
+        val zip = File(outDir, "litert-android-jni.zip")
+        val url = "https://github.com/hugocornellier/flutter_litert/releases/" +
+            "download/$litertJniRelease/litert-android-jni.zip"
+        logger.lifecycle("[flutter_litert] Downloading LiteRT Next Android JNI libraries...")
+        URI(url).toURL().openStream().use { input ->
+            zip.outputStream().use { output -> input.copyTo(output) }
+        }
+        copy {
+            from(zipTree(zip))
+            into(outDir)
+            // CPU runtime only for now. The OpenCL/GL GPU accelerator is in
+            // the zip but stays unbundled: when it registers in an
+            // environment without working OpenCL (every emulator), even
+            // GPU|CPU-fallback compilation fails with a runtime error
+            // instead of falling back. Include it once the GPU path is
+            // validated on real hardware.
+            include("**/libLiteRt.so")
+        }
+        zip.delete()
+        if (!marker.exists()) {
+            throw GradleException("[flutter_litert] LiteRT Next JNI download did not produce $marker")
+        }
+    }
+}
+
+android {
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDir(litertJniDir)
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(downloadLitertJni)
 }

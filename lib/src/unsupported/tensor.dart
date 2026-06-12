@@ -32,6 +32,11 @@ class Tensor {
   Uint8List get data =>
       throw UnsupportedError('Tensor.data is not supported on this platform');
 
+  /// Mutable float32 view of the tensor buffer.
+  Float32List asFloat32View() => throw UnsupportedError(
+    'Tensor.asFloat32View is not supported on this platform',
+  );
+
   /// Quantization Params associated with the model, [only Android]
   QuantizationParams get params =>
       throw UnsupportedError('Tensor.params is not supported on this platform');

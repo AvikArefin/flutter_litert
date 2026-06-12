@@ -63,6 +63,26 @@ class Tensor {
         .asUnmodifiableView();
   }
 
+  /// Mutable [Float32List] view aliasing this tensor's native buffer.
+  ///
+  /// Writes go directly into tensor memory with no copy; both indexed
+  /// stores and bulk [Float32List.setAll]/[Float32List.setRange] are
+  /// supported. The view is valid until the next
+  /// `resizeInputTensor`/`allocateTensors` call; recapture after either.
+  ///
+  /// The bytes are reinterpreted as float32 regardless of the tensor's
+  /// element type; for quantized tensors use [data] instead.
+  Float32List asFloat32View() {
+    final byteSize = tfliteBinding.TfLiteTensorByteSize(_tensor);
+    checkArgument(
+      byteSize % 4 == 0,
+      message: 'Tensor byte size $byteSize is not float32-aligned.',
+    );
+    final data = cast<Float>(tfliteBinding.TfLiteTensorData(_tensor));
+    checkState(isNotNull(data), message: 'Tensor data is null.');
+    return data.asTypedList(byteSize ~/ 4);
+  }
+
   /// Quantization params associated with the tensor.
   QuantizationParams get params {
     final ref = tfliteBinding.TfLiteTensorQuantizationParams(_tensor);
@@ -102,7 +122,8 @@ class Tensor {
     int size = bytes.length;
 
     // String tensors require buffer reallocation because the pre-allocated
-    // buffer size does not match the encoded string data size.
+    // buffer size does not match the encoded string data size. The native
+    // copy path is kept here because the data pointer moves on realloc.
     if (type == TensorType.string) {
       final reallocStatus = tfliteBinding.TfLiteTensorRealloc(size, _tensor);
       checkState(
@@ -111,59 +132,111 @@ class Tensor {
             'TfLiteTensorRealloc failed for string tensor '
             '(requested $size bytes, status=$reallocStatus).',
       );
+      final ptr = calloc<Uint8>(size);
+      checkState(isNotNull(ptr), message: 'unallocated');
+      ptr.asTypedList(size).setRange(0, size, bytes);
+      try {
+        checkState(
+          tfliteBinding.TfLiteTensorCopyFromBuffer(_tensor, ptr.cast(), size) ==
+              TfLiteStatus.kTfLiteOk,
+          message:
+              'TfLiteTensorCopyFromBuffer failed '
+              '(buffer=$size bytes, tensor=${numBytes()} bytes).',
+        );
+      } finally {
+        calloc.free(ptr);
+      }
+      return;
     }
 
-    final ptr = calloc<Uint8>(size);
-    checkState(isNotNull(ptr), message: 'unallocated');
-    final externalTypedData = ptr.asTypedList(size);
-    externalTypedData.setRange(0, bytes.length, bytes);
-    try {
-      checkState(
-        tfliteBinding.TfLiteTensorCopyFromBuffer(
-              _tensor,
-              ptr.cast(),
-              bytes.length,
-            ) ==
-            TfLiteStatus.kTfLiteOk,
-        message:
-            'TfLiteTensorCopyFromBuffer failed '
-            '(buffer=$size bytes, tensor=${numBytes()} bytes).',
-      );
-    } finally {
-      calloc.free(ptr);
-    }
+    // Single memcpy straight into the tensor's buffer; no native scratch copy.
+    final tensorByteSize = tfliteBinding.TfLiteTensorByteSize(_tensor);
+    checkState(
+      tensorByteSize == size,
+      message:
+          'TfLiteTensorCopyFromBuffer failed '
+          '(buffer=$size bytes, tensor=$tensorByteSize bytes).',
+    );
+    final data = cast<Uint8>(tfliteBinding.TfLiteTensorData(_tensor));
+    checkState(isNotNull(data), message: 'Tensor data is null.');
+    data.asTypedList(tensorByteSize).setRange(0, tensorByteSize, bytes);
   }
 
   /// Copies this tensor's data into [dst].
+  ///
+  /// When [dst] is typed data matching the tensor's element type
+  /// (e.g. [Float32List] for a float32 tensor), the bytes are bulk-copied
+  /// directly and [dst] itself is returned — no per-element conversion or
+  /// nested-list allocation.
   Object copyTo(Object dst) {
     int size = tfliteBinding.TfLiteTensorByteSize(_tensor);
-    final ptr = calloc<Uint8>(size);
-    checkState(isNotNull(ptr), message: 'unallocated');
-    final externalTypedData = ptr.asTypedList(size);
-    checkState(
-      tfliteBinding.TfLiteTensorCopyToBuffer(_tensor, ptr.cast(), size) ==
-          TfLiteStatus.kTfLiteOk,
-    );
-    // Clone the data, because once `free(ptr)`, `externalTypedData` will be
-    // volatile
-    final bytes = externalTypedData.sublist(0);
-    late Object obj;
+    final data = cast<Uint8>(tfliteBinding.TfLiteTensorData(_tensor));
+    checkState(isNotNull(data), message: 'Tensor data is null.');
+    // View over native memory: valid only until the next invoke/allocate.
+    // Every branch below copies out of it before returning.
+    final src = data.asTypedList(size);
+
+    final tensorType = type;
     if (dst is Uint8List) {
-      obj = bytes;
-    } else if (dst is ByteBuffer) {
-      ByteData bdata = dst.asByteData();
-      for (int i = 0; i < bdata.lengthInBytes; i++) {
-        bdata.setUint8(i, bytes[i]);
-      }
-      obj = bdata.buffer;
-    } else {
-      obj = _convertBytesToObject(bytes);
+      checkArgument(
+        dst.length == size,
+        message:
+            'Output object shape mismatch: tensor has $size bytes but the '
+            'provided Uint8List has ${dst.length}.',
+      );
+      dst.setAll(0, src);
+      return dst;
     }
-    calloc.free(ptr);
+    if (dst is ByteBuffer) {
+      final view = dst.asUint8List();
+      view.setRange(0, view.length, src);
+      return dst;
+    }
+    final typedDst = _copyToTypedData(dst, src, tensorType, size);
+    if (typedDst != null) {
+      return typedDst;
+    }
+
+    final obj = _convertBytesToObject(src);
     if (obj is List && dst is List) {
       list_utils.duplicateList(obj, dst);
     }
     return obj;
+  }
+
+  /// Bulk-copies tensor bytes into [dst] when its runtime type matches
+  /// [tensorType]. Returns null when no fast path applies.
+  Object? _copyToTypedData(
+    Object dst,
+    Uint8List src,
+    TensorType tensorType,
+    int size,
+  ) {
+    final TypedData? view;
+    if (dst is Float32List && tensorType == TensorType.float32) {
+      view = src.buffer.asFloat32List(src.offsetInBytes, size ~/ 4);
+    } else if (dst is Int32List && tensorType == TensorType.int32) {
+      view = src.buffer.asInt32List(src.offsetInBytes, size ~/ 4);
+    } else if (dst is Int64List && tensorType == TensorType.int64) {
+      view = src.buffer.asInt64List(src.offsetInBytes, size ~/ 8);
+    } else if (dst is Int16List && tensorType == TensorType.int16) {
+      view = src.buffer.asInt16List(src.offsetInBytes, size ~/ 2);
+    } else if (dst is Int8List && tensorType == TensorType.int8) {
+      view = src.buffer.asInt8List(src.offsetInBytes, size);
+    } else {
+      return null;
+    }
+    final typed = view as List;
+    final out = dst as List;
+    checkArgument(
+      out.length == typed.length,
+      message:
+          'Output object shape mismatch: tensor has ${typed.length} '
+          '$tensorType elements but the provided ${dst.runtimeType} '
+          'has ${out.length}.',
+    );
+    out.setAll(0, typed);
+    return dst;
   }
 
   Uint8List _convertObjectToBytes(Object o) {

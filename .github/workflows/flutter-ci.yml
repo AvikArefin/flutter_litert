@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - compiled-model
 
 jobs:
   build-macos:
@@ -21,8 +22,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Resolve the spike sub-package first: dart format derives each file's
+      # language version (and thus formatting style) from its package config,
+      # falling back to the latest version when unresolved.
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          dart pub get --directory spike/compiled_model
+          dart format --output=none --set-exit-if-changed .
 
       - name: Analyze project source
         run: flutter analyze .
@@ -62,8 +68,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Resolve the spike sub-package first: dart format derives each file's
+      # language version (and thus formatting style) from its package config,
+      # falling back to the latest version when unresolved.
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          dart pub get --directory spike/compiled_model
+          dart format --output=none --set-exit-if-changed .
 
       - name: Analyze project source
         run: flutter analyze .
@@ -74,6 +85,8 @@ jobs:
           path: ~/.cache/flutter_litert
           key: flex-delegate-linux-v1.0.0
 
+      # CompiledModel tests load the bundled linux/lib/libLiteRt.so via the
+      # loader's package-path fallback — the same binary end users get.
       - name: Run tests
         run: flutter test
 
@@ -84,3 +97,104 @@ jobs:
       - name: Run Flex addon integration tests
         working-directory: example/flex_test_host
         run: xvfb-run -a flutter test -d linux integration_test
+
+      # Builds the example app and runs real CompiledModel inference inside
+      # it, proving the production load path end to end: CMake bundles
+      # linux/lib/libLiteRt.so into the app bundle and the loader resolves it
+      # from execDir/lib. GPU tests skip (runners have no GPU and the GPU
+      # accelerator library is not bundled on Linux).
+      - name: Run CompiledModel integration tests (Linux desktop)
+        working-directory: example
+        run: xvfb-run -a flutter test integration_test/compiled_model_test.dart -d linux --timeout 600s
+
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Windows has no committed classic TFLite library for host tests, so
+      # only the CompiledModel suite runs here, loading the bundled
+      # windows/libLiteRt.dll via the loader's package-path fallback. This
+      # job also guards the MSVC LiteRtLayout ABI handling (72/76-byte
+      # struct sizes).
+      - name: Run CompiledModel smoke tests
+        run: flutter test test/compiled_model_smoke_test.dart
+
+      # Builds the example app and runs real CompiledModel inference inside
+      # it — the only place windows/CMakeLists.txt is configured in CI —
+      # proving the production load path end to end: CMake bundles
+      # libLiteRt.dll next to the executable and the loader resolves it from
+      # execDir. GPU tests skip (runners have no GPU and the GPU accelerator
+      # library is not bundled on Windows).
+      - name: Run CompiledModel integration tests (Windows desktop)
+        working-directory: example
+        run: flutter test integration_test/compiled_model_test.dart -d windows --timeout 600s
+
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable KVM for hardware-accelerated emulation
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Runs real CompiledModel inference (CPU; strict-GPU skips — emulators
+      # have no working OpenCL) against libLiteRt.so bundled by the Gradle
+      # download task.
+      - name: Run CompiledModel integration tests (Android emulator)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          working-directory: example
+          script: flutter test integration_test/compiled_model_test.dart -d emulator-5554 --timeout 600s
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Boot iOS simulator
+        run: |
+          UDID=$(xcrun simctl list devices available --json | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          iphones = [d for v in devices.values() for d in v if 'iPhone' in d['name']]
+          print(iphones[-1]['udid'])
+          ")
+          xcrun simctl boot "$UDID"
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
+
+      - name: Run CompiledModel integration tests (iOS simulator)
+        working-directory: example
+        run: flutter test integration_test/compiled_model_test.dart -d "$SIMULATOR_UDID" --timeout 600s

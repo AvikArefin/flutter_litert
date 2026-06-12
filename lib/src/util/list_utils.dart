@@ -54,6 +54,15 @@ void duplicateList(List obj, List dst) {
 List<int>? getInputShapeIfDifferent(Object? input, List<int> tensorShape) {
   if (input == null) return null;
   if (input is ByteBuffer || input is Uint8List) return null;
+  if (input is TypedData && input is List) {
+    // Flat typed data staged into a multi-dimensional tensor: when the
+    // element counts match, treat it as already shaped — its 1-D length is
+    // a layout, not a resize request. Resizing the tensor to rank 1 would
+    // break models whose ops require the original rank.
+    final length = (input as List).length;
+    if (length == shape_utils.computeNumElements(tensorShape)) return null;
+    return [length];
+  }
   final inputShape = shape_utils.computeShapeOf(input);
   if (listEquals(inputShape, tensorShape)) return null;
   return inputShape;

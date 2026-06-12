@@ -86,11 +86,8 @@ final class _BenchRow {
   String get bestSpeedup {
     final interp = interpXnn.us;
     if (interp == null) return '-';
-    final cmValues = [
-      cmCpu.us,
-      cmGpuSync.us,
-      cmGpuAsync.us,
-    ].whereType<double>().toList();
+    final cmValues =
+        [cmCpu.us, cmGpuSync.us, cmGpuAsync.us].whereType<double>().toList();
     if (cmValues.isEmpty) return '-';
     cmValues.sort();
     return '${(interp / cmValues.first).toStringAsFixed(2)}x';
@@ -109,18 +106,21 @@ final class _DtypeException implements Exception {
 
 final class _PosixApi {
   _PosixApi(DynamicLibrary lib)
-      : open = lib.lookupFunction<Int32 Function(Pointer<Utf8>, Int32),
-            int Function(Pointer<Utf8>, int)>('open'),
-        dup =
-            lib.lookupFunction<Int32 Function(Int32), int Function(int)>('dup'),
-        dup2 = lib.lookupFunction<Int32 Function(Int32, Int32),
-            int Function(int, int)>('dup2'),
-        close = lib.lookupFunction<Int32 Function(Int32), int Function(int)>(
-          'close',
-        ),
-        fflush = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'fflush',
-        );
+    : open = lib.lookupFunction<
+        Int32 Function(Pointer<Utf8>, Int32),
+        int Function(Pointer<Utf8>, int)
+      >('open'),
+      dup = lib.lookupFunction<Int32 Function(Int32), int Function(int)>('dup'),
+      dup2 = lib
+          .lookupFunction<Int32 Function(Int32, Int32), int Function(int, int)>(
+            'dup2',
+          ),
+      close = lib.lookupFunction<Int32 Function(Int32), int Function(int)>(
+        'close',
+      ),
+      fflush = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'fflush',
+      );
 
   final int Function(Pointer<Utf8>, int) open;
   final int Function(int) dup;
@@ -131,56 +131,58 @@ final class _PosixApi {
 
 final class _TfLiteApi {
   _TfLiteApi(DynamicLibrary lib)
-      : modelCreate = lib.lookupFunction<_P Function(Pointer<Utf8>),
-            _P Function(Pointer<Utf8>)>('TfLiteModelCreateFromFile'),
-        modelDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'TfLiteModelDelete',
-        ),
-        optsCreate = lib.lookupFunction<_P Function(), _P Function()>(
-          'TfLiteInterpreterOptionsCreate',
-        ),
-        optsDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'TfLiteInterpreterOptionsDelete',
-        ),
-        xnnCreate = lib.lookupFunction<_P Function(_P), _P Function(_P)>(
-          'TfLiteXNNPackDelegateCreate',
-        ),
-        xnnDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'TfLiteXNNPackDelegateDelete',
-        ),
-        addDelegate =
-            lib.lookupFunction<Void Function(_P, _P), void Function(_P, _P)>(
-          'TfLiteInterpreterOptionsAddDelegate',
-        ),
-        interpCreate =
-            lib.lookupFunction<_P Function(_P, _P), _P Function(_P, _P)>(
-          'TfLiteInterpreterCreate',
-        ),
-        interpDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'TfLiteInterpreterDelete',
-        ),
-        allocate = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'TfLiteInterpreterAllocateTensors',
-        ),
-        inputCount = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'TfLiteInterpreterGetInputTensorCount',
-        ),
-        inputTensor =
-            lib.lookupFunction<_P Function(_P, Int32), _P Function(_P, int)>(
-          'TfLiteInterpreterGetInputTensor',
-        ),
-        tensorData = lib.lookupFunction<_P Function(_P), _P Function(_P)>(
-          'TfLiteTensorData',
-        ),
-        tensorBytes = lib.lookupFunction<IntPtr Function(_P), int Function(_P)>(
-          'TfLiteTensorByteSize',
-        ),
-        tensorType = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'TfLiteTensorType',
-        ),
-        invoke = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'TfLiteInterpreterInvoke',
-        );
+    : modelCreate = lib.lookupFunction<
+        _P Function(Pointer<Utf8>),
+        _P Function(Pointer<Utf8>)
+      >('TfLiteModelCreateFromFile'),
+      modelDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'TfLiteModelDelete',
+      ),
+      optsCreate = lib.lookupFunction<_P Function(), _P Function()>(
+        'TfLiteInterpreterOptionsCreate',
+      ),
+      optsDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'TfLiteInterpreterOptionsDelete',
+      ),
+      xnnCreate = lib.lookupFunction<_P Function(_P), _P Function(_P)>(
+        'TfLiteXNNPackDelegateCreate',
+      ),
+      xnnDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'TfLiteXNNPackDelegateDelete',
+      ),
+      addDelegate = lib
+          .lookupFunction<Void Function(_P, _P), void Function(_P, _P)>(
+            'TfLiteInterpreterOptionsAddDelegate',
+          ),
+      interpCreate = lib
+          .lookupFunction<_P Function(_P, _P), _P Function(_P, _P)>(
+            'TfLiteInterpreterCreate',
+          ),
+      interpDelete = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'TfLiteInterpreterDelete',
+      ),
+      allocate = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'TfLiteInterpreterAllocateTensors',
+      ),
+      inputCount = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'TfLiteInterpreterGetInputTensorCount',
+      ),
+      inputTensor = lib
+          .lookupFunction<_P Function(_P, Int32), _P Function(_P, int)>(
+            'TfLiteInterpreterGetInputTensor',
+          ),
+      tensorData = lib.lookupFunction<_P Function(_P), _P Function(_P)>(
+        'TfLiteTensorData',
+      ),
+      tensorBytes = lib.lookupFunction<IntPtr Function(_P), int Function(_P)>(
+        'TfLiteTensorByteSize',
+      ),
+      tensorType = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'TfLiteTensorType',
+      ),
+      invoke = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'TfLiteInterpreterInvoke',
+      );
 
   final _P Function(Pointer<Utf8>) modelCreate;
   final void Function(_P) modelDelete;
@@ -202,107 +204,118 @@ final class _TfLiteApi {
 
 final class _LiteRtApi {
   _LiteRtApi(DynamicLibrary lib)
-      : createEnv = lib.lookupFunction<Int32 Function(Int32, _P, _PP),
-            int Function(int, _P, _PP)>('LiteRtCreateEnvironment'),
-        destroyEnv = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyEnvironment',
-        ),
-        createOpts = lib.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
-          'LiteRtCreateOptions',
-        ),
-        destroyOpts = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyOptions',
-        ),
-        setAccel = lib
-            .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
-          'LiteRtSetOptionsHardwareAccelerators',
-        ),
-        modelFromFile = lib.lookupFunction<Int32 Function(Pointer<Utf8>, _PP),
-            int Function(Pointer<Utf8>, _PP)>('LiteRtCreateModelFromFile'),
-        destroyModel = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyModel',
-        ),
-        createCM = lib.lookupFunction<Int32 Function(_P, _P, _P, _PP),
-            int Function(_P, _P, _P, _PP)>('LiteRtCreateCompiledModel'),
-        destroyCM = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyCompiledModel',
-        ),
-        getSig = lib.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetModelSignature'),
-        numIn = lib.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureInputs'),
-        numOut = lib.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>('LiteRtGetNumSignatureOutputs'),
-        inTensor = lib.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>('LiteRtGetSignatureInputTensorByIndex'),
-        outTensor = lib.lookupFunction<Int32 Function(_P, IntPtr, _PP),
-            int Function(_P, int, _PP)>(
-          'LiteRtGetSignatureOutputTensorByIndex',
-        ),
-        rankedType = lib.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
-            int Function(_P, Pointer<LiteRtRankedTensorType>)>(
-          'LiteRtGetRankedTensorType',
-        ),
-        inReq = lib.lookupFunction<Int32 Function(_P, IntPtr, IntPtr, _PP),
-            int Function(_P, int, int, _PP)>(
-          'LiteRtGetCompiledModelInputBufferRequirements',
-        ),
-        outReq = lib.lookupFunction<Int32 Function(_P, IntPtr, IntPtr, _PP),
-            int Function(_P, int, int, _PP)>(
-          'LiteRtGetCompiledModelOutputBufferRequirements',
-        ),
-        reqSize = lib.lookupFunction<Int32 Function(_P, Pointer<IntPtr>),
-            int Function(_P, Pointer<IntPtr>)>(
-          'LiteRtGetTensorBufferRequirementsBufferSize',
-        ),
-        createBuf = lib.lookupFunction<
-            Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
-            int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)>(
-          'LiteRtCreateManagedTensorBufferFromRequirements',
-        ),
-        destroyBuf = lib.lookupFunction<Void Function(_P), void Function(_P)>(
-          'LiteRtDestroyTensorBuffer',
-        ),
-        lock = lib.lookupFunction<Int32 Function(_P, _PP, Int32),
-            int Function(_P, _PP, int)>('LiteRtLockTensorBuffer'),
-        unlock = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'LiteRtUnlockTensorBuffer',
-        ),
-        getInLayout = lib.lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
-            int Function(_P, int, int, Pointer<LiteRtLayout>)>(
-          'LiteRtGetCompiledModelInputTensorLayout',
-        ),
-        getOutLayouts = lib.lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
-            int Function(_P, int, int, Pointer<LiteRtLayout>, int)>(
-          'LiteRtGetCompiledModelOutputTensorLayouts',
-        ),
-        runSync = lib.lookupFunction<
-            Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
-            int Function(_P, int, int, _PP, int, _PP)>(
-          'LiteRtRunCompiledModel',
-        ),
-        runAsync = lib.lookupFunction<
-            Int32 Function(
-                _P, IntPtr, IntPtr, _PP, IntPtr, _PP, Pointer<Uint8>),
-            int Function(_P, int, int, _PP, int, _PP, Pointer<Uint8>)>(
-          'LiteRtRunCompiledModelAsync',
-        ),
-        hasEvent = lib.lookupFunction<Int32 Function(_P, Pointer<Uint8>),
-            int Function(_P, Pointer<Uint8>)>('LiteRtHasTensorBufferEvent'),
-        getEvent =
-            lib.lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
-          'LiteRtGetTensorBufferEvent',
-        ),
-        clearEvent = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
-          'LiteRtClearTensorBufferEvent',
-        ),
-        waitEvent = lib
-            .lookupFunction<Int32 Function(_P, Int64), int Function(_P, int)>(
-          'LiteRtWaitEvent',
-        );
+    : createEnv = lib.lookupFunction<
+        Int32 Function(Int32, _P, _PP),
+        int Function(int, _P, _PP)
+      >('LiteRtCreateEnvironment'),
+      destroyEnv = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyEnvironment',
+      ),
+      createOpts = lib.lookupFunction<Int32 Function(_PP), int Function(_PP)>(
+        'LiteRtCreateOptions',
+      ),
+      destroyOpts = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyOptions',
+      ),
+      setAccel = lib
+          .lookupFunction<Int32 Function(_P, Int32), int Function(_P, int)>(
+            'LiteRtSetOptionsHardwareAccelerators',
+          ),
+      modelFromFile = lib.lookupFunction<
+        Int32 Function(Pointer<Utf8>, _PP),
+        int Function(Pointer<Utf8>, _PP)
+      >('LiteRtCreateModelFromFile'),
+      destroyModel = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyModel',
+      ),
+      createCM = lib.lookupFunction<
+        Int32 Function(_P, _P, _P, _PP),
+        int Function(_P, _P, _P, _PP)
+      >('LiteRtCreateCompiledModel'),
+      destroyCM = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyCompiledModel',
+      ),
+      getSig = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetModelSignature'),
+      numIn = lib.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSignatureInputs'),
+      numOut = lib.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetNumSignatureOutputs'),
+      inTensor = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureInputTensorByIndex'),
+      outTensor = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, _PP),
+        int Function(_P, int, _PP)
+      >('LiteRtGetSignatureOutputTensorByIndex'),
+      rankedType = lib.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtRankedTensorType>),
+        int Function(_P, Pointer<LiteRtRankedTensorType>)
+      >('LiteRtGetRankedTensorType'),
+      inReq = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP),
+        int Function(_P, int, int, _PP)
+      >('LiteRtGetCompiledModelInputBufferRequirements'),
+      outReq = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP),
+        int Function(_P, int, int, _PP)
+      >('LiteRtGetCompiledModelOutputBufferRequirements'),
+      reqSize = lib.lookupFunction<
+        Int32 Function(_P, Pointer<IntPtr>),
+        int Function(_P, Pointer<IntPtr>)
+      >('LiteRtGetTensorBufferRequirementsBufferSize'),
+      createBuf = lib.lookupFunction<
+        Int32 Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP),
+        int Function(_P, Pointer<LiteRtRankedTensorType>, _P, _PP)
+      >('LiteRtCreateManagedTensorBufferFromRequirements'),
+      destroyBuf = lib.lookupFunction<Void Function(_P), void Function(_P)>(
+        'LiteRtDestroyTensorBuffer',
+      ),
+      lock = lib.lookupFunction<
+        Int32 Function(_P, _PP, Int32),
+        int Function(_P, _PP, int)
+      >('LiteRtLockTensorBuffer'),
+      unlock = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'LiteRtUnlockTensorBuffer',
+      ),
+      getInLayout = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>),
+        int Function(_P, int, int, Pointer<LiteRtLayout>)
+      >('LiteRtGetCompiledModelInputTensorLayout'),
+      getOutLayouts = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, Pointer<LiteRtLayout>, Uint8),
+        int Function(_P, int, int, Pointer<LiteRtLayout>, int)
+      >('LiteRtGetCompiledModelOutputTensorLayouts'),
+      runSync = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP),
+        int Function(_P, int, int, _PP, int, _PP)
+      >('LiteRtRunCompiledModel'),
+      runAsync = lib.lookupFunction<
+        Int32 Function(_P, IntPtr, IntPtr, _PP, IntPtr, _PP, Pointer<Uint8>),
+        int Function(_P, int, int, _PP, int, _PP, Pointer<Uint8>)
+      >('LiteRtRunCompiledModelAsync'),
+      hasEvent = lib.lookupFunction<
+        Int32 Function(_P, Pointer<Uint8>),
+        int Function(_P, Pointer<Uint8>)
+      >('LiteRtHasTensorBufferEvent'),
+      getEvent = lib
+          .lookupFunction<Int32 Function(_P, _PP), int Function(_P, _PP)>(
+            'LiteRtGetTensorBufferEvent',
+          ),
+      clearEvent = lib.lookupFunction<Int32 Function(_P), int Function(_P)>(
+        'LiteRtClearTensorBufferEvent',
+      ),
+      waitEvent = lib
+          .lookupFunction<Int32 Function(_P, Int64), int Function(_P, int)>(
+            'LiteRtWaitEvent',
+          );
 
   final int Function(int, _P, _PP) createEnv;
   final void Function(_P) destroyEnv;
@@ -366,9 +379,13 @@ final class _InterpreterSession {
   _P interp = nullptr;
 
   double measureMedian({required int warmup, required int iters}) {
-    return _timeMedian(() {
-      ckTf('Invoke', api.invoke(interp));
-    }, warmup, iters);
+    return _timeMedian(
+      () {
+        ckTf('Invoke', api.invoke(interp));
+      },
+      warmup,
+      iters,
+    );
   }
 
   void close() {
@@ -433,10 +450,7 @@ final class _CompiledSession {
       env = envOut.value;
       ckRt('LiteRtCreateOptions', api.createOpts(optsOut));
       opts = optsOut.value;
-      ckRt(
-        'LiteRtSetOptionsHardwareAccelerators',
-        api.setAccel(opts, accel),
-      );
+      ckRt('LiteRtSetOptionsHardwareAccelerators', api.setAccel(opts, accel));
       ckRt('LiteRtCreateModelFromFile', api.modelFromFile(pathPtr, modelOut));
       model = modelOut.value;
       ckRt('LiteRtGetModelSignature', api.getSig(model, 0, sigOut));
@@ -499,10 +513,14 @@ final class _CompiledSession {
   double measureAsyncMedian({required int warmup, required int iters}) {
     final asyncOut = calloc<Uint8>();
     try {
-      return _timeMedian(() {
-        asyncOut.value = 0;
-        _runAsyncSingle(singleOutSet, asyncOut);
-      }, warmup, iters);
+      return _timeMedian(
+        () {
+          asyncOut.value = 0;
+          _runAsyncSingle(singleOutSet, asyncOut);
+        },
+        warmup,
+        iters,
+      );
     } finally {
       calloc.free(asyncOut);
     }
@@ -562,8 +580,10 @@ final class _CompiledSession {
       final tensorOut = calloc<Pointer<Void>>();
       final tensorType = calloc<LiteRtRankedTensorType>();
       try {
-        ckRt('LiteRtGetSignatureInputTensorByIndex',
-            api.inTensor(sig, i, tensorOut));
+        ckRt(
+          'LiteRtGetSignatureInputTensorByIndex',
+          api.inTensor(sig, i, tensorOut),
+        );
         ckRt(
           'LiteRtGetRankedTensorType',
           api.rankedType(tensorOut.value, tensorType),
@@ -585,8 +605,10 @@ final class _CompiledSession {
     final sizeOut = calloc<IntPtr>();
     final bufOut = calloc<Pointer<Void>>();
     try {
-      ckRt('LiteRtGetSignatureInputTensorByIndex',
-          api.inTensor(sig, index, tensorOut));
+      ckRt(
+        'LiteRtGetSignatureInputTensorByIndex',
+        api.inTensor(sig, index, tensorOut),
+      );
       ckRt(
         'LiteRtGetRankedTensorType',
         api.rankedType(tensorOut.value, tensorType),
@@ -633,8 +655,10 @@ final class _CompiledSession {
     final reqOut = calloc<Pointer<Void>>();
     final bufOut = calloc<Pointer<Void>>();
     try {
-      ckRt('LiteRtGetSignatureOutputTensorByIndex',
-          api.outTensor(sig, index, tensorOut));
+      ckRt(
+        'LiteRtGetSignatureOutputTensorByIndex',
+        api.outTensor(sig, index, tensorOut),
+      );
       ckRt(
         'LiteRtGetRankedTensorType',
         api.rankedType(tensorOut.value, tensorType),
@@ -690,8 +714,10 @@ final class _CompiledSession {
   }
 
   void _runSync(_PP outSet) {
-    ckRt('LiteRtRunCompiledModel',
-        api.runSync(cm, 0, nIn, inBufs, nOut, outSet));
+    ckRt(
+      'LiteRtRunCompiledModel',
+      api.runSync(cm, 0, nIn, inBufs, nOut, outSet),
+    );
   }
 
   void _runAsyncSingle(_PP outSet, Pointer<Uint8> asyncOut) {
@@ -779,14 +805,16 @@ void main(List<String> args) {
   final rows = <_BenchRow>[];
   for (final file in modelFiles) {
     final path = file.path;
-    rows.add(_BenchRow(
-      label: _basename(path),
-      bytes: file.lengthSync(),
-      interpXnn: _measureChildCell(kInterpXnn, path),
-      cmCpu: _measureChildCell(kCmCpu, path),
-      cmGpuSync: _measureChildCell(kCmGpuSync, path),
-      cmGpuAsync: _measureChildCell(kCmGpuAsync, path),
-    ));
+    rows.add(
+      _BenchRow(
+        label: _basename(path),
+        bytes: file.lengthSync(),
+        interpXnn: _measureChildCell(kInterpXnn, path),
+        cmCpu: _measureChildCell(kCmCpu, path),
+        cmGpuSync: _measureChildCell(kCmGpuSync, path),
+        cmGpuAsync: _measureChildCell(kCmGpuAsync, path),
+      ),
+    );
   }
 
   _printTable(rows);
@@ -846,11 +874,12 @@ void _runChildCell(List<String> args) {
 
 _Cell _measureChildCell(String config, String path) {
   final scriptPath = Platform.script.toFilePath();
-  final result = Process.runSync(
-    Platform.resolvedExecutable,
-    [scriptPath, kCellArg, config, path],
-    workingDirectory: Directory.current.path,
-  );
+  final result = Process.runSync(Platform.resolvedExecutable, [
+    scriptPath,
+    kCellArg,
+    config,
+    path,
+  ], workingDirectory: Directory.current.path);
   if (result.exitCode != 0) {
     return const _Cell.err('crash');
   }
@@ -901,8 +930,12 @@ double _benchInterpreter(_TfLiteApi api, String path) {
   }
 }
 
-double _benchCompiled(_LiteRtApi api, String path, int accel,
-    {required bool async}) {
+double _benchCompiled(
+  _LiteRtApi api,
+  String path,
+  int accel, {
+  required bool async,
+}) {
   final session = _CompiledSession(api, path, accel);
   try {
     return async
@@ -1008,14 +1041,14 @@ void _printSummary(List<_BenchRow> rows) {
 }
 
 List<String> _rowValues(_BenchRow row) => [
-      row.label,
-      _formatBytes(row.bytes),
-      row.interpXnn.text,
-      row.cmCpu.text,
-      row.cmGpuSync.text,
-      row.cmGpuAsync.text,
-      row.bestSpeedup,
-    ];
+  row.label,
+  _formatBytes(row.bytes),
+  row.interpXnn.text,
+  row.cmCpu.text,
+  row.cmGpuSync.text,
+  row.cmGpuAsync.text,
+  row.bestSpeedup,
+];
 
 String _formatRow(List<String> values, List<int> widths) {
   return List<String>.generate(values.length, (i) {

@@ -32,9 +32,12 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_BINARY_DI
 set(flutter_tflite_bundled_libraries
   "$<TARGET_FILE:tflite_custom_ops>"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libtensorflowlite_c-linux.so"
-  # LiteRT Next runtime (CompiledModel API), x86_64; from the official
-  # ai-edge-litert 2.1.5 PyPI wheel.
+  # LiteRT Next runtime (CompiledModel API) + WebGPU/Vulkan GPU accelerator,
+  # x86_64; from the official ai-edge-litert 2.1.5 PyPI wheel. The runtime
+  # discovers the accelerator by scanning its own directory for the bare
+  # soname, so both must land in the same bundled lib/ dir.
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libLiteRt.so"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/libLiteRtWebGpuAccelerator.so"
 )
 
 # Flutter's generated_plugins.cmake references plugins by their directory name
@@ -43,9 +46,12 @@ set(flutter_tflite_bundled_libraries
 set(flutter_litert_bundled_libraries
   "$<TARGET_FILE:tflite_custom_ops>"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libtensorflowlite_c-linux.so"
-  # LiteRT Next runtime (CompiledModel API), x86_64; from the official
-  # ai-edge-litert 2.1.5 PyPI wheel.
+  # LiteRT Next runtime (CompiledModel API) + WebGPU/Vulkan GPU accelerator,
+  # x86_64; from the official ai-edge-litert 2.1.5 PyPI wheel. The runtime
+  # discovers the accelerator by scanning its own directory for the bare
+  # soname, so both must land in the same bundled lib/ dir.
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libLiteRt.so"
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/libLiteRtWebGpuAccelerator.so"
 )
 
 set(flutter_tflite_bundled_libraries ${flutter_tflite_bundled_libraries} PARENT_SCOPE)

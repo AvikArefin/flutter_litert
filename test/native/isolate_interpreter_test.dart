@@ -32,10 +32,7 @@ Float32List _seededInput(int seed) {
   try {
     final boxes = Float32List(_boxesLen);
     final scores = Float32List(_scoresLen);
-    interpreter.runForMultipleInputs(
-      [input],
-      {0: boxes, 1: scores},
-    );
+    interpreter.runForMultipleInputs([input], {0: boxes, 1: scores});
     return (boxes, scores);
   } finally {
     interpreter.close();

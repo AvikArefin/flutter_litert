@@ -51,18 +51,20 @@ class TensorFloat32Views {
     // on a Dart VM enforcement gap (indexed stores throw; setAll only works
     // because the memmove fast path skips the unmodifiable check).
     final int inCount = interp.getInputTensors().length;
-    final List<Float32List> inputs =
-        List<Float32List>.unmodifiable(<Float32List>[
-          for (int i = 0; i < inCount; i++)
-            interp.getInputTensor(i).asFloat32View(),
-        ]);
+    final List<Float32List> inputs = List<Float32List>.unmodifiable(
+      <Float32List>[
+        for (int i = 0; i < inCount; i++)
+          interp.getInputTensor(i).asFloat32View(),
+      ],
+    );
 
     final int outCount = interp.getOutputTensors().length;
-    final List<Float32List> outputs =
-        List<Float32List>.unmodifiable(<Float32List>[
-          for (int i = 0; i < outCount; i++)
-            interp.getOutputTensor(i).asFloat32View(),
-        ]);
+    final List<Float32List> outputs = List<Float32List>.unmodifiable(
+      <Float32List>[
+        for (int i = 0; i < outCount; i++)
+          interp.getOutputTensor(i).asFloat32View(),
+      ],
+    );
 
     return TensorFloat32Views._(inputs, outputs);
   }

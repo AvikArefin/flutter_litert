@@ -275,11 +275,11 @@ model.delete();
 
 ### Phase 3 — Desktop native bundling (gated by Spike 0)
 Only for platforms with a consumable artifact.
-- [ ] Linux: add LiteRt runtime `.so` + GPU accelerator `.so` to `linux/CMakeLists.txt`
-  `bundled_libraries` (additive — leave classic `.so` in place).
-- [ ] Windows: add LiteRt runtime `.dll` + GPU accelerator `.dll` **+ `dxil.dll` /
+- [x] Linux: add LiteRt runtime `.so` + GPU accelerator `.so` (WebGPU/Vulkan) to
+  `linux/CMakeLists.txt` `bundled_libraries` (additive — classic `.so` left in place).
+- [x] Windows: add LiteRt runtime `.dll` + GPU accelerator `.dll` **+ `dxil.dll` /
   `dxcompiler.dll`** to `windows/CMakeLists.txt` bundling.
-- [ ] macOS: add LiteRt runtime `.dylib` to podspec `vendored_libraries` (Metal-backed;
+- [x] macOS: add LiteRt runtime `.dylib` to podspec `vendored_libraries` (Metal-backed;
   note GPU likely no faster than existing Metal delegate — see Phase 5).
 - [ ] Mirror the existing prebuilt-binary distribution approach (GitHub Releases +
   fetch-at-build, like the Flex delegate DLL).

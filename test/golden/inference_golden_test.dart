@@ -69,7 +69,11 @@ void main() {
           'GOLDEN_REGEN=1 flutter test test/golden/inference_golden_test.dart',
     );
     final expected = goldenFile.readAsBytesSync();
-    expect(actual.length, expected.length, reason: 'Output byte length changed.');
+    expect(
+      actual.length,
+      expected.length,
+      reason: 'Output byte length changed.',
+    );
     expect(
       actual,
       equals(expected),

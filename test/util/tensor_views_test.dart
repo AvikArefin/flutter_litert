@@ -142,7 +142,8 @@ void main() {
       views.inputs[0].setAll(0, input);
       interpreter.invoke();
       final viaViews = [
-        for (final t in interpreter.getOutputTensors()) Uint8List.fromList(t.data),
+        for (final t in interpreter.getOutputTensors())
+          Uint8List.fromList(t.data),
       ];
 
       final reference = Interpreter.fromFile(_faceModelFile);
@@ -151,7 +152,8 @@ void main() {
         reference.getInputTensor(0).setTo(input);
         reference.invoke();
         final viaSetTo = [
-          for (final t in reference.getOutputTensors()) Uint8List.fromList(t.data),
+          for (final t in reference.getOutputTensors())
+            Uint8List.fromList(t.data),
         ];
         for (var i = 0; i < viaViews.length; i++) {
           expect(viaViews[i], equals(viaSetTo[i]), reason: 'output $i differs');

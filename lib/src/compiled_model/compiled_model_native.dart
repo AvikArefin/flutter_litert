@@ -161,6 +161,20 @@ class CompiledModel {
     );
   }
 
+  /// Process-wide (per-isolate) shared LiteRT environment.
+  ///
+  /// Creating a LiteRT environment spins up the full GPU/WebGPU stack (adapter
+  /// enumeration, device + context creation, kernel cache) — a cost of hundreds
+  /// of milliseconds. Previously every [CompiledModel] created its own, so an
+  /// app loading N models paid that cost N times. LiteRT environments are
+  /// designed to be shared across many compiled models, so we create one lazily
+  /// per isolate and reuse it. It is intentionally never destroyed: it lives for
+  /// the lifetime of the isolate (a long-lived GPU context singleton).
+  static Pointer<Void>? _sharedEnvironment;
+
+  static Pointer<Void> _sharedEnvironmentOf(LiteRtBindings rt) =>
+      _sharedEnvironment ??= _createEnvironment(rt);
+
   static CompiledModel _fromSource({
     required Set<Accelerator> accelerators,
     required Precision precision,
@@ -186,7 +200,7 @@ class CompiledModel {
     final hostMemoryAllocations = <_HostMemoryAllocation>[];
 
     try {
-      environment = _createEnvironment(rt);
+      environment = _sharedEnvironmentOf(rt);
       options = _createOptions(rt, acceleratorMask);
       if (accelerators.contains(Accelerator.gpu) &&
           precision == Precision.fp32) {
@@ -1029,7 +1043,12 @@ void _releaseNative(
   if (options != null && options != nullptr) {
     rt.destroyOptions(options);
   }
-  if (environment != null && environment != nullptr) {
+  // The environment is a per-isolate shared singleton
+  // (CompiledModel._sharedEnvironment) reused across every CompiledModel, so it
+  // is intentionally never destroyed here — it lives for the isolate's lifetime.
+  if (environment != null &&
+      environment != nullptr &&
+      environment != CompiledModel._sharedEnvironment) {
     rt.destroyEnvironment(environment);
   }
   if (gpuOptionsIdentifier != null && gpuOptionsIdentifier != nullptr) {

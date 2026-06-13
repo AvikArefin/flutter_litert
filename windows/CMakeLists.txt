@@ -37,10 +37,24 @@ set(FLUTTER_LITERT_TFLITE_DLL "${CMAKE_CURRENT_SOURCE_DIR}/libtensorflowlite_c-w
 # LiteRT Next runtime (CompiledModel API), x86_64; from the official
 # ai-edge-litert 2.1.5 PyPI wheel.
 set(FLUTTER_LITERT_LITERT_DLL "${CMAKE_CURRENT_SOURCE_DIR}/libLiteRt.dll")
+# WebGPU (Dawn/D3D12) GPU accelerator for the CompiledModel API; from the same
+# ai-edge-litert 2.1.5 wheel. The runtime discovers it at startup by scanning
+# the RuntimeLibraryDir environment option for this exact file name, so the
+# name must not change.
+set(FLUTTER_LITERT_GPU_DLL "${CMAKE_CURRENT_SOURCE_DIR}/libLiteRtWebGpuAccelerator.dll")
+# DirectX Shader Compiler (DXC), from microsoft/DirectXShaderCompiler release
+# v1.9.2602.24. Optional but preferred: Dawn uses DXC instead of the OS FXC
+# (d3dcompiler_47.dll) when both dxcompiler.dll and dxil.dll are present next
+# to the executable.
+set(FLUTTER_LITERT_DXCOMPILER_DLL "${CMAKE_CURRENT_SOURCE_DIR}/dxcompiler.dll")
+set(FLUTTER_LITERT_DXIL_DLL "${CMAKE_CURRENT_SOURCE_DIR}/dxil.dll")
 
 set(flutter_tflite_bundled_libraries
   "${FLUTTER_LITERT_TFLITE_DLL}"
   "${FLUTTER_LITERT_LITERT_DLL}"
+  "${FLUTTER_LITERT_GPU_DLL}"
+  "${FLUTTER_LITERT_DXCOMPILER_DLL}"
+  "${FLUTTER_LITERT_DXIL_DLL}"
   "$<TARGET_FILE:tflite_custom_ops>"
 )
 
@@ -50,6 +64,9 @@ set(flutter_tflite_bundled_libraries
 set(flutter_litert_bundled_libraries
   "${FLUTTER_LITERT_TFLITE_DLL}"
   "${FLUTTER_LITERT_LITERT_DLL}"
+  "${FLUTTER_LITERT_GPU_DLL}"
+  "${FLUTTER_LITERT_DXCOMPILER_DLL}"
+  "${FLUTTER_LITERT_DXIL_DLL}"
   "$<TARGET_FILE:tflite_custom_ops>"
 )
 

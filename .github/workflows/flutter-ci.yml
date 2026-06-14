@@ -60,7 +60,15 @@ jobs:
           cache: true
 
       - name: Install Linux desktop dependencies
-        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xvfb
+        run: |
+          # GitHub-hosted Ubuntu runners preconfigure Microsoft apt repos
+          # (packages.microsoft.com) that intermittently return 403 / "no longer
+          # signed", which makes "apt-get update" exit 100 even though the build
+          # only needs standard Ubuntu packages. Drop those third-party repos
+          # first; the glob cannot match the main ubuntu.sources file.
+          sudo rm -f /etc/apt/sources.list.d/*microsoft* /etc/apt/sources.list.d/*azure*
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev xvfb
 
       - name: Enable Linux desktop
         run: flutter config --enable-linux-desktop

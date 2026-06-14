@@ -16,6 +16,15 @@
 import '../web/delegate.dart';
 
 /// GPU delegate for Android (no-op on web)
+@Deprecated(
+  'Manual hardware-acceleration delegates are superseded by LiteRT Next. Use '
+  'CompiledModel.fromFile / CompiledModel.fromBuffer with '
+  'accelerators: {Accelerator.gpu, Accelerator.cpu}, or '
+  'CompiledModel.fromBufferWithGpuFallback. The Interpreter API itself remains '
+  'supported for CPU inference. '
+  'See https://developers.google.com/edge/litert/next/get_started; planned '
+  'for removal in flutter_litert 4.0.0.',
+)
 class GpuDelegateV2 extends Delegate {
   GpuDelegateV2({GpuDelegateOptionsV2? options});
 
@@ -24,6 +33,11 @@ class GpuDelegateV2 extends Delegate {
 }
 
 /// GPU delegate options for Android (no-op on web)
+@Deprecated(
+  'Options for a deprecated delegate. Configure acceleration through '
+  'CompiledModel (accelerators / Precision) instead. '
+  'Planned for removal in flutter_litert 4.0.0.',
+)
 class GpuDelegateOptionsV2 {
   GpuDelegateOptionsV2({
     bool isPrecisionLossAllowed = false,

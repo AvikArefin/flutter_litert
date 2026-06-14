@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'math_utils.dart';
 import 'nms_utils.dart';
 import 'detection_utils.dart';
@@ -220,6 +222,239 @@ List<Detection> postProcessDetections({
     );
   }
   return out;
+}
+
+/// Decodes a YOLOv8 detection head directly from the flat [out] Float32 buffer.
+///
+/// Fast-path twin of [postProcessDetections] for when the model output is
+/// available as a flat [Float32List] (e.g. a CompiledModel output or a flat
+/// interpreter output buffer). The generic path rebuilds the dense
+/// `[1, channels, anchors]` tensor as nested boxed-double lists and transposes
+/// it every call (~2x the dense output allocated as boxed doubles), which for
+/// YOLOv8's `[1, 84, 8400]` head dominates per-frame cost.
+///
+/// Here the per-anchor candidate loop reads straight from [out] by index and
+/// only the post-confidence-filter candidate set (small) uses lists. The same
+/// sigmoid / letterbox / top-k / NMS helpers are reused, so results are
+/// identical to [postProcessDetections].
+///
+/// [channelMajor] true means [out] is laid out as `[1, channels, anchors]`
+/// (value at channel c, anchor a is `out[c * anchors + a]`, the YOLOv8 default);
+/// false means `[1, anchors, channels]` (`out[a * channels + c]`).
+///
+/// [useFastSingleClass] (default false) selects an EXPERIMENTAL fast path that,
+/// when [filterClassId] is set, prunes each anchor on the filter-class channel
+/// *before* the full argmax, skipping the ~80-class argmax for the ~99% of
+/// anchors whose filter-class score is below [confThres]. It is ~50% faster at
+/// decoding (measured ref p50 ~3.6ms -> fast ~1.7ms on -d macos, debug).
+///
+/// It is OFF by default because it is NOT result-equivalent and it LOWERS
+/// PRECISION. The default path applies a cross-class top-k cap (keep the global
+/// top [effectiveTopk] by score) *before* filtering to the target class; that
+/// cap incidentally suppresses near-threshold filter-class false positives that
+/// are out-scored by other classes. The fast path collects only filter-class
+/// anchors, so it never sees that cross-class ranking and emits those FPs:
+/// measured on a single-person frame at conf 0.5 it inflated 1 detection to
+/// 4-10 (extra boxes all sitting at the confidence floor).
+///
+/// Computing the global top-k *requires* each anchor's max score, which is the
+/// argmax this path skips, so there is no byte-identical way to avoid the cost.
+/// Only enable this for recall-over-precision use cases, ideally paired with a
+/// higher [confThres].
+List<Detection> postProcessDetectionsFlat(
+  Float32List out, {
+  required int channels,
+  required int anchors,
+  required bool channelMajor,
+  required int inputWidth,
+  required int inputHeight,
+  required double r,
+  required int dw,
+  required int dh,
+  required int imageWidth,
+  required int imageHeight,
+  required double confThres,
+  required double iouThres,
+  required int maxDet,
+  int? filterClassId,
+  bool useFastSingleClass = false,
+}) {
+  // C == 84 -> 4 box coords + 80 class scores (YOLOv8). Otherwise treat
+  // channel 4 as objectness and the remainder as class logits (YOLOv5-style),
+  // matching postProcessDetections.
+  final bool hasObjectness = channels != 84;
+  final int classStart = hasObjectness ? 5 : 4;
+  final int numClasses = channels - classStart;
+
+  final List<double> scores = <double>[];
+  final List<int> clsIds = <int>[];
+  final List<List<double>> xywhs = <List<double>>[];
+
+  final bool fastSingleClass =
+      useFastSingleClass &&
+      filterClassId != null &&
+      filterClassId >= 0 &&
+      filterClassId < numClasses;
+
+  // Reads the 4 box coords for anchor [a] into the candidate lists.
+  void addCandidate(int a, int cls, double score) {
+    final double cx, cy, w, h;
+    if (channelMajor) {
+      cx = out[a];
+      cy = out[anchors + a];
+      w = out[2 * anchors + a];
+      h = out[3 * anchors + a];
+    } else {
+      final int b = a * channels;
+      cx = out[b];
+      cy = out[b + 1];
+      w = out[b + 2];
+      h = out[b + 3];
+    }
+    scores.add(score);
+    clsIds.add(cls);
+    xywhs.add(<double>[cx, cy, w, h]);
+  }
+
+  double objScore(int a) => hasObjectness
+      ? sigmoid(channelMajor ? out[4 * anchors + a] : out[a * channels + 4])
+      : 1.0;
+
+  if (fastSingleClass) {
+    // Fast path: prune on the filter-class channel, argmax only on survivors.
+    final int fc = filterClassId;
+    for (int a = 0; a < anchors; a++) {
+      final double fLogit = channelMajor
+          ? out[(classStart + fc) * anchors + a]
+          : out[a * channels + classStart + fc];
+      // Same score expression and threshold as the full path, computed from the
+      // filter-class logit. When the filter class is the winner (the only case
+      // the full path keeps) fLogit == bestLogit, so this is identical; when it
+      // is not the winner the full path would drop the anchor at the class
+      // filter anyway, so pruning here is exact.
+      double score = sigmoid(fLogit) * objScore(a);
+      if (score < confThres) continue;
+
+      // Confirm the filter class is the argmax (matches the full path's
+      // cls == filterClassId filter); skip the rare non-winning survivors.
+      int argMax = 0;
+      double bestLogit = -1e30;
+      if (channelMajor) {
+        int idx = classStart * anchors + a;
+        for (int k = 0; k < numClasses; k++) {
+          final double v = out[idx];
+          if (v > bestLogit) {
+            bestLogit = v;
+            argMax = k;
+          }
+          idx += anchors;
+        }
+      } else {
+        final int base = a * channels + classStart;
+        for (int k = 0; k < numClasses; k++) {
+          final double v = out[base + k];
+          if (v > bestLogit) {
+            bestLogit = v;
+            argMax = k;
+          }
+        }
+      }
+      if (argMax != fc) continue;
+      addCandidate(a, fc, score);
+    }
+  } else {
+    // Reference path: full argmax over every anchor, no pre-filter.
+    // sigmoid is monotonic, so the class argmax needs no sigmoid; apply it only
+    // once (twice with objectness) per anchor after the argmax.
+    for (int a = 0; a < anchors; a++) {
+      int argMax = 0;
+      double bestLogit = -1e30;
+      if (channelMajor) {
+        int idx = classStart * anchors + a;
+        for (int k = 0; k < numClasses; k++) {
+          final double v = out[idx];
+          if (v > bestLogit) {
+            bestLogit = v;
+            argMax = k;
+          }
+          idx += anchors;
+        }
+      } else {
+        final int base = a * channels + classStart;
+        for (int k = 0; k < numClasses; k++) {
+          final double v = out[base + k];
+          if (v > bestLogit) {
+            bestLogit = v;
+            argMax = k;
+          }
+        }
+      }
+
+      double score = sigmoid(bestLogit) * objScore(a);
+      if (score < confThres) continue;
+      addCandidate(a, argMax, score);
+    }
+  }
+
+  if (scores.isEmpty) return <Detection>[];
+
+  // Same normalized-vs-pixel coordinate guard as postProcessDetections.
+  if (median(<double>[for (final v in xywhs) v[2]]) <= 2.0) {
+    for (final List<double> v in xywhs) {
+      v[0] *= inputWidth;
+      v[1] *= inputHeight;
+      v[2] *= inputWidth;
+      v[3] *= inputHeight;
+    }
+  }
+
+  final double iw = imageWidth.toDouble();
+  final double ih = imageHeight.toDouble();
+  List<List<double>> boxes = <List<double>>[];
+  for (final List<double> v in xywhs) {
+    final List<double> b = scaleFromLetterbox(xywhToXyxy(v), r, dw, dh);
+    b[0] = b[0].clamp(0.0, iw);
+    b[2] = b[2].clamp(0.0, iw);
+    b[1] = b[1].clamp(0.0, ih);
+    b[3] = b[3].clamp(0.0, ih);
+    boxes.add(b);
+  }
+
+  // Auto top-k pre-NMS, identical to postProcessDetections (topkPreNms == 0).
+  const int basePixels = 640 * 640;
+  final double scaleFactor = (imageWidth * imageHeight) / basePixels;
+  final int effectiveTopk = (100 * scaleFactor).round().clamp(20, 200);
+
+  List<double> sc = scores;
+  List<int> cl = clsIds;
+  if (sc.length > effectiveTopk) {
+    final List<int> ord = argSortDesc(sc).take(effectiveTopk).toList();
+    boxes = <List<double>>[for (final int i in ord) boxes[i]];
+    sc = <double>[for (final int i in ord) scores[i]];
+    cl = <int>[for (final int i in ord) clsIds[i]];
+  }
+
+  if (filterClassId != null) {
+    final List<List<double>> fb = <List<double>>[];
+    final List<double> fs = <double>[];
+    final List<int> fc = <int>[];
+    for (int i = 0; i < cl.length; i++) {
+      if (cl[i] == filterClassId) {
+        fb.add(boxes[i]);
+        fs.add(sc[i]);
+        fc.add(cl[i]);
+      }
+    }
+    boxes = fb;
+    sc = fs;
+    cl = fc;
+  }
+
+  final List<int> keep = nms(boxes, sc, iouThres: iouThres, maxDet: maxDet);
+  return <Detection>[
+    for (final int i in keep)
+      Detection(cls: cl[i], score: sc[i], bboxXYXY: boxes[i]),
+  ];
 }
 
 /// Transposes a 2D list (swaps rows and columns).

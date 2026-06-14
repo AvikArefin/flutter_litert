@@ -1,4 +1,4 @@
-@TestOn('mac-os || linux || windows')
+@TestOn('mac-os')
 library;
 
 import 'dart:io';
@@ -13,6 +13,13 @@ import 'package:flutter_test/flutter_test.dart';
 /// Guards Dart-side I/O plumbing changes (tensor staging, output copies,
 /// views): any byte-level deviation in model outputs fails this test with
 /// zero statistical ambiguity, unlike tolerance-based comparisons.
+///
+/// Pinned to macOS because the golden is bit-exact and therefore
+/// architecture-specific: the committed bytes were generated on arm64, and
+/// CPU inference differs by ~1 ULP on other architectures (e.g. Linux
+/// x86_64), which would fail a byte-level compare for reasons unrelated to
+/// the plumbing this test guards. macOS CI runs on the same arch the golden
+/// was generated on.
 ///
 /// Regenerate (only when the model, runtime binary, or input seed changes):
 ///   GOLDEN_REGEN=1 flutter test test/golden/inference_golden_test.dart

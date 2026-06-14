@@ -16,6 +16,15 @@
 import '../web/delegate.dart';
 
 /// Metal Delegate for iOS/macOS (no-op on web)
+@Deprecated(
+  'Manual hardware-acceleration delegates are superseded by LiteRT Next. Use '
+  'CompiledModel.fromFile / CompiledModel.fromBuffer with '
+  'accelerators: {Accelerator.gpu, Accelerator.cpu}, or '
+  'CompiledModel.fromBufferWithGpuFallback. The Interpreter API itself remains '
+  'supported for CPU inference. '
+  'See https://developers.google.com/edge/litert/next/get_started; planned '
+  'for removal in flutter_litert 4.0.0.',
+)
 class GpuDelegate extends Delegate {
   GpuDelegate({GpuDelegateOptions? options});
 
@@ -27,6 +36,11 @@ class GpuDelegate extends Delegate {
 }
 
 /// Metal Delegate options (no-op on web)
+@Deprecated(
+  'Options for a deprecated delegate. Configure acceleration through '
+  'CompiledModel (accelerators / Precision) instead. '
+  'Planned for removal in flutter_litert 4.0.0.',
+)
 class GpuDelegateOptions {
   GpuDelegateOptions({
     bool allowPrecisionLoss = false,

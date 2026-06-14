@@ -49,6 +49,17 @@ class CompiledModel {
     throw UnsupportedError('CompiledModel is not supported on this platform.');
   }
 
+  /// Creates a compiled model from [bytes], preferring GPU with a CPU fallback.
+  static CompiledModel fromBufferWithGpuFallback(
+    Uint8List bytes, {
+    bool forceCpu = false,
+    Precision precision = Precision.fp32,
+    TensorBufferMode tensorBufferMode = TensorBufferMode.managed,
+    void Function(Object error)? onFallback,
+  }) {
+    throw UnsupportedError('CompiledModel is not supported on this platform.');
+  }
+
   /// Tensor buffer allocation mode used by this model.
   TensorBufferMode get tensorBufferMode => throw UnsupportedError(
     'CompiledModel is not supported on this platform.',

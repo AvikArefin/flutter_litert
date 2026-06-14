@@ -6,11 +6,11 @@ for the full plan and the cross-platform symbol/packaging analysis.
 
 ## Status (all verified on macOS arm64)
 
-- ✅ `smoke.dart` — lib loads, symbols resolve, CompiledModel created (CPU); Metal GPU
+- ✅ `smoke.dart`: lib loads, symbols resolve, CompiledModel created (CPU); Metal GPU
   accelerator auto-registers.
-- ✅ `infer.dart` — full tensor I/O; CPU vs GPU(Metal) numerical parity.
-- ✅ `bench.dart` — Interpreter vs CompiledModel (CPU / GPU-FP16 / GPU-FP32), warm, sync.
-- ✅ `bench_async.dart` — async pipelined throughput (sync vs depth-4/8).
+- ✅ `infer.dart`: full tensor I/O; CPU vs GPU(Metal) numerical parity.
+- ✅ `bench.dart`: Interpreter vs CompiledModel (CPU / GPU-FP16 / GPU-FP32), warm, sync.
+- ✅ `bench_async.dart`: async pipelined throughput (sync vs depth-4/8).
 
 ### Findings
 
@@ -20,7 +20,7 @@ for the full plan and the cross-platform symbol/packaging analysis.
 
 **Sync vs async is the key subtlety.** Synchronous per-call timing pays full
 encode→submit→sync every call and makes the GPU look bad on small models. **Async pipelining
-(`LiteRtRunCompiledModelAsync`) gives the GPU 2.8–4.9× throughput; the CPU gains ~nothing.**
+(`LiteRtRunCompiledModelAsync`) gives the GPU 2.8 to 4.9× throughput; the CPU gains ~nothing.**
 This FLIPS the small-model verdict:
 
 | face_detection_short_range | sync | async-8 |
@@ -34,7 +34,7 @@ latency, and the benchmark feeds a static input (no per-frame upload cost).
 
 **Async recycle idiom:** `LiteRtGetTensorBufferEvent` is borrowed (do NOT destroy) →
 `LiteRtWaitEvent` → `LiteRtClearTensorBufferEvent(buf)` before reusing the output slot.
-(`LiteRtSetTensorBufferEvent(buf, null)` returns InvalidArgument — wrong approach.)
+(`LiteRtSetTensorBufferEvent(buf, null)` returns InvalidArgument; wrong approach.)
 
 **FP16 vs FP32:** GPU defaults to FP16 (fast); FP32 via opaque `gpu_options` TOML
 `precision=2`. FP16 faster as expected (yolov8n FP16 1676 vs FP32 2058 µs). Ship FP16
@@ -71,7 +71,7 @@ LiteRtCreateEnvironment(0, NULL, &env)
 LiteRtCreateOptions(&opts); LiteRtSetOptionsHardwareAccelerators(opts, kLiteRtHwAcceleratorCpu /*=1*/ | Gpu /*=2*/)
 LiteRtCreateModelFromFile("model.tflite", &model)
 LiteRtCreateCompiledModel(env, model, opts, &compiled)
-// next milestone — tensor I/O:
+// next milestone: tensor I/O:
 //   LiteRtGetCompiledModelInputBufferRequirements + LiteRtCreateManagedTensorBufferFromRequirements
 //   LiteRtLockTensorBuffer / write / LiteRtUnlockTensorBuffer
 //   LiteRtRunCompiledModel(compiled, sigIndex, nIn, inBufs, nOut, outBufs)

@@ -1,5 +1,33 @@
-## Unreleased
+## 3.0.0
 
+* New: LiteRT Next `CompiledModel` API: `CompiledModel.fromFile`,
+  `CompiledModel.fromBuffer`, and `CompiledModel.fromBufferWithGpuFallback`,
+  with automatic hardware-accelerator selection via
+  `Accelerator.{cpu, gpu, npu}`, `Precision`, and `TensorBufferMode`. This is
+  the recommended path for GPU/NPU acceleration going forward, following
+  Google's LiteRT Next guidance
+  (https://developers.google.com/edge/litert/next/get_started). Supported on
+  Android, iOS, macOS, Windows, and Linux.
+* The desktop (Windows/Linux) WebGPU GPU accelerator and DirectX Shader Compiler
+  are fetched from a GitHub release at build time instead of being bundled in the
+  published package, keeping it under pub.dev's 100 MiB size limit. Desktop GPU
+  acceleration still works; the libraries download automatically (verified by
+  SHA-256) on the first build. No effect on Android, iOS, or macOS.
+* Deprecated: manual hardware-acceleration delegates for the Interpreter API,
+  namely `GpuDelegateV2` (Android GL/CL), the Metal `GpuDelegate`, and
+  `CoreMlDelegate`
+  (with their `*Options`). They remain fully functional but are superseded by
+  `CompiledModel`'s automatic accelerator selection and are planned for removal
+  in 4.0.0. The Interpreter API itself, the CPU `XNNPackDelegate`, and
+  `FlexDelegate` are NOT deprecated and remain fully supported.
+* Fix: creating an `XNNPackDelegate` with `XNNPackDelegateOptions` no longer
+  crashes on the arm64 Android emulator. The options struct was initialized by
+  calling the native `TfLiteXNNPackDelegateOptionsDefault()`, which returns the
+  struct by value; that by-value FFI return crashes the Dart VM on the arm64
+  Android emulator (it works on real devices, macOS, and iOS). The struct is now
+  built in Dart, matching upstream `tflite_flutter`, while preserving the QS8/QU8
+  quantization defaults; the resulting native options are unchanged, so there is
+  no behavior difference on real devices.
 * Fix: `TensorFloat32Views` input views are now genuinely writable. They were
   previously built from the unmodifiable `Tensor.data` view, so indexed writes
   (`views.inputs[0][i] = x`) threw `UnsupportedError`, and bulk
@@ -33,7 +61,7 @@
     `TfLiteTensorData` instead of round-tripping through a native scratch
     buffer (two extra copies per tensor per inference).
   * Fix: passing a flat `Float32List` (or other typed data) as an input no
-    longer resizes the input tensor to rank 1 — which broke models with
+    longer resizes the input tensor to rank 1, which broke models with
     rank-sensitive ops (`CONV_2D failed to prepare`). Flat typed data whose
     element count matches the tensor is now staged as-is, and is the fastest
     `run()` input type.

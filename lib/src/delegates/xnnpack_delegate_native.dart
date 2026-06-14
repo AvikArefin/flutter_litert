@@ -71,10 +71,17 @@ class XNNPackDelegateOptions {
     String? weightCacheFilePath,
   }) {
     final options = calloc<TfLiteXNNPackDelegateOptions>();
-    // Start from native defaults (includes QS8/QU8 quantization flags).
-    options.ref = tfliteBinding.TfLiteXNNPackDelegateOptionsDefault();
+    // Build the options struct in Dart rather than calling the native
+    // TfLiteXNNPackDelegateOptionsDefault(), which returns the struct by value.
+    // That by-value FFI return (a >16-byte struct goes through the AArch64 x8
+    // hidden-pointer trampoline) crashes the Dart VM on the arm64 Android
+    // emulator; upstream tflite_flutter avoids it the same way. calloc already
+    // zero-initialized every field, so we only set what differs from zero and
+    // replicate the QS8 + QU8 quantization flags that Default() would have set.
     options.ref.num_threads = numThreads;
-    if (flags != 0) options.ref.flags = flags;
+    options.ref.flags = flags != 0
+        ? flags
+        : TFLITE_XNNPACK_DELEGATE_FLAG_QS8 | TFLITE_XNNPACK_DELEGATE_FLAG_QU8;
 
     Pointer<Utf8>? nativePath;
     if (weightCacheFilePath != null) {

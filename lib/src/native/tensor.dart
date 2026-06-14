@@ -166,7 +166,7 @@ class Tensor {
   ///
   /// When [dst] is typed data matching the tensor's element type
   /// (e.g. [Float32List] for a float32 tensor), the bytes are bulk-copied
-  /// directly and [dst] itself is returned — no per-element conversion or
+  /// directly and [dst] itself is returned; no per-element conversion or
   /// nested-list allocation.
   Object copyTo(Object dst) {
     int size = tfliteBinding.TfLiteTensorByteSize(_tensor);

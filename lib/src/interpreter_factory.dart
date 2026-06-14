@@ -1,3 +1,8 @@
+// This factory bridges the legacy Interpreter delegate path to the platform
+// GPU/Metal/CoreML delegates, which are deprecated in favour of CompiledModel
+// (LiteRT Next). The references below are intentional until those delegates are
+// removed in 4.0.0.
+// ignore_for_file: deprecated_member_use_from_same_package
 import 'dart:io';
 import 'dart:math' as math;
 

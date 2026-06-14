@@ -12,8 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// (MediaPipe face_detection_short_range: input 1x128x128x3 float32,
 /// outputs 1x896x16 regressors + 1x896x1 scores).
 ///
-/// Each variant performs the same logical work — stage one input frame, run
-/// inference, materialize both outputs — so the difference between a variant
+/// Each variant performs the same logical work: stage one input frame, run
+/// inference, materialize both outputs. The difference between a variant
 /// and the `views floor` variant is pure Dart-side API overhead.
 ///
 /// Run with:

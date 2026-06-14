@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'packed_image_layout.dart';
+
 /// A single YUV plane exposed by a camera plugin, decoupled from any specific
 /// Flutter plugin's type (e.g. `CameraImage.Plane`).
 ///
@@ -59,6 +61,19 @@ class PackedYuv {
     required this.width,
     required this.height,
   });
+
+  /// Source layout for reconstructing this packed YUV buffer in an image
+  /// backend.
+  PackedImageLayout get sourceLayout => PackedImageLayout(
+    rows: height + height ~/ 2,
+    cols: width,
+    channels: 1,
+    format: switch (layout) {
+      YuvLayout.nv12 => PackedImageFormat.yuv420Nv12,
+      YuvLayout.nv21 => PackedImageFormat.yuv420Nv21,
+      YuvLayout.i420 => PackedImageFormat.yuv420I420,
+    },
+  );
 }
 
 /// Packs a YUV420 camera frame into a single contiguous buffer suitable for
@@ -98,11 +113,13 @@ class PackedYuv {
 ///   YuvLayout.nv21 => cv.COLOR_YUV2BGR_NV21,
 ///   YuvLayout.i420 => cv.COLOR_YUV2BGR_I420,
 /// };
-/// final yuvMat = cv.Mat.fromList(
-///     packed.height + packed.height ~/ 2,
-///     packed.width,
-///     cv.MatType.CV_8UC1,
-///     packed.bytes);
+/// final layout = packed.sourceLayout;
+/// final yuvMat = cv.Mat.create(
+///   rows: layout.rows,
+///   cols: layout.cols,
+///   type: cv.MatType.CV_8UC1,
+/// );
+/// layout.copyTo(yuvMat.data, packed.bytes);
 /// final bgr = cv.cvtColor(yuvMat, code);
 /// yuvMat.dispose();
 /// ```

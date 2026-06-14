@@ -161,10 +161,54 @@ class CompiledModel {
     );
   }
 
+  /// Creates a compiled model from [bytes], preferring GPU with a CPU fallback.
+  ///
+  /// Requests `{gpu, cpu}` at [precision] (default [Precision.fp32], since
+  /// pixel-space landmark/box coordinates lose accuracy in fp16 and weak desktop
+  /// GPU drivers have produced wrong fp16 results); if GPU compilation throws
+  /// (unsupported op, no GPU, driver bug) it retries CPU-only so callers always
+  /// get a working model. Pass [forceCpu] to skip the GPU attempt entirely (e.g.
+  /// for a detector whose detection counts are sensitive to GPU floating-point
+  /// variance).
+  ///
+  /// [onFallback] is invoked with the GPU error when the CPU retry happens, so
+  /// callers can log it; the library itself stays free of a logging dependency.
+  /// Use [accelerators] (via [fromBuffer]) directly if you need a custom set.
+  static CompiledModel fromBufferWithGpuFallback(
+    Uint8List bytes, {
+    bool forceCpu = false,
+    Precision precision = Precision.fp32,
+    TensorBufferMode tensorBufferMode = TensorBufferMode.managed,
+    void Function(Object error)? onFallback,
+  }) {
+    if (forceCpu) {
+      return fromBuffer(
+        bytes,
+        accelerators: const {Accelerator.cpu},
+        tensorBufferMode: tensorBufferMode,
+      );
+    }
+    try {
+      return fromBuffer(
+        bytes,
+        accelerators: const {Accelerator.gpu, Accelerator.cpu},
+        precision: precision,
+        tensorBufferMode: tensorBufferMode,
+      );
+    } catch (e) {
+      onFallback?.call(e);
+      return fromBuffer(
+        bytes,
+        accelerators: const {Accelerator.cpu},
+        tensorBufferMode: tensorBufferMode,
+      );
+    }
+  }
+
   /// Process-wide (per-isolate) shared LiteRT environment.
   ///
   /// Creating a LiteRT environment spins up the full GPU/WebGPU stack (adapter
-  /// enumeration, device + context creation, kernel cache) — a cost of hundreds
+  /// enumeration, device + context creation, kernel cache), a cost of hundreds
   /// of milliseconds. Previously every [CompiledModel] created its own, so an
   /// app loading N models paid that cost N times. LiteRT environments are
   /// designed to be shared across many compiled models, so we create one lazily
@@ -1045,7 +1089,7 @@ void _releaseNative(
   }
   // The environment is a per-isolate shared singleton
   // (CompiledModel._sharedEnvironment) reused across every CompiledModel, so it
-  // is intentionally never destroyed here — it lives for the isolate's lifetime.
+  // is intentionally never destroyed here; it lives for the isolate's lifetime.
   if (environment != null &&
       environment != nullptr &&
       environment != CompiledModel._sharedEnvironment) {

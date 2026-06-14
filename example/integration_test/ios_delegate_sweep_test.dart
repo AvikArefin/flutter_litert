@@ -122,7 +122,7 @@ void main() {
 
     tearDownAll(() {
       print('\n${'=' * 80}');
-      print('iOS ON-DEVICE DELEGATE SWEEP — p50±std ms (real ANE available)');
+      print('iOS ON-DEVICE DELEGATE SWEEP: p50±std ms (real ANE available)');
       print('=' * 80);
       print(
         '${'model'.padRight(30)} ${modeNames.map((m) => m.padLeft(8)).join(' ')}',

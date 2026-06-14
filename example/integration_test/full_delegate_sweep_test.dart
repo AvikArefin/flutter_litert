@@ -157,7 +157,7 @@ void main() {
     tearDownAll(() {
       print('\n${'=' * 110}');
       print(
-        'FULL DELEGATE SWEEP — p50±std ms, -d macos (M-series). '
+        'FULL DELEGATE SWEEP: p50±std ms, -d macos (M-series). '
         'DYN=dynamic-shape/alloc-fail, ERR=error',
       );
       print('=' * 110);

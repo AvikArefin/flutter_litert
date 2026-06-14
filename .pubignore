@@ -14,10 +14,10 @@ litert_flex/
 # Build artifacts
 build/
 
-# flex integration-test host — local-only, not a consumer-facing example
+# flex integration-test host: local-only, not a consumer-facing example
 example/flex_test_host/
 
-# Example binary assets (model + sample images) — consumers never use these;
+# Example binary assets (model + sample images): consumers never use these;
 # only example-source cloners need them, and they get them from GitHub.
 example/assets/
 
@@ -46,5 +46,13 @@ example/text_classification/
 makefile
 melos.yaml
 scripts/
+tool/
 flutter-tflite.code-workspace
 ffigen_tensorflow_lite.yaml
+
+# Internal benchmark results and experimental spikes (not consumer-facing).
+# The plugin builds and runs without these; they would only expose internal
+# profiling data and scratch code.
+spike/
+RESULTS.md
+RESULTS.csv

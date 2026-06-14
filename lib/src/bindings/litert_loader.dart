@@ -58,7 +58,7 @@ DynamicLibrary _loadAndroidLibrary() {
   // directory to scan. With no RuntimeLibraryDir option, the runtime's GPU
   // probe degenerates to dlopen'ing the bare accelerator sonames
   // (e.g. `libLiteRtClGlAccelerator.so`), which the Android linker resolves
-  // from the same native library path — so the bundled GPU accelerator is
+  // from the same native library path, so the bundled GPU accelerator is
   // still discoverable.
   _litertRuntimeDir = null;
   return DynamicLibrary.open('libLiteRt.so');

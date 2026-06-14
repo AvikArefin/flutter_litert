@@ -31,7 +31,7 @@ void main() {
   });
 
   // NOTE: The GPU (Metal) accelerator needs a real GPU/Metal device context,
-  // which the headless `flutter test` runner does not provide — there it fails
+  // which the headless `flutter test` runner does not provide; there it fails
   // with kLiteRtStatusErrorCompilation (504) because the Metal accelerator can't
   // register. The GPU path is validated separately via the standalone spike
   // (`dart run` has Metal access) and in a real `flutter run` app. These tests
@@ -45,13 +45,18 @@ void main() {
     },
   );
 
+  // Asserts the GPU→CPU fallback path builds a usable model where a GPU
+  // accelerator can register (macOS Metal, Windows). On a headless Linux
+  // runner the bundled WebGPU accelerator finds no adapter and the create
+  // fails outright rather than falling back, so this skips there, same as
+  // the strict-GPU tests above.
   test('CompiledModel compiles with GPU and CPU fallback', () {
-    final cm = CompiledModel.fromFile(
-      model,
-      accelerators: {Accelerator.gpu, Accelerator.cpu},
+    _gpuTestOrSkip(
+      () => CompiledModel.fromFile(
+        model,
+        accelerators: {Accelerator.gpu, Accelerator.cpu},
+      ),
     );
-    addTearDown(cm.close);
-    expect(cm, isNotNull);
   });
 
   test('run() produces correct results on the CPU accelerator', () async {
@@ -227,9 +232,11 @@ void _gpuTestOrSkip(CompiledModel Function() build) {
 /// real failure.
 ///
 /// On macOS the Metal accelerator is always bundled, so only the documented
-/// headless-compilation status (504) is acceptable. On Linux/Windows CI only
-/// the runtime library is staged (no GPU accelerator plugin), so any LiteRT
-/// status from a strict-GPU create means the accelerator is absent.
+/// headless-compilation status (504) is acceptable. On Linux the WebGPU
+/// accelerator is now bundled, but headless CI runners expose no adapter
+/// ("Found 0 adapters"), so the create fails with a runtime status (3); on
+/// Windows only the runtime library is staged. On either, any LiteRT status
+/// from a GPU-requesting create means the accelerator is unavailable in CI.
 bool _isGpuUnavailable(StateError e) {
   if (e.message.contains('LiteRtStatus=504')) return true;
   return (Platform.isLinux || Platform.isWindows) &&

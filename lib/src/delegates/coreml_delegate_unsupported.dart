@@ -15,6 +15,15 @@
  */
 
 /// CoreMl Delegate (unsupported platform)
+@Deprecated(
+  'Manual hardware-acceleration delegates are superseded by LiteRT Next. Use '
+  'CompiledModel.fromFile / CompiledModel.fromBuffer with '
+  'accelerators: {Accelerator.npu, Accelerator.gpu, Accelerator.cpu}, or '
+  'CompiledModel.fromBufferWithGpuFallback. The Interpreter API itself remains '
+  'supported for CPU inference. '
+  'See https://developers.google.com/edge/litert/next/get_started; planned '
+  'for removal in flutter_litert 4.0.0.',
+)
 class CoreMlDelegate {
   CoreMlDelegate({CoreMlDelegateOptions? options}) {
     throw UnsupportedError('CoreMlDelegate is not supported on this platform');
@@ -26,6 +35,11 @@ class CoreMlDelegate {
 }
 
 /// CoreMlDelegate Options (unsupported platform)
+@Deprecated(
+  'Options for a deprecated delegate. Configure acceleration through '
+  'CompiledModel (accelerators / Precision) instead. '
+  'Planned for removal in flutter_litert 4.0.0.',
+)
 class CoreMlDelegateOptions {
   CoreMlDelegateOptions({
     int enabledDevices = 0,

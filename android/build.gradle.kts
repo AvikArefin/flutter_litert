@@ -69,19 +69,28 @@ extensions.findByType<KotlinAndroidProjectExtension>()?.apply {
 }
 
 dependencies {
-    val litert = "1.4.1"
+    val litert = "1.4.2"
     add("implementation", "com.google.ai.edge.litert:litert:$litert")
     add("implementation", "com.google.ai.edge.litert:litert-gpu:$litert")
 }
 
-// LiteRT Next runtime + GPU accelerator (CompiledModel API). Downloaded at
-// build time (not shipped in the pub package) and bundled as jniLibs,
-// additively alongside the classic Maven litert artifacts above — the
-// Interpreter path is unchanged. The release assets are repackaged from
-// google-ai-edge/LiteRT prebuilts at the API-pinned commit shared with the
-// iOS binaries (see .github/workflows/build-litert-ios.yml notes); both
-// ABIs (arm64-v8a, x86_64) are 16 KB page-size aligned.
-val litertJniRelease = "litert-android-v1.0.0"
+// LiteRT Next runtime (CompiledModel API) libLiteRt.so, sourced directly from
+// Google's official Maven AAR (com.google.ai.edge.litert:litert:<ver>, the 2.x
+// line) instead of a hand-packaged release zip. Downloaded at build time (not
+// shipped in the pub package) and extracted as a jniLib, additively alongside
+// the classic litert:1.4.x artifact above — the Interpreter path is unchanged.
+//
+// The 2.x AAR ships libLiteRt.so for arm64-v8a, armeabi-v7a AND x86_64 (the
+// GPU accelerator, libLiteRtClGlAccelerator.so, ships for arm64-v8a/x86_64
+// only). armeabi-v7a support comes for free here — the old hand-packaged zip
+// was arm64-v8a/x86_64 only.
+//
+// Why fetch+extract rather than a normal Gradle `implementation` dependency:
+// the classic Interpreter still needs litert:1.4.x (libtensorflowlite_jni.so),
+// and the 2.x AAR dropped that .so in favour of libLiteRt.so. Declaring both
+// versions of the same module would resolve to a single version and break one
+// of the two runtimes. Extracting only libLiteRt.so keeps them side by side.
+val litertNextVersion = "2.1.5"
 val litertJniDir = layout.buildDirectory.dir("litert-jni")
 
 val downloadLitertJni = tasks.register("downloadLitertJni") {
@@ -91,27 +100,32 @@ val downloadLitertJni = tasks.register("downloadLitertJni") {
         val marker = File(outDir, "arm64-v8a/libLiteRt.so")
         if (marker.exists()) return@doLast
         outDir.mkdirs()
-        val zip = File(outDir, "litert-android-jni.zip")
-        val url = "https://github.com/hugocornellier/flutter_litert/releases/" +
-            "download/$litertJniRelease/litert-android-jni.zip"
-        logger.lifecycle("[flutter_litert] Downloading LiteRT Next Android JNI libraries...")
+        val aar = File(outDir, "litert-$litertNextVersion.aar")
+        val url = "https://dl.google.com/dl/android/maven2/com/google/ai/edge/" +
+            "litert/litert/$litertNextVersion/litert-$litertNextVersion.aar"
+        logger.lifecycle("[flutter_litert] Downloading LiteRT Next runtime (libLiteRt.so) from Maven $litertNextVersion...")
         URI(url).toURL().openStream().use { input ->
-            zip.outputStream().use { output -> input.copyTo(output) }
+            aar.outputStream().use { output -> input.copyTo(output) }
         }
         copy {
-            from(zipTree(zip))
+            from(zipTree(aar)) {
+                // CPU runtime only for now. libLiteRtClGlAccelerator.so is in
+                // the same AAR (arm64-v8a/x86_64) but stays unbundled: when it
+                // registers in an environment without working OpenCL (every
+                // emulator), even GPU|CPU-fallback compilation fails with a
+                // runtime error instead of falling back. Bundle it once the GPU
+                // path is validated on real hardware.
+                include("jni/**/libLiteRt.so")
+                // Strip the AAR's leading "jni/" so files land at the jniLibs
+                // layout <abi>/libLiteRt.so.
+                eachFile { path = path.substringAfter("jni/") }
+                includeEmptyDirs = false
+            }
             into(outDir)
-            // CPU runtime only for now. The OpenCL/GL GPU accelerator is in
-            // the zip but stays unbundled: when it registers in an
-            // environment without working OpenCL (every emulator), even
-            // GPU|CPU-fallback compilation fails with a runtime error
-            // instead of falling back. Include it once the GPU path is
-            // validated on real hardware.
-            include("**/libLiteRt.so")
         }
-        zip.delete()
+        aar.delete()
         if (!marker.exists()) {
-            throw GradleException("[flutter_litert] LiteRT Next JNI download did not produce $marker")
+            throw GradleException("[flutter_litert] LiteRT Next Maven AAR did not yield $marker")
         }
     }
 }

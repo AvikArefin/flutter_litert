@@ -39,6 +39,15 @@ final TensorFlowLiteBindings _metalBinding = () {
 }();
 
 /// Metal Delegate for iOS and macOS
+@Deprecated(
+  'Manual hardware-acceleration delegates are superseded by LiteRT Next. Use '
+  'CompiledModel.fromFile / CompiledModel.fromBuffer with '
+  'accelerators: {Accelerator.gpu, Accelerator.cpu}, or '
+  'CompiledModel.fromBufferWithGpuFallback. The Interpreter API itself remains '
+  'supported for CPU inference. '
+  'See https://developers.google.com/edge/litert/next/get_started; planned '
+  'for removal in flutter_litert 4.0.0.',
+)
 class GpuDelegate implements Delegate {
   static DynamicLibrary? _metalLib;
 
@@ -94,6 +103,11 @@ class GpuDelegate implements Delegate {
 }
 
 /// Metal Delegate options
+@Deprecated(
+  'Options for a deprecated delegate. Configure acceleration through '
+  'CompiledModel (accelerators / Precision) instead. '
+  'Planned for removal in flutter_litert 4.0.0.',
+)
 class GpuDelegateOptions {
   Pointer<TFLGpuDelegateOptions> _options;
   bool _deleted = false;

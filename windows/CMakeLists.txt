@@ -49,6 +49,44 @@ set(FLUTTER_LITERT_GPU_DLL "${CMAKE_CURRENT_SOURCE_DIR}/libLiteRtWebGpuAccelerat
 set(FLUTTER_LITERT_DXCOMPILER_DLL "${CMAKE_CURRENT_SOURCE_DIR}/dxcompiler.dll")
 set(FLUTTER_LITERT_DXIL_DLL "${CMAKE_CURRENT_SOURCE_DIR}/dxil.dll")
 
+# The WebGPU GPU accelerator (~20 MB) and DirectX Shader Compiler (~18 MB) are
+# fetched at build time from a GitHub release rather than bundled in the
+# published pub.dev package, which must stay under the 100 MiB limit. Each is
+# downloaded (verified by SHA-256) only if it is not already present.
+set(FLUTTER_LITERT_GPU_LIBS_URL
+  "https://github.com/hugocornellier/flutter_litert/releases/download/litert-desktop-gpu-v1.0.0")
+
+function(flutter_litert_fetch_lib path url sha)
+  if(EXISTS "${path}")
+    return()
+  endif()
+  foreach(attempt RANGE 1 3)
+    message(STATUS "flutter_litert: downloading ${url} (attempt ${attempt})")
+    file(DOWNLOAD "${url}" "${path}"
+      EXPECTED_HASH SHA256=${sha}
+      TLS_VERIFY ON
+      STATUS dl_status)
+    list(GET dl_status 0 dl_code)
+    if(dl_code EQUAL 0)
+      return()
+    endif()
+    list(GET dl_status 1 dl_msg)
+    message(WARNING "flutter_litert: download failed (${dl_msg}); retrying")
+    file(REMOVE "${path}")
+  endforeach()
+  message(FATAL_ERROR "flutter_litert: could not download ${url}")
+endfunction()
+
+flutter_litert_fetch_lib("${FLUTTER_LITERT_GPU_DLL}"
+  "${FLUTTER_LITERT_GPU_LIBS_URL}/libLiteRtWebGpuAccelerator.dll"
+  "65fb92e4b0c3f1bba389964ffac5544bfebe5edf029c5a94a87864fa3e3ee124")
+flutter_litert_fetch_lib("${FLUTTER_LITERT_DXCOMPILER_DLL}"
+  "${FLUTTER_LITERT_GPU_LIBS_URL}/dxcompiler.dll"
+  "9b5e10ed756c461b4ec2c83a99f1d6ace20e97826e9c0b0e966b7b1cd6f2aec6")
+flutter_litert_fetch_lib("${FLUTTER_LITERT_DXIL_DLL}"
+  "${FLUTTER_LITERT_GPU_LIBS_URL}/dxil.dll"
+  "cbcfe883a09fd0ca1f98abdf3a9553b560895e3283a136da82a8381253a169df")
+
 set(flutter_tflite_bundled_libraries
   "${FLUTTER_LITERT_TFLITE_DLL}"
   "${FLUTTER_LITERT_LITERT_DLL}"

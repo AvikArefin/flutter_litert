@@ -2,10 +2,10 @@
 
 // Cross-platform engine x accelerator benchmark + correctness matrix.
 //
-// Runs every bundled model through BOTH runtimes — the classic Interpreter
+// Runs every bundled model through BOTH runtimes: the classic Interpreter
 // (cpu / xnnpack / Metal GPU / GL-CL GPU / CoreML) and the LiteRT Next
 // CompiledModel (cpu / strict-GPU fp16+fp32 sync / strict-GPU async / GPU|CPU
-// fallback / host-memory async) — measuring per cell:
+// fallback / host-memory async), measuring per cell:
 //   - compile_ms   : runtime/delegate build + tensor allocation (cold start)
 //   - p50/p90/std  : steady-state inference latency over `iterations` runs
 //   - parity       : max abs diff of output 0 vs the Interpreter-CPU reference
@@ -20,7 +20,7 @@
 // long-format rows via `binding.reportData`, which test_driver/integration_test
 // .dart appends to RESULTS.csv on the host (one row per model x mode).
 //
-// Run (profile mode — required for representative numbers) via the wrapper:
+// Run (profile mode, required for representative numbers) via the wrapper:
 //   tool/run_matrix.sh <device>            # e.g. macos / linux / windows / <id>
 // or directly:
 //   flutter drive --profile \
@@ -468,7 +468,7 @@ void main() {
 
       print('\n${'=' * 130}');
       print(
-        'ENGINE x ACCELERATOR MATRIX — p50±std ms (profile mode for real '
+        'ENGINE x ACCELERATOR MATRIX: p50±std ms (profile mode for real '
         'numbers). ${meta['platform']} / ${meta['device_model']} / '
         '${meta['build_mode']} / commit ${meta['litert_commit']}',
       );

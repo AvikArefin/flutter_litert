@@ -39,8 +39,8 @@ Main improvements over `tflite_flutter`:
 
 - **Core API compatibility with tflite_flutter.** Native `Interpreter`, `InterpreterOptions`, tensors, and delegates keep the familiar API, with additive utilities and documented web differences.
 - **Auto-bundled native libraries.** Works out of the box on Android, iOS, macOS, Windows, and Linux (plus web support via `initializeWeb()`).
-- **Hardware acceleration.** XNNPACK on all native platforms, Metal GPU on iOS and Apple Silicon macOS, GPU delegate on Android (opt-in), [see delegates](#delegates).
-- **CoreML delegate.** Available on iOS and Apple Silicon macOS for Neural Engine / GPU / CPU acceleration, [see delegates](#delegates).
+- **Hardware acceleration (LiteRT Next).** `CompiledModel` selects CPU / GPU / NPU automatically; the recommended path for GPU and NPU acceleration, [see LiteRT Next](#hardware-acceleration-with-litert-next-compiledmodel).
+- **Interpreter delegates.** XNNPACK (CPU) on all native platforms. The GPU (Android), Metal, and CoreML delegates remain available but are **deprecated** in favour of `CompiledModel`, [see delegates](#delegates).
 - **Custom ops.** MediaPipe's `Convolution2DTransposeBias` op is built and included on native platforms.
 - **Isolate support.** Run inference on a background thread with `IsolateInterpreter` on native platforms (web provides a compatibility wrapper).
 
@@ -48,7 +48,7 @@ Main improvements over `tflite_flutter`:
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.8.3
+  flutter_litert: ^3.0.0
 ```
 
 That's it for native platforms.
@@ -87,6 +87,20 @@ To check which TFLite runtime version is loaded:
 ```dart
 print('TFLite version: ${Interpreter.version}'); // e.g. "2.20.0"
 ```
+
+For GPU or NPU acceleration, use the LiteRT Next `CompiledModel` API instead of attaching a delegate by hand. You request a set of accelerators and the runtime selects the best available backend, with CPU fallback:
+
+```dart
+final model = CompiledModel.fromFile(
+  'model.tflite',
+  accelerators: {Accelerator.gpu, Accelerator.cpu}, // GPU with CPU fallback
+);
+
+final outputs = model.run(inputs); // List<Float32List> in, List<Float32List> out
+model.close();
+```
+
+This is the recommended path for hardware acceleration in 3.0.0. See [Hardware acceleration with LiteRT Next (CompiledModel)](#hardware-acceleration-with-litert-next-compiledmodel) for accelerator selection, precision options, and the zero-copy hot path.
 
 ## Demos and Examples
 
@@ -132,7 +146,93 @@ Packages built on flutter_litert:
 
 iOS and macOS will be migrated to LiteRT as official CocoaPods artifacts become available.
 
+## Upgrading to 3.0.0
+
+3.0.0 is a major release: it introduces the LiteRT Next `CompiledModel` API and deprecates the manual GPU/Metal/CoreML delegates. The classic `Interpreter` API stays source-compatible; no method signatures changed. Two `IsolateInterpreter` behavior changes are worth knowing about before you upgrade:
+
+- **In-flight calls now queue instead of being silently dropped.** Previously, calling `run()` or `runForMultipleInputs()` while a run was still in flight returned without writing the outputs. Now the call waits its turn and completes with real results. If you relied on that as frame-skipping (for example, one inference per camera frame), skip explicitly instead:
+
+  ```dart
+  if (isolate.state != IsolateInterpreterState.loading) {
+    isolate.runForMultipleInputs(inputs, outputs);
+  }
+  ```
+
+- **Calling `run()` after `close()` now throws `StateError`** instead of returning silently. Closing an interpreter while a run is in flight also throws, rather than reading freed tensors.
+
+The GPU, Metal, and CoreML delegates are deprecated in 3.0.0 (see [Delegates](#delegates)) but remain functional; they are planned for removal in 4.0.0. The `Interpreter` API, the CPU `XNNPackDelegate`, and `FlexDelegate` are not deprecated.
+
+## Hardware acceleration with LiteRT Next (CompiledModel)
+
+`CompiledModel` is the LiteRT Next inference path. Instead of manually creating and attaching a GPU/NPU delegate, you request a set of accelerators and the runtime selects the best available backend (CPU, GPU, or NPU) for the model:
+
+```dart
+final model = CompiledModel.fromFile(
+  'model.tflite',
+  accelerators: {Accelerator.gpu, Accelerator.cpu}, // GPU with CPU fallback
+  precision: Precision.fp16,
+);
+final outputs = model.run(inputs); // List<Float32List> in, List<Float32List> out
+model.close();
+```
+
+For the common "GPU if available, otherwise CPU" case there is a convenience constructor:
+
+```dart
+final model = CompiledModel.fromBufferWithGpuFallback(modelBytes);
+```
+
+This is the recommended path for GPU and NPU acceleration going forward, following Google's [LiteRT Next guidance](https://developers.google.com/edge/litert/next/get_started). Supported on Android, iOS, macOS, Windows, and Linux. The classic `Interpreter` API below remains fully supported for CPU inference.
+
+## Migrating from Interpreter to CompiledModel
+
+Starting with version 3.0.0, the LiteRT Next `CompiledModel` API is available and is the recommended way to run models with GPU or NPU acceleration. It follows Google's [LiteRT Next guidance](https://developers.google.com/edge/litert/next/get_started): the runtime selects the accelerator for you instead of you creating and attaching a delegate by hand.
+
+You do not have to migrate everything at once. The `Interpreter` API stays fully supported for CPU inference, and the CPU `XNNPackDelegate` and `FlexDelegate` are not deprecated. Only the manual GPU, Metal, and CoreML delegates are deprecated (planned for removal in 4.0.0), so those are the ones to move over to `CompiledModel`.
+
+### Before (Interpreter plus GPU delegate)
+
+```dart
+final options = InterpreterOptions();
+options.addDelegate(GpuDelegateV2()); // or GpuDelegate() / CoreMlDelegate()
+final interpreter = await Interpreter.fromAsset('model.tflite', options: options);
+
+interpreter.run(input, output);
+interpreter.close();
+```
+
+### After (CompiledModel)
+
+```dart
+final model = CompiledModel.fromFile(
+  'model.tflite',
+  accelerators: {Accelerator.gpu, Accelerator.cpu}, // GPU with CPU fallback
+);
+
+final outputs = model.run(inputs); // List<Float32List> in, List<Float32List> out
+model.close();
+```
+
+### What changes
+
+| Interpreter API | CompiledModel API |
+|-----------------|-------------------|
+| `Interpreter.fromAsset` / `fromFile` / `fromBuffer` | `CompiledModel.fromFile` / `CompiledModel.fromBuffer` |
+| `options.addDelegate(GpuDelegateV2())` (or Metal / CoreML) | `accelerators: {Accelerator.gpu, Accelerator.cpu}` |
+| `GpuDelegateOptionsV2(isPrecisionLossAllowed: true)` | `precision: Precision.fp16` (or `Precision.fp32`) |
+| `interpreter.run(input, output)` with nested lists | `model.run(inputs)` returning `List<Float32List>` |
+| `interpreter.close()` | `model.close()` |
+
+Notes:
+
+* `CompiledModel.run` takes a `List<Float32List>` (one entry per input tensor) and returns a `List<Float32List>` (one per output tensor). For a zero-copy hot path, use `writeInput` / `dispatch` / `readOutput` instead.
+* Include `Accelerator.cpu` in the `accelerators` set so the model still runs when the GPU or NPU backend is unavailable on a device.
+* For the common "GPU if available, otherwise CPU" case, `CompiledModel.fromBufferWithGpuFallback(bytes)` requests `{gpu, cpu}` for you and reports any GPU initialization failure through an optional callback.
+* On Apple platforms, `Accelerator.npu` targets the Neural Engine, the replacement for `CoreMlDelegate`.
+
 ## Delegates
+
+> **Deprecation notice:** The GPU (Android), Metal, and CoreML delegates below are **deprecated** in favour of [`CompiledModel`](#hardware-acceleration-with-litert-next-compiledmodel) and are planned for removal in 4.0.0. They remain fully functional in the meantime. The `Interpreter` API itself, the CPU `XNNPackDelegate`, and `FlexDelegate` are **not** deprecated.
 
 Delegates accelerate inference by offloading computation to specialized hardware (GPU, Neural Engine, etc.). All delegates are passed to the interpreter via `InterpreterOptions.addDelegate()`:
 
@@ -147,9 +247,9 @@ final interpreter = await Interpreter.fromAsset('model.tflite', options: options
 | Delegate | Platform | Hardware | Class |
 |----------|----------|----------|-------|
 | XNNPACK | Android, iOS, macOS, Windows, Linux | CPU (optimized SIMD) | `XNNPackDelegate` |
-| GPU (Android) | Android | GPU (OpenGL / OpenCL) | `GpuDelegateV2` |
-| Metal | iOS, macOS (arm64 only on macOS) | GPU (Metal) | `GpuDelegate` |
-| CoreML | iOS, macOS (arm64 only on macOS) | Neural Engine / GPU / CPU | `CoreMlDelegate` |
+| GPU (Android) | Android | GPU (OpenGL / OpenCL) | `GpuDelegateV2` _(deprecated → `CompiledModel`)_ |
+| Metal | iOS, macOS (arm64 only on macOS) | GPU (Metal) | `GpuDelegate` _(deprecated → `CompiledModel`)_ |
+| CoreML | iOS, macOS (arm64 only on macOS) | Neural Engine / GPU / CPU | `CoreMlDelegate` _(deprecated → `CompiledModel`)_ |
 | Flex | Android, iOS, macOS, Windows, Linux | CPU (TensorFlow ops) | `FlexDelegate` |
 
 ### XNNPACK (all native platforms)
@@ -186,6 +286,8 @@ options.addDelegate(XNNPackDelegate(
 ```
 
 ### GPU delegate (Android)
+
+> **Deprecated:** Use [`CompiledModel`](#hardware-acceleration-with-litert-next-compiledmodel) with `accelerators: {Accelerator.gpu, Accelerator.cpu}` instead. Planned for removal in 4.0.0.
 
 The Android GPU delegate uses OpenGL ES or OpenCL for GPU-accelerated inference.
 
@@ -230,6 +332,8 @@ GPU delegate options:
 
 ### Metal delegate (iOS and macOS)
 
+> **Deprecated:** Use [`CompiledModel`](#hardware-acceleration-with-litert-next-compiledmodel) with `accelerators: {Accelerator.gpu, Accelerator.cpu}` instead. Planned for removal in 4.0.0.
+
 The Metal delegate uses Apple's Metal API for GPU-accelerated inference on iOS and macOS. The native library is bundled automatically on both platforms.
 
 ```dart
@@ -249,6 +353,8 @@ Metal delegate options:
 | `enableQuantization` | `bool` | `true` | Enable quantized model support |
 
 ### CoreML delegate (iOS and macOS)
+
+> **Deprecated:** Use [`CompiledModel`](#hardware-acceleration-with-litert-next-compiledmodel) with `accelerators: {Accelerator.npu, Accelerator.gpu, Accelerator.cpu}` instead. Planned for removal in 4.0.0.
 
 The CoreML delegate uses Apple's CoreML framework, which can dispatch to the Neural Engine, GPU, or CPU depending on the model and device. The native library is bundled automatically on both platforms.
 
@@ -640,7 +746,7 @@ Add [`flutter_litert_flex`](https://pub.dev/packages/flutter_litert_flex) to you
 
 ```yaml
 dependencies:
-  flutter_litert: ^2.8.3
+  flutter_litert: ^3.0.0
   flutter_litert_flex: ^1.2.0
 ```
 

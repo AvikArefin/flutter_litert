@@ -1,4 +1,4 @@
-# CompiledModel (LiteRT Next) — measured results (macOS arm64)
+# CompiledModel (LiteRT Next): measured results (macOS arm64)
 
 All numbers from the spikes in `bin/` (`dart run`, warm loops, median µs unless noted),
 LiteRT `ai-edge-litert` 2.1.5. Interpreter side = bundled classic `libtensorflowlite_c-mac`
@@ -21,14 +21,14 @@ Selected (median µs):
 | face_detection_back | 308K | 5,588 | 3,786 | 768 | 285 | 20× |
 | face_detection_short_range | 224K | 927 | 575 | 784 | 187 | 5× |
 
-Rule: **GPU wins big above ~1–2 ms of compute; tiny sub-ms models favor CPU.** It's *compute*,
-not category — `face_detection_back` (heavy) wins on GPU, `face_detection_front` (tiny) on CPU.
+Rule: **GPU wins big above ~1 to 2 ms of compute; tiny sub-ms models favor CPU.** It's *compute*,
+not category: `face_detection_back` (heavy) wins on GPU, `face_detection_front` (tiny) on CPU.
 
 ## Async (`bin/async_probe.dart`)
 
 Single-shot `runAsync` (event-poll) is ~2× faster than sync on GPU and ~matches a depth-8
-pipeline; CPU runs synchronously (asyncOut=0). e.g. face_detection_back GPU: sync ~610–850,
-async ~293–303, pipeline8 ~290. → single-shot async captures the win; no streaming API needed.
+pipeline; CPU runs synchronously (asyncOut=0). e.g. face_detection_back GPU: sync ~610 to 850,
+async ~293 to 303, pipeline8 ~290. → single-shot async captures the win; no streaming API needed.
 
 ## Isolate (`bin/isolate_probe.dart`)
 
@@ -55,12 +55,12 @@ Fallback makes them **run**, not always **fast** (partition overhead can exceed 
 
 Every failing model has **Float32 I/O, no quantization** (cross-checked via the classic TFLite C
 API too). The `504`s are unsupported GPU ops (`DEQUANTIZE`, `RELU_0_TO_1`, `L2_NORMALIZATION`),
-fixed by fallback — not a dtype problem. Status: `3 = RuntimeFailure`, `504 = Compilation`
+fixed by fallback; not a dtype problem. Status: `3 = RuntimeFailure`, `504 = Compilation`
 (confirmed via `LiteRtGetStatusString`).
 
-## Two confirmed upstream bugs (reproduced via Google's own Python API — `python/`)
+## Two confirmed upstream bugs (reproduced via Google's own Python API, `python/`)
 
-NOT our FFI — reproduced with plain `CompiledModel.from_file(model, hardware_accel=GPU|CPU)`:
+NOT our FFI; reproduced with plain `CompiledModel.from_file(model, hardware_accel=GPU|CPU)`:
 - **`face_detection_full_range_sparse`** → SIGABRT: `DENSIFY: Operation is not supported` →
   uncaught `std::bad_optional_access`. Crashes even with CPU fallback. Classic Metal runs it fine.
 - **`gesture_embedder`** → `RuntimeError` at `litert_compiled_model.h:1486`: GATHER shape mismatch
@@ -132,7 +132,7 @@ Paths:
 
 ⇒ Updated decision: `TensorBufferMode.hostMemory` and the direct
 `writeInput`/`dispatchAsync`/`readOutput` API stay **opt-in only**. They are
-correct and sometimes shave ~1–2% on CPU/fallback-heavy models, but they are
+correct and sometimes shave ~1 to 2% on CPU/fallback-heavy models, but they are
 not a safe default and are often slower on Metal GPU. Managed buffers remain
 the default for GPU-heavy face/segmentation models.
 
@@ -146,14 +146,14 @@ textures / platform GPU buffers), not host-memory wrapping from Dart arrays.
 Verified against the official LiteRT source (clone at `_litert_spike/LiteRT`,
 commit ea79caf): `LiteRtTensorBufferT::Lock` waits on an attached event with
 timeout -1 (`tensor_buffer.cc:988`), sync Run waits the same way
-(`compiled_model.cc:1817–1833`), and **no official code polls with timeout 0**.
+(`compiled_model.cc:1817 to 1833`), and **no official code polls with timeout 0**.
 `runAsync` therefore now does a blocking `LiteRtWaitEvent(event, -1)` per
 output instead of the previous `waitEvent(0)` + `Future.delayed(Duration.zero)`
 poll loop (which also had an unbounded-loop edge case).
 
 Measured in-app (macOS arm64, debug, `cm_inference_only_test`, median ms,
 GPU|CPU `runAsync`): back 0.435 → 0.468, face_landmark 0.493 → 0.416, iris
-0.647 → 0.680 — parity within noise. Sync `run()`'s extra ~0.9 ms on GPU is
+0.647 → 0.680; parity within noise. Sync `run()`'s extra ~0.9 ms on GPU is
 NOT the event wait (it persists either way); async dispatch + event wait stays
 ~3× faster than sync `run()` on Metal even when the wait blocks.
 
@@ -166,7 +166,7 @@ NOT the event wait (it persists either way); async dispatch + event wait stays
 | iris_landmark | 1.47 | **0.50** | 1.09 | 0.65 |
 
 ⇒ Detection + mesh belong on GPU|CPU async; **iris (64×64) is fastest on
-CompiledModel-CPU** — consistent with the "GPU wins above ~1–2 ms compute"
+CompiledModel-CPU**, consistent with the "GPU wins above ~1 to 2 ms compute"
 rule. face_detection_tflite now pins iris to `{cpu}`.
 
 ## Whole-pipeline A/B variance lesson (2026-06-10)
@@ -174,7 +174,7 @@ rule. face_detection_tflite now pins iris to `{cpu}`.
 The same `compiledmodel_ab_test` on the same code measured CM fast-mode at
 0.85× (midday, loaded machine: interp fast mean 14.8 ms, heavy mean/median
 skew) and 1.31× (quiet machine: interp fast mean 6.2 ms, mean≈median). The
-interpreter engine was unchanged between runs — absolute numbers and
+interpreter engine was unchanged between runs; absolute numbers and
 cross-run ratios from this benchmark are unreliable; only the within-run
 paired ratio on a quiet machine is meaningful. Post-change quiet-machine runs
 (two consecutive, ratios reproduce within ±0.03): fast 1.31×/1.32×, full
@@ -207,7 +207,7 @@ Verified against the LiteRT source (clones under `_litert_spike/`):
   `LiteRtEnvironment` parameter to `LiteRtCreateModelFromFile/FromBuffer`;
   prebuilts updated after that date crash v2.1.5-shaped bindings
   (`fromFile` → status 500 FileIO, `fromBuffer` → SIGSEGV in the flatbuffer
-  verifier — both reproduced on the simulator with `bc426d8` binaries).
+  verifier; both reproduced on the simulator with `bc426d8` binaries).
   Pin: commit `1adc2475829fbe52d5670873821a45bea8779532` (2026-05-28, last
   prebuilt update before the change). All 38 bound symbols exist there and all
   bound-function signatures are byte-identical to v2.1.5
@@ -218,7 +218,7 @@ Verified against the LiteRT source (clones under `_litert_spike/`):
   `MTLSimSharedEvent waitUntilSignaledValue` (sync XPC to MTLSimDriver; no
   signal ever arrives). Reproduced twice with GPU|CPU-async → close →
   strict-GPU-async; sync-then-async sequences pass. Simulator-only driver
-  path (MTLSimDriver) — real devices use a different Metal stack. The
+  path (MTLSimDriver); real devices use a different Metal stack. The
   integration test keeps the fallback test sync-only so CI stays
   deterministic.
 
@@ -228,12 +228,12 @@ Verified against the LiteRT source (clones under `_litert_spike/`):
   arm64-v8a + x86_64, both 16 KB page-size aligned) via a Gradle
   download-at-build task (release `litert-android-v1.0.0`), additively next to
   the classic Maven `litert:1.4.1` artifacts. Loader dlopens the bare soname.
-- All 38 bound symbols are exported (with `@@VERS_1.0` symbol versioning —
+- All 38 bound symbols are exported (with `@@VERS_1.0` symbol versioning;
   plain-name dlsym still resolves them).
 - **The OpenCL/GL GPU accelerator is deliberately NOT bundled yet:** when
   `libLiteRtClGlAccelerator.so` registers in an environment without working
   OpenCL (every emulator), `LiteRtCreateCompiledModel` with GPU|CPU fails with
-  status 3 (RuntimeFailure) instead of falling back to CPU — registered-but-
+  status 3 (RuntimeFailure) instead of falling back to CPU; registered-but-
   broken GPU is worse than no GPU. Re-add once validated on real hardware
   (single `include()` line in android/build.gradle.kts).
 - Emulator (Android 16 arm64, Pixel 8 AVD): CPU inference, fromBuffer/runAsync

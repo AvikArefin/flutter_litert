@@ -58,7 +58,7 @@ double _std(List<int> t) {
   final interp = Interpreter.fromBuffer(bytes, options: options);
   interp.allocateTensors();
 
-  // Inputs are left at their allocated (zero) state — timing of invoke() does
+  // Inputs are left at their allocated (zero) state; timing of invoke() does
   // not depend on input values, only on shapes/ops, which is what we measure.
   for (int i = 0; i < warmup; i++) {
     interp.invoke();

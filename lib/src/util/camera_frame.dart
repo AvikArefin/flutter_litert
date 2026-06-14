@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 
+import 'packed_image_layout.dart';
 import 'yuv_conversion.dart';
 
 /// The colour conversion a [CameraFrame]'s bytes need before being used as a
@@ -36,6 +37,58 @@ enum CameraFrameRotation {
 
   /// Rotate 90° counter-clockwise (270° clockwise).
   cw270,
+}
+
+/// Operation ordering for a backend-specific [CameraFrame] decoder.
+///
+/// Four-channel RGB(A) buffers can be resized/rotated before dropping alpha,
+/// reducing colour-conversion work. Packed YUV buffers must be colour-converted
+/// first because their source layout is not directly resizable as an image.
+enum CameraFrameDecodeOrder {
+  /// Resize/crop/rotate first, then convert to BGR/RGB/etc.
+  resizeRotateThenColorConvert,
+
+  /// Convert colour first, then resize/crop/rotate.
+  colorConvertThenResizeRotate,
+}
+
+/// Backend-neutral instructions for decoding a [CameraFrame].
+///
+/// Detector packages map [conversion] and [rotation] to their image backend
+/// constants (for example OpenCV `COLOR_*` and `ROTATE_*` values), while this
+/// plan centralizes source-buffer layout, stride padding, and operation order.
+class CameraFrameDecodePlan {
+  /// The packed source layout to reconstruct before colour conversion.
+  final PackedImageLayout sourceLayout;
+
+  /// Logical image width before [rotation], excluding stride padding.
+  final int visibleWidth;
+
+  /// Logical image height before [rotation].
+  final int visibleHeight;
+
+  /// Whether [sourceLayout.cols] contains padded columns beyond [visibleWidth].
+  final bool hasStridePadding;
+
+  /// Colour conversion required by the source bytes.
+  final CameraFrameConversion conversion;
+
+  /// Optional rotation to apply.
+  final CameraFrameRotation? rotation;
+
+  /// Safe operation order for the source layout.
+  final CameraFrameDecodeOrder order;
+
+  /// Creates a camera-frame decode plan.
+  const CameraFrameDecodePlan({
+    required this.sourceLayout,
+    required this.visibleWidth,
+    required this.visibleHeight,
+    required this.hasStridePadding,
+    required this.conversion,
+    required this.rotation,
+    required this.order,
+  });
 }
 
 /// A camera frame packaged for off-thread colour conversion and inference.
@@ -85,6 +138,58 @@ class CameraFrame {
     required this.conversion,
     this.rotation,
   });
+
+  /// Builds backend-neutral decode instructions for this frame.
+  ///
+  /// Image backends should allocate their source buffer from
+  /// [CameraFrameDecodePlan.sourceLayout] and use
+  /// [PackedImageLayout.copyTo] instead of list-element reconstruction APIs.
+  CameraFrameDecodePlan decodePlan() {
+    switch (conversion) {
+      case CameraFrameConversion.bgra2bgr:
+      case CameraFrameConversion.rgba2bgr:
+        return CameraFrameDecodePlan(
+          sourceLayout: PackedImageLayout(
+            rows: height,
+            cols: strideCols,
+            channels: 4,
+            format: conversion == CameraFrameConversion.bgra2bgr
+                ? PackedImageFormat.bgra8888
+                : PackedImageFormat.rgba8888,
+          ),
+          visibleWidth: width,
+          visibleHeight: height,
+          hasStridePadding: strideCols != width,
+          conversion: conversion,
+          rotation: rotation,
+          order: CameraFrameDecodeOrder.resizeRotateThenColorConvert,
+        );
+
+      case CameraFrameConversion.yuv2bgrNv12:
+      case CameraFrameConversion.yuv2bgrNv21:
+      case CameraFrameConversion.yuv2bgrI420:
+        final format = switch (conversion) {
+          CameraFrameConversion.yuv2bgrNv12 => PackedImageFormat.yuv420Nv12,
+          CameraFrameConversion.yuv2bgrNv21 => PackedImageFormat.yuv420Nv21,
+          CameraFrameConversion.yuv2bgrI420 => PackedImageFormat.yuv420I420,
+          _ => PackedImageFormat.yuv420Nv12,
+        };
+        return CameraFrameDecodePlan(
+          sourceLayout: PackedImageLayout(
+            rows: height + height ~/ 2,
+            cols: width,
+            channels: 1,
+            format: format,
+          ),
+          visibleWidth: width,
+          visibleHeight: height,
+          hasStridePadding: false,
+          conversion: conversion,
+          rotation: rotation,
+          order: CameraFrameDecodeOrder.colorConvertThenResizeRotate,
+        );
+    }
+  }
 }
 
 /// Convenience wrapper around [prepareCameraFrame] that accepts any object

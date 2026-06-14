@@ -29,6 +29,35 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
 # Build the TFLite custom ops library (e.g., Convolution2DTransposeBias for MediaPipe)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_BINARY_DIR}/custom_ops")
 
+# The WebGPU GPU accelerator (~16 MB) is fetched at build time from a GitHub
+# release rather than bundled in the published pub.dev package, which must stay
+# under the 100 MiB limit. Downloaded (verified by SHA-256) only if not present.
+function(flutter_litert_fetch_lib path url sha)
+  if(EXISTS "${path}")
+    return()
+  endif()
+  foreach(attempt RANGE 1 3)
+    message(STATUS "flutter_litert: downloading ${url} (attempt ${attempt})")
+    file(DOWNLOAD "${url}" "${path}"
+      EXPECTED_HASH SHA256=${sha}
+      TLS_VERIFY ON
+      STATUS dl_status)
+    list(GET dl_status 0 dl_code)
+    if(dl_code EQUAL 0)
+      return()
+    endif()
+    list(GET dl_status 1 dl_msg)
+    message(WARNING "flutter_litert: download failed (${dl_msg}); retrying")
+    file(REMOVE "${path}")
+  endforeach()
+  message(FATAL_ERROR "flutter_litert: could not download ${url}")
+endfunction()
+
+flutter_litert_fetch_lib(
+  "${CMAKE_CURRENT_SOURCE_DIR}/lib/libLiteRtWebGpuAccelerator.so"
+  "https://github.com/hugocornellier/flutter_litert/releases/download/litert-desktop-gpu-v1.0.0/libLiteRtWebGpuAccelerator.so"
+  "d732c738e5206dd3374d0496a3f00deb4e02aec37bf5678c5617bad422bb0249")
+
 set(flutter_tflite_bundled_libraries
   "$<TARGET_FILE:tflite_custom_ops>"
   "${CMAKE_CURRENT_SOURCE_DIR}/lib/libtensorflowlite_c-linux.so"

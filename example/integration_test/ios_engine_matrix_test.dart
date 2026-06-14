@@ -1,9 +1,9 @@
 // ignore_for_file: avoid_print
 
 // On-device engine x accelerator matrix: every bundled model through BOTH
-// runtimes — classic Interpreter (cpu / xnnpack / Metal GPU delegate / CoreML)
+// runtimes: classic Interpreter (cpu / xnnpack / Metal GPU delegate / CoreML)
 // and LiteRT Next CompiledModel (cpu / strict-GPU sync / strict-GPU async /
-// GPU|CPU fallback / GPU host-memory async) — plus a CompiledModel-vs-
+// GPU|CPU fallback / GPU host-memory async), plus a CompiledModel-vs-
 // Interpreter output parity column (max abs diff on output 0, zero inputs).
 //
 // Delegates and accelerators are built DIRECTLY so a failure to initialize
@@ -232,7 +232,7 @@ void main() {
     tearDownAll(() {
       print('\n${'=' * 120}');
       print(
-        'iOS ENGINE x ACCELERATOR MATRIX — p50±std ms. '
+        'iOS ENGINE x ACCELERATOR MATRIX: p50±std ms. '
         'Interpreter: cpu/xnn/gpu(Metal)/coreml(ANE). '
         'CompiledModel: cpu, strict-gpu sync/async, gpu|cpu, host-memory async. '
         'parity = max abs diff CM-cpu vs interp-cpu (output 0, zero inputs).',

@@ -63,6 +63,45 @@ Float32List _bgrToRgbFloat32({
   return tensor;
 }
 
+/// Converts RGBA pixel data to a normalized RGB Float32List tensor in-place.
+///
+/// Normalizes each channel to `0.0..1.0`. The alpha channel is discarded. This
+/// is the RGBA-input sibling of [bgrBytesToRgbFloat32], for pixel data that
+/// already arrives in RGBA order (e.g. a web canvas readback).
+///
+/// Parameters:
+/// - [rgbaData]: RGBA pixel bytes (length must be a multiple of 4)
+/// - [output]: Pre-allocated buffer (length must be rgbaData.length * 3 ~/ 4)
+void rgbaToRgbFloat32(Uint8List rgbaData, Float32List output) {
+  const double norm = 1.0 / 255.0;
+  int dst = 0;
+  for (int src = 0; src < rgbaData.length; src += 4) {
+    output[dst++] = rgbaData[src] * norm;
+    output[dst++] = rgbaData[src + 1] * norm;
+    output[dst++] = rgbaData[src + 2] * norm;
+  }
+}
+
+/// Converts RGBA pixel data to a signed RGB Float32List tensor in-place.
+///
+/// Normalizes each channel via `(value / 127.5) - 1.0` into `-1.0..1.0`, as
+/// expected by models trained on signed normalized input (e.g. MediaPipe). The
+/// alpha channel is discarded. This is the RGBA-input sibling of
+/// [bgrBytesToSignedFloat32].
+///
+/// Parameters:
+/// - [rgbaData]: RGBA pixel bytes (length must be a multiple of 4)
+/// - [output]: Pre-allocated buffer (length must be rgbaData.length * 3 ~/ 4)
+void rgbaToSignedRgbFloat32(Uint8List rgbaData, Float32List output) {
+  const double norm = 1.0 / 127.5;
+  int dst = 0;
+  for (int src = 0; src < rgbaData.length; src += 4) {
+    output[dst++] = rgbaData[src] * norm - 1.0;
+    output[dst++] = rgbaData[src + 1] * norm - 1.0;
+    output[dst++] = rgbaData[src + 2] * norm - 1.0;
+  }
+}
+
 /// Fills a 4D NHWC tensor in-place from raw BGR bytes with a BGR-to-RGB channel swap.
 ///
 /// The [tensor] must already be allocated as `[1][height][width][3]`.

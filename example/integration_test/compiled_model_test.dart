@@ -10,7 +10,7 @@ import 'package:flutter_litert/src/bindings/litert_loader.dart'
 
 /// End-to-end CompiledModel (LiteRT Next) checks inside a real app process.
 ///
-/// CPU tests must pass wherever the LiteRT runtime is bundled — all five
+/// CPU tests must pass wherever the LiteRT runtime is bundled, across all five
 /// native platforms. On desktop this proves the production load path: the
 /// platform build bundles the runtime next to the executable and the loader
 /// resolves it from there, not from the package checkout. GPU tests assert
@@ -40,8 +40,8 @@ void main() {
         return;
       }
       // Force the lazy loader, then assert the library it actually dlopen'd
-      // came from next to the executable — where CMake bundled_libraries puts
-      // it for end users — and not from the loader's package-checkout
+      // came from next to the executable (where CMake bundled_libraries puts
+      // it for end users), and not from the loader's package-checkout
       // fallback, which exists in CI/dev environments but not in shipped
       // apps. This is what makes a green run prove the bundling worked.
       CompiledModel.fromBuffer(
@@ -110,10 +110,23 @@ void main() {
     });
 
     testWidgets('compiles with GPU and CPU fallback', (tester) async {
-      final cm = CompiledModel.fromFile(
-        modelFile.path,
-        accelerators: {Accelerator.gpu, Accelerator.cpu},
-      );
+      final CompiledModel cm;
+      try {
+        cm = CompiledModel.fromFile(
+          modelFile.path,
+          accelerators: {Accelerator.gpu, Accelerator.cpu},
+        );
+      } on StateError catch (e) {
+        // A bundled GPU accelerator that can't initialize (e.g. Linux WebGPU
+        // with no adapter on a headless runner) fails the create outright
+        // instead of falling back to CPU, so skip where the GPU stack is
+        // absent; the CPU-fallback path is still covered by the CPU tests.
+        if (_isGpuUnavailable(e)) {
+          markTestSkipped('GPU accelerator unavailable here.');
+          return;
+        }
+        rethrow;
+      }
       addTearDown(cm.close);
 
       // Sync run on purpose. On the iOS *simulator*, MTLSimDriver's shared
@@ -159,9 +172,11 @@ void main() {
 /// documented headless-compilation status (504) is acceptable. On Android the
 /// OpenCL/GL accelerator depends on the device or emulator GPU stack, so any
 /// LiteRT status from a strict-GPU create means the accelerator is absent
-/// (emulators in particular have no working OpenCL). On Linux and Windows the
-/// GPU accelerator library is not bundled at all (only the base runtime is),
-/// so strict-GPU creation is expected to fail with any LiteRT status.
+/// (emulators in particular have no working OpenCL). On Linux the WebGPU
+/// accelerator is now bundled, but headless runners expose no adapter, so the
+/// create fails with a runtime status; on Windows the GPU accelerator library
+/// is not bundled at all. On either, any LiteRT status from a GPU create means
+/// the accelerator is unavailable here.
 bool _isGpuUnavailable(StateError e) {
   if (e.message.contains('LiteRtStatus=504')) return true;
   return (Platform.isAndroid || Platform.isLinux || Platform.isWindows) &&

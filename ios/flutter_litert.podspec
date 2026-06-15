@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_litert'
-  s.version          = '3.0.0'
+  s.version          = '3.1.1'
   s.summary          = 'LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.'
   s.description      = <<-DESC
 LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
@@ -62,13 +62,22 @@ LiteRT (formerly TensorFlow Lite) plugin for Flutter apps.
   # LiteRT's GPU-plugin file-name scan; Classes/litert_gpu_accelerator_shim.c
   # registers the Metal accelerator instead. (The SwiftPM channel ships
   # bare-dylib xcframeworks where the runtime's own scan works.)
-  litert_marker = File.join(framework_dir, 'LiteRt.xcframework',
-                            'ios-arm64', 'LiteRt.framework', 'LiteRt')
-  unless File.exist?(litert_marker)
+  # Check BOTH slices: a stale download may carry only an arm64-only
+  # `ios-arm64-simulator` slice (no x86_64), whose identifier does not match
+  # the `ios-arm64_x86_64-simulator` that CocoaPods' slice selection expects.
+  # Requiring the simulator marker forces a re-download over such a cache.
+  litert_device_marker = File.join(framework_dir, 'LiteRt.xcframework',
+                                   'ios-arm64', 'LiteRt.framework', 'LiteRt')
+  litert_sim_marker = File.join(framework_dir, 'LiteRt.xcframework',
+                                'ios-arm64_x86_64-simulator', 'LiteRt.framework', 'LiteRt')
+  unless File.exist?(litert_device_marker) && File.exist?(litert_sim_marker)
     puts '[flutter_litert] Downloading LiteRT Next iOS frameworks...'
     zip = File.join(framework_dir, '_litert_ios.zip')
     system("curl -sL 'https://github.com/hugocornellier/flutter_litert/releases/download/litert-ios-v1.0.0/litert-ios-frameworks.zip' -o '#{zip}'")
     abort '[flutter_litert] ERROR: Failed to download LiteRT Next iOS frameworks. Check your internet connection.' unless $?.success?
+    # Remove any stale slices first so an old arm64-only simulator slice can't
+    # linger alongside the freshly downloaded universal one.
+    system("rm -rf '#{File.join(framework_dir, 'LiteRt.xcframework')}' '#{File.join(framework_dir, 'LiteRtMetalAccelerator.xcframework')}'")
     system("unzip -qo '#{zip}' -d '#{framework_dir}'")
     File.delete(zip) if File.exist?(zip)
     puts '[flutter_litert] LiteRT Next iOS frameworks installed.'

@@ -1,3 +1,18 @@
+## 3.1.1
+
+Fixes the iOS CocoaPods build for the LiteRT Next runtime. The prebuilt
+`LiteRt.xcframework` / `LiteRtMetalAccelerator.xcframework` download shipped an
+arm64-only `ios-arm64-simulator` slice, whose identifier does not match the
+`ios-arm64_x86_64-simulator` slice CocoaPods selects on the simulator. The build
+then failed copying a non-existent slice (`rsync ... No such file or directory`).
+
+* Fix: the downloaded iOS frameworks now carry a universal
+  `ios-arm64_x86_64-simulator` slice (arm64 device binary + x86_64 stub), so the
+  simulator build resolves and links. (SwiftPM builds were unaffected.)
+* Fix: the podspec now verifies the simulator slice — not just the device
+  slice — before skipping the download, and clears stale slices on re-download,
+  so an existing arm64-only cache is replaced.
+
 ## 3.1.0
 
 Additive release: shared isolate, CompiledModel-pooling, and image-RPC

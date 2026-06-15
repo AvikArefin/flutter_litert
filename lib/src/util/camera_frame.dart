@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart'
@@ -316,5 +317,43 @@ CameraFrame? prepareCameraFrame({
       YuvLayout.i420 => CameraFrameConversion.yuv2bgrI420,
     },
     rotation: rotation,
+  );
+}
+
+/// Builds the isolate-request field map for a [CameraFrame] payload, merged with
+/// any [extra] per-op fields (e.g. `maxDim`, `mode`, `outputFormat`).
+///
+/// [frame]'s bytes are wrapped in [TransferableTypedData] for zero-copy
+/// transfer. Reconstruct on the isolate side with [cameraFrameFromRpcMessage].
+Map<String, dynamic> cameraFrameRpcFields(
+  CameraFrame frame, [
+  Map<String, dynamic> extra = const {},
+]) => {
+  'bytes': TransferableTypedData.fromList([frame.bytes]),
+  'width': frame.width,
+  'height': frame.height,
+  'strideCols': frame.strideCols,
+  'conversion': frame.conversion.index,
+  'rotation': frame.rotation?.index,
+  ...extra,
+};
+
+/// Reconstructs a [CameraFrame] from an isolate-request [message] built by
+/// [cameraFrameRpcFields] and the already-materialized [bytes].
+///
+/// The pure-Dart counterpart of each detector's OpenCV decode: the
+/// `cameraFrameToBgrMat`-style step that follows stays per-detector (they own
+/// the opencv dependency), this only rebuilds the backend-neutral descriptor.
+CameraFrame cameraFrameFromRpcMessage(Map message, Uint8List bytes) {
+  final int? rotationIndex = message['rotation'] as int?;
+  return CameraFrame(
+    bytes: bytes,
+    width: message['width'] as int,
+    height: message['height'] as int,
+    strideCols: message['strideCols'] as int,
+    conversion: CameraFrameConversion.values[message['conversion'] as int],
+    rotation: rotationIndex == null
+        ? null
+        : CameraFrameRotation.values[rotationIndex],
   );
 }

@@ -1,3 +1,37 @@
+## 3.1.0
+
+Additive release: shared isolate, CompiledModel-pooling, and image-RPC
+utilities, extracted so the packages built on flutter_litert can maintain them
+in one place instead of each carrying its own copy. No breaking changes; the
+`Interpreter` and `CompiledModel` APIs are unchanged.
+
+* New: `serveIsolateRpc` — the isolate-side counterpart to `IsolateRpcClient`.
+  Drives the `{id, op}` -> `{id, result | error}` protocol from a handler map,
+  replacing the hand-written `listen`/`switch`/try-catch envelope each worker
+  isolate used to carry. `IsolateRpcExactError` lets a handler send a verbatim
+  wire-error string when the main side relies on the exact text (e.g. a
+  `startsWith` error contract).
+* New: `IsolateWorkerBase.disposeGracefully` and
+  `IsolateRpcClient.disposeGracefully` — send the dispose op and await the
+  isolate's acknowledgement before killing it, so the isolate can free native
+  interpreters / `CompiledModel`s. `Isolate.kill(priority: immediate)` otherwise
+  races past the queued dispose message and leaks the native handles.
+* New: `CompiledModelPool` — a round-robin pool of `CompiledModel` slots, each
+  with its own reusable input buffer and `AsyncLock`, so concurrent inferences
+  (e.g. one per detected object) land on distinct models with leak-free init
+  teardown. A pool of size 1 degrades to a safe single-model-plus-lock.
+* New: `compiled_io_utils` — `compiledFloatCount`, `squareSideFromFloats`,
+  `compiledSquareInputSide`, `compiledOutputFloatCounts`, and
+  `indexWhereFloatCount` for deriving tensor geometry from a `CompiledModel`,
+  whose tensor sizes are exposed only in bytes.
+* New: `cameraFrameRpcFields` and `cameraFrameFromRpcMessage` — pack a
+  `CameraFrame` into an isolate-request field map and rebuild it on the isolate
+  side (any image decode stays in the consumer, keeping this dependency-free).
+* New: `decodeFailurePrefix`, `throwDecodeFailure`, and
+  `rethrowOrFormatException` — signal an undecodable-image failure from inside
+  an isolate and surface it as a `FormatException` on the main side instead of a
+  cryptic downstream error.
+
 ## 3.0.0
 
 * New: LiteRT Next `CompiledModel` API: `CompiledModel.fromFile`,

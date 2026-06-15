@@ -77,6 +77,33 @@ class IsolateRpcClient {
     isolate = null;
     sendPort = null;
   }
+
+  /// Gracefully disposes: sends [disposeOp] as a request and awaits the
+  /// isolate's ack (so it can free native resources) before force-killing via
+  /// [failAllAndDispose].
+  ///
+  /// The raw-client analogue of `IsolateWorkerBase.disposeGracefully`, for
+  /// isolates managed directly via an [IsolateRpcClient] rather than a worker.
+  ///
+  /// Best-effort: if [disposeOp] is null, the client is not ready, or the ack
+  /// does not arrive within [timeout], it falls through to [failAllAndDispose].
+  /// The isolate's dispose handler must reply `{'id': id, 'result': ...}`.
+  Future<void> disposeGracefully({
+    String? disposeOp,
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (disposeOp != null && sendPort != null) {
+      try {
+        await sendRequest<dynamic>(
+          disposeOp,
+          const <String, dynamic>{},
+        ).timeout(timeout);
+      } catch (_) {
+        // Best-effort; fall through to the synchronous force-kill below.
+      }
+    }
+    failAllAndDispose();
+  }
 }
 
 /// Performs the initial SendPort handshake with a newly spawned isolate.

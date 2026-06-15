@@ -109,4 +109,36 @@ abstract class IsolateWorkerBase {
     rpc.failAllAndDispose(disposeOp: workerDisposeOp);
     _initialized = false;
   }
+
+  /// Gracefully disposes the worker: sends [workerDisposeOp] to the isolate as a
+  /// request and awaits its acknowledgement — giving the isolate a chance to
+  /// free native resources — before force-killing it via [dispose].
+  ///
+  /// [dispose] alone kills the isolate synchronously with
+  /// `Isolate.kill(priority: immediate)`, which races past any queued dispose
+  /// message, so the isolate can die before releasing its native TFLite
+  /// interpreters (~10-26MB leaked per detector on Android; under sequential
+  /// create/dispose load the low-memory killer reaps the process). Routing
+  /// teardown through this method first lets the isolate ack and clean up.
+  ///
+  /// Best-effort: if the worker is not ready, [workerDisposeOp] is null, or the
+  /// ack does not arrive within [timeout], it falls through to [dispose]. The
+  /// isolate's dispose handler must reply `{'id': id, 'result': ...}` for the
+  /// ack to resolve.
+  Future<void> disposeGracefully({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final String? op = workerDisposeOp;
+    if (_initialized && op != null) {
+      try {
+        await sendRequestUnchecked<dynamic>(
+          op,
+          const <String, dynamic>{},
+        ).timeout(timeout);
+      } catch (_) {
+        // Fall through to the synchronous force-kill below.
+      }
+    }
+    await dispose();
+  }
 }

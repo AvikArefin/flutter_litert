@@ -266,6 +266,7 @@ jobs:
         run: >-
           flutter test --platform chrome
           test/compiled_model_web_test.dart
+          test/litertjs_multi_input_web_test.dart
           test/web_detector_utils_web_test.dart
           test/litert_web_loader_test.dart
           test/util/camera_frame_prepare_test.dart

@@ -1,3 +1,14 @@
+## 3.9.4
+
+* **Multi-input models now run on the web** ([issue #21](https://github.com/hugocornellier/flutter_litert/issues/21)).
+  In JavaScript (dart2js) builds, `LiteRtInterpreter.runForMultipleInputs` and
+  `CompiledModel.runAsync` failed on any model with two or more inputs with
+  `'CastList<JSObject, Object>' is not a subtype of type 'JSArray<Object?>'`.
+  Single-input models, WebAssembly (dart2wasm) builds, and native platforms
+  were unaffected. A browser test with a two-input model now covers both entry
+  points in CI. Thanks to @AvikArefin for the report and the fix
+  ([#22](https://github.com/hugocornellier/flutter_litert/pull/22)).
+
 ## 3.9.3
 
 Documentation and example fixes only. No change to the package's code or

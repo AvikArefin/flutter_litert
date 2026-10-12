@@ -633,7 +633,9 @@ class CompiledModel {
       }
       final JSAny callArg = tensorsJs.length == 1
           ? tensorsJs[0] as JSAny
-          : tensorsJs.cast<JSAny>().toJS;
+          // A list literal is a real JS array under dart2js; a `cast()` view is not,
+          // and `.toJS` on it hands LiteRT.js a Dart object instead of a JSArray.
+          : <JSAny>[for (final t in tensorsJs) t].toJS;
       try {
         resultJs = await _model.run(callArg).toDart;
       } catch (e) {
